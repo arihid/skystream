@@ -26,6 +26,8 @@ import 'core/network/cloudflare_bypass.dart';
 import 'package:dpad/dpad.dart';
 import 'core/config/tmdb_config.dart';
 import 'core/providers/device_info_provider.dart';
+import 'core/input/gamepad_shortcut_manager.dart';
+import 'core/input/gamepad_actions.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -331,7 +333,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           scaffoldMessengerKey: ref
               .read(notificationServiceProvider)
               .messengerKey,
-          title: 'SkyStream',
+          title: 'SkyStream Beta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
           theme: lightDynamic != null
@@ -363,7 +365,18 @@ class _MyAppState extends ConsumerState<MyApp> {
                 child: result,
               );
             }
-
+            
+            // Phase 2: Gamepad input handling
+            return GamepadShortcutManager(
+              child: Actions(
+                actions: AppActionBindings.getBindings(context),
+                child: FocusTraversalGroup(
+                  policy: DirectionalFocusTraversalPolicyMixin(),
+                  child: child,
+                )
+              ),
+            );
+            
             return result;
           },
         );
