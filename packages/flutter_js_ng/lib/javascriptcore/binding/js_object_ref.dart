@@ -313,11 +313,10 @@ class JSStaticValueStruct {
     Pointer<Utf8>? name,
     Pointer<NativeFunction<JSObjectGetPropertyCallback>>? getProperty,
     Pointer<NativeFunction<JSObjectSetPropertyCallback>>? setProperty,
-    int attributes = JSPropertyAttributes.kJSPropertyAttributeNone,
+    this.attributes = JSPropertyAttributes.kJSPropertyAttributeNone,
   })  : name = name ?? nullptr,
         getProperty = getProperty ?? nullptr,
-        setProperty = setProperty ?? nullptr,
-        attributes = attributes;
+        setProperty = setProperty ?? nullptr;
 }
 
 /// struct JSStaticFunction
@@ -365,10 +364,9 @@ class JSStaticFunctionStruct {
   JSStaticFunctionStruct({
     Pointer<Utf8>? name,
     Pointer<NativeFunction<JSObjectCallAsFunctionCallback>>? callAsFunction,
-    int attributes = JSPropertyAttributes.kJSPropertyAttributeNone,
+    this.attributes = JSPropertyAttributes.kJSPropertyAttributeNone,
   })  : name = name ?? nullptr,
-        callAsFunction = callAsFunction ?? nullptr,
-        attributes = attributes;
+        callAsFunction = callAsFunction ?? nullptr;
 }
 
 /// struct JSStaticFunction
