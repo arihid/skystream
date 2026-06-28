@@ -121,4 +121,12 @@ class SettingsRepository {
   Future<void> deleteAllData() async {
     await _storageService.deleteAllData();
   }
+
+  Future<void> setFullscreenEnabled(bool enabled) async {
+    await _storageService.setFullscreenEnabled(enabled);
+  }
+
+  bool isFullscreenEnabled() {
+    return _storageService.isFullscreenEnabled();
+  }
 }

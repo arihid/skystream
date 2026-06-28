@@ -149,6 +149,18 @@ class StorageService {
     return _settingsBox.get('theme_mode') as String?;
   }
 
+  Future<void> setFullscreenEnabled(bool enabled) async {
+    // ignore: inference_failure_on_function_invocation
+    final box = Hive.box('settings_box');
+    await box.put('is_fullscreen_enabled', enabled);
+  }
+
+  bool isFullscreenEnabled() {
+    // ignore: inference_failure_on_function_invocation
+    final box = Hive.box('settings_box');
+    return box.get('is_fullscreen_enabled', defaultValue: false) as bool;
+  }
+
   // --- Sidebar State ---
   Future<void> setSidebarExpanded(bool expanded) async {
     await _settingsBox.put('sidebar_expanded', expanded);

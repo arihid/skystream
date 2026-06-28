@@ -1247,4 +1247,14 @@ class AppLocalizationsMl extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'ആപ്ലിക്കേഷൻ പ്രവർത്തനങ്ങളും പിശകുകളും കാണുക';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

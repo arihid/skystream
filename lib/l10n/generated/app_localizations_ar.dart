@@ -1237,6 +1237,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'عرض نشاط التطبيق والأخطاء';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }
 
 /// The translations for Arabic (`ar_apc`).

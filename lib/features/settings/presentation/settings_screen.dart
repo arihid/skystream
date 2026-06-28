@@ -18,6 +18,8 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/network/doh_service.dart';
 import '../../../core/router/app_router.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:hive/hive.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -70,6 +72,7 @@ class SettingsScreen extends ConsumerWidget {
     final versionAsync = ref.watch(appVersionProvider);
     final themeMode = ref.watch(appThemeModeProvider);
     final generalSettings = ref.watch(generalSettingsProvider);
+    final bool isFullscreen;
 
     final playerSettings =
         ref.watch(playerSettingsProvider).asData?.value ??
@@ -439,6 +442,23 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            // Added a new section for Beta Features
+            const SizedBox(height: LayoutConstants.spacingLg),
+            SettingsGroup(
+              title: AppLocalizations.of(context)!.betaFeatures,
+              children: [
+                SettingsTile(
+                  icon: Icons.fullscreen_rounded,
+                  title: AppLocalizations.of(context)!.toggleFullscreen,
+                  subtitle: AppLocalizations.of(context)!.toggleFullscreenSubtitle,
+                  trailing: Switch(
+                    value: generalSettings.isFullscreenEnabled, // Read from Riverpod state
+                    onChanged: (val) => _safeToggleFullscreen(val, ref),
+                  ),
+                  onTap: () => _safeToggleFullscreen(!generalSettings.isFullscreenEnabled, ref),
+                ),
+              ],
+            ),
             const SizedBox(height: LayoutConstants.spacingLg),
             SettingsGroup(
               title: l10n.about,
@@ -485,4 +505,18 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+// This function safely toggles fullscreen mode on desktop platforms, ensuring that the window is un-maximized before entering fullscreen if necessary. It also updates the Riverpod state to reflect the new fullscreen setting.
+Future<void> _safeToggleFullscreen(bool targetState, WidgetRef ref) async {
+  if (targetState) {
+    // WIN32 QUIRK FIX: We must un-maximize before going fullscreen
+    bool isMaximized = await windowManager.isMaximized();
+    if (isMaximized) {
+      await windowManager.unmaximize();
+    }
+  }
+  
+  await windowManager.setFullScreen(targetState);
+  ref.read(generalSettingsProvider.notifier).setFullscreenEnabled(targetState);
 }

@@ -1252,4 +1252,14 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get viewLogsSubtitle =>
       'செயலி செயல்பாடு மற்றும் பிழைகளைப் பார்க்கவும்';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

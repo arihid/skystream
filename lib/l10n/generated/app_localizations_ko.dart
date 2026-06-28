@@ -1218,4 +1218,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => '앱 활동 및 오류 보기';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

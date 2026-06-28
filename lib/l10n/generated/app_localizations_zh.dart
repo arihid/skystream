@@ -1203,6 +1203,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => '查看应用程序活动和错误';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).

@@ -1231,4 +1231,14 @@ class AppLocalizationsBg extends AppLocalizations {
   @override
   String get viewLogsSubtitle =>
       'Преглед на активността на приложението и грешки';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

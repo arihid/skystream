@@ -2424,6 +2424,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View application activity & errors'**
   String get viewLogsSubtitle;
+
+  /// Title for the beta features section
+  ///
+  /// In en, this message translates to:
+  /// **'Beta Features'**
+  String get betaFeatures;
+
+  /// Title for the settings tile to toggle fullscreen
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle Fullscreen Mode'**
+  String get toggleFullscreen;
+
+  /// Subtitle explaining the fullscreen toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Enable or disable desktop fullscreen on Windows (and possibly other platforms).'**
+  String get toggleFullscreenSubtitle;
 }
 
 class _AppLocalizationsDelegate

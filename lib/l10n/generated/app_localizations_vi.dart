@@ -1226,4 +1226,14 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Xem hoạt động và lỗi ứng dụng';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

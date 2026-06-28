@@ -1253,4 +1253,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Anwendungsaktivität und Fehler anzeigen';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }

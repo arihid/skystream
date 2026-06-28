@@ -1235,6 +1235,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Ver atividade e erros da aplicação';
+
+  @override
+  String get betaFeatures => 'Beta Features';
+
+  @override
+  String get toggleFullscreen => 'Toggle Fullscreen Mode';
+
+  @override
+  String get toggleFullscreenSubtitle =>
+      'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
