@@ -350,8 +350,10 @@ class _MyAppState extends ConsumerState<MyApp> {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
+            if (child == null) return const SizedBox.shrink();
+
             final mq = MediaQuery.of(context);
-            Widget result = child!;
+            Widget result = child;
 
             // Phase 1: Density override for TV devices
             // Android TV often reports inflated pixel density; we clamp to 1.0 for standard scaling.
@@ -366,18 +368,17 @@ class _MyAppState extends ConsumerState<MyApp> {
               );
             }
             
-            // Phase 2: Gamepad input handling
+            // Phase 2: Gamepad input handling & Spatial Traversal Architecture
+            // We pass 'result' down instead of 'child' to preserve Phase 1's changes.
             return GamepadShortcutManager(
               child: Actions(
                 actions: AppActionBindings.getBindings(context),
                 child: FocusTraversalGroup(
-                  policy: DirectionalFocusTraversalPolicyMixin(),
-                  child: child,
-                )
+                  policy: ReadingOrderTraversalPolicy(), // FIXED: Concrete class implementing directional logic
+                  child: result, 
+                ),
               ),
             );
-            
-            return result;
           },
         );
 

@@ -160,7 +160,7 @@ class _SearchSuggestionsListState
               ),
             ),
             title: Text(
-              title,
+              headline6,
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             subtitle: Text(
@@ -325,7 +325,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
 
         return MultimediaCard(
           imageUrl: imageUrl,
-          title: title,
+          title: headline6,
           heroTag: uniqueTag,
           onTap: () {
             TmdbDetailsRoute(

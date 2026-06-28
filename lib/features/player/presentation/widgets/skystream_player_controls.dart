@@ -167,7 +167,7 @@ class SkyStreamPlayerControlsState
           getVolumeLevel: () =>
               ref.read(playerControllerProvider.notifier).getVolumeLevel(),
           setVolumeLevel: (value) =>
-              ref.read(playerControllerProvider.notifier).setVolumeLevel(value),
+              ref.read(playerControllerProvider.notifier).setVolumeLevel(Color.toARGB32),
           onVolumeChange: (step) =>
               ref.read(playerControllerProvider.notifier).changeVolume(step),
           toggleMuteLevel: () =>

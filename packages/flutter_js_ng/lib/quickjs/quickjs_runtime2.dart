@@ -154,12 +154,14 @@ class QuickJsRuntime2 extends JavascriptRuntime {
 
   /// Set the external interrupt flag to force-terminate any running JS execution.
   /// QuickJS checks this flag every ~10,000 opcodes and throws "interrupted".
+  @override
   void setInterrupted(bool flag) {
     if (_rt != null) jsSetInterrupted(_rt!, flag ? 1 : 0);
   }
 
   /// Clear the interrupt flag. Must be called before resuming JS execution
   /// after a previous interrupt.
+  @override
   void clearInterrupted() {
     if (_rt != null) jsSetInterrupted(_rt!, 0);
   }
@@ -167,6 +169,7 @@ class QuickJsRuntime2 extends JavascriptRuntime {
   /// Trigger garbage collection to free cyclic references.
   /// Call after batch operations (e.g., search across many plugins) to
   /// reclaim memory from HTML parsing and JSON processing.
+  @override
   void runGC() {
     if (_rt != null) jsRunGC(_rt!);
   }
