@@ -30,7 +30,7 @@ import 'core/config/tmdb_config.dart';
 import 'core/providers/device_info_provider.dart';
 import 'core/input/gamepad_shortcut_manager.dart';
 import 'core/input/gamepad_actions.dart';
-import 'package:hive/hive.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -372,15 +372,26 @@ class _MyAppState extends ConsumerState<MyApp> {
             // Phase 1.5: Enforce Fullscreen via Riverpod
             final generalSettings = ref.watch(generalSettingsProvider);
             if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-              if (generalSettings.isFullscreenEnabled) {
-                windowManager.isMaximized().then((isMax) async {
-                  if (isMax) await windowManager.unmaximize();
-                  windowManager.setFullScreen(true);
-                });
-              } else {
-                windowManager.setFullScreen(false);
+                if (generalSettings.isFullscreenEnabled) {
+                  windowManager.isMaximized().then((isMax) async {
+                    if (isMax) await windowManager.unmaximize();
+                    
+                    final targetId = generalSettings.targetDisplayId;
+                    if (targetId != null) {
+                      List<Display> displays = await screenRetriever.getAllDisplays();
+                      try {
+                        Display targetDisplay = displays.firstWhere((d) => d.id.toString() == targetId);
+                        await windowManager.setPosition(targetDisplay.visiblePosition ?? const Offset(0, 0));
+                        await Future.delayed(const Duration(milliseconds: 50));
+                      } catch (_) {}
+                    }
+                    
+                    windowManager.setFullScreen(true);
+                  });
+                } else {
+                  windowManager.setFullScreen(false);
+                }
               }
-            }
             // Phase 2: Gamepad input handling & Spatial Traversal Architecture
             // We pass 'result' down instead of 'child' to preserve Phase 1's changes.
             return GamepadShortcutManager(

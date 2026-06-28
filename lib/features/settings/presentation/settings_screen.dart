@@ -19,7 +19,7 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/network/doh_service.dart';
 import '../../../core/router/app_router.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:hive/hive.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -457,7 +457,56 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   onTap: () => _safeToggleFullscreen(!generalSettings.isFullscreenEnabled, ref),
                 ),
-              ],
+                // You can use a FutureBuilder to asynchronously load the connected monitors
+            FutureBuilder<List<Display>>(
+              future: screenRetriever.getAllDisplays(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+                
+                final displays = snapshot.data!;
+                
+                // Only show the dropdown if there are 2 or more monitors connected
+                if (displays.length <= 1) return const SizedBox.shrink();
+
+                return SettingsTile(
+                  icon: Icons.monitor_rounded,
+                  title: "Target Monitor", // Replace with AppLocalizations later
+                  subtitle: "Select which screen goes fullscreen",
+                  trailing: DropdownButton<String>(
+                    value: generalSettings.targetDisplayId ?? displays.first.id.toString(),
+                    underline: const SizedBox(), 
+                    // Pass null if fullscreen is off to grey out / disable the dropdown!
+                    onChanged: generalSettings.isFullscreenEnabled ? (String? newId) async {
+                      ref.read(generalSettingsProvider.notifier).setTargetDisplayId(newId);
+                      if (generalSettings.isFullscreenEnabled) {
+                        await _safeToggleFullscreen(true, ref);
+                      }
+                    } : null,
+                    items: displays.map((Display display) {
+                      // Format the ugly \\.\DISPLAY1 string into a clean "Display 1"
+                      String displayName = display.name ?? '';
+                      if (displayName.startsWith(r'\\.\DISPLAY')) {
+                        displayName = displayName.replaceFirst(r'\\.\DISPLAY', 'Display ');
+                      } else if (displayName.isEmpty) {
+                        displayName = 'Display ${displays.indexOf(display) + 1}';
+                      }
+
+                      // Multiply logical pixels by the scaleFactor to get true physical hardware resolution
+                      final double scale = display.scaleFactor?.toDouble() ?? 1.0;
+                      final int width = (display.size.width * scale).round();
+                      final int height = (display.size.height * scale).round();
+                      displayName = '$displayName ($width x $height)';
+
+                      return DropdownMenuItem<String>(
+                        value: display.id.toString(),
+                        child: Text(displayName),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+         ],
             ),
             const SizedBox(height: LayoutConstants.spacingLg),
             SettingsGroup(
@@ -510,10 +559,29 @@ class SettingsScreen extends ConsumerWidget {
 // This function safely toggles fullscreen mode on desktop platforms, ensuring that the window is un-maximized before entering fullscreen if necessary. It also updates the Riverpod state to reflect the new fullscreen setting.
 Future<void> _safeToggleFullscreen(bool targetState, WidgetRef ref) async {
   if (targetState) {
-    // WIN32 QUIRK FIX: We must un-maximize before going fullscreen
+    // 1. Un-maximize if necessary (Win32 quirk)
     bool isMaximized = await windowManager.isMaximized();
-    if (isMaximized) {
-      await windowManager.unmaximize();
+    if (isMaximized) await windowManager.unmaximize();
+
+    // 2. Fetch the target display ID from your settings
+    final targetDisplayId = ref.read(generalSettingsProvider).targetDisplayId;
+
+    if (targetDisplayId != null) {
+      // Fetch hardware monitors
+      List<Display> displays = await screenRetriever.getAllDisplays();
+      
+      try {
+        // Find the monitor the user selected
+        Display targetDisplay = displays.firstWhere((d) => d.id.toString() == targetDisplayId);
+        
+        // Move the window to the top-left corner of that specific monitor
+        await windowManager.setPosition(targetDisplay.visiblePosition ?? const Offset(0, 0));
+        
+        // Give Windows 50ms to register the coordinate change before snapping fullscreen
+        await Future.delayed(const Duration(milliseconds: 50));
+      } catch (e) {
+        // Fallback: If the monitor was unplugged, it will just fullscreen on the current one
+      }
     }
   }
   

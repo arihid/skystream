@@ -8,12 +8,14 @@ class GeneralSettings {
   final String defaultHomeScreen;
   final bool githubProxyEnabled;
   final bool isFullscreenEnabled;
+  final String? targetDisplayId;
 
   const GeneralSettings({
     this.watchHistoryEnabled = true,
     this.defaultHomeScreen = '/home',
     this.githubProxyEnabled = false,
     this.isFullscreenEnabled = false,
+    this.targetDisplayId,
   });
 
   
@@ -22,12 +24,14 @@ class GeneralSettings {
     String? defaultHomeScreen,
     bool? githubProxyEnabled, 
     bool? isFullscreenEnabled,
+    String? targetDisplayId,
   }) {
     return GeneralSettings(
       watchHistoryEnabled: watchHistoryEnabled ?? this.watchHistoryEnabled,
       defaultHomeScreen: defaultHomeScreen ?? this.defaultHomeScreen,
       githubProxyEnabled: githubProxyEnabled ?? this.githubProxyEnabled,
       isFullscreenEnabled: isFullscreenEnabled ?? this.isFullscreenEnabled,
+      targetDisplayId: targetDisplayId ?? this.targetDisplayId,
     );
   }
 }
@@ -42,6 +46,7 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
       defaultHomeScreen: repository.getDefaultHomeScreen(),
       githubProxyEnabled: repository.isGithubProxyEnabled(),
       isFullscreenEnabled: repository.isFullscreenEnabled(),
+      targetDisplayId: repository.getTargetDisplayId(),
     );
   }
 
@@ -67,5 +72,11 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
     state = state.copyWith(isFullscreenEnabled: val);
     final repository = ref.read(settingsRepositoryProvider);
     repository.setFullscreenEnabled(val); // Saves to Hive via the repo
+  }
+
+  void setTargetDisplayId(String? id) {
+    state = state.copyWith(targetDisplayId: id);
+    final repository = ref.read(settingsRepositoryProvider);
+    repository.setTargetDisplayId(id);
   }
 }

@@ -129,4 +129,12 @@ class SettingsRepository {
   bool isFullscreenEnabled() {
     return _storageService.isFullscreenEnabled();
   }
+
+  Future<void> setTargetDisplayId(String? id) async {
+    await _storageService.setTargetDisplayId(id);
+  }
+
+  String? getTargetDisplayId() {
+    return _storageService.getTargetDisplayId();
+  }
 }

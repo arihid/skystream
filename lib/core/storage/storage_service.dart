@@ -149,16 +149,26 @@ class StorageService {
     return _settingsBox.get('theme_mode') as String?;
   }
 
+  // --- Global Fullscreen Toggle ---
   Future<void> setFullscreenEnabled(bool enabled) async {
-    // ignore: inference_failure_on_function_invocation
-    final box = Hive.box('settings_box');
-    await box.put('is_fullscreen_enabled', enabled);
+     await _settingsBox.put('is_fullscreen_enabled', enabled);
   }
 
   bool isFullscreenEnabled() {
-    // ignore: inference_failure_on_function_invocation
-    final box = Hive.box('settings_box');
-    return box.get('is_fullscreen_enabled', defaultValue: false) as bool;
+    return _settingsBox.get('is_fullscreen_enabled', defaultValue: false) as bool;
+  }
+
+  // --- Select a display in a multi-monitor setup ---
+  Future<void> setTargetDisplayId(String? id) async {
+    if (id == null) {
+      await _settingsBox.delete('target_display_id');
+    } else {
+      await _settingsBox.put('target_display_id', id);
+    }
+  }
+
+  String? getTargetDisplayId() {
+    return _settingsBox.get('target_display_id') as String?;
   }
 
   // --- Sidebar State ---
