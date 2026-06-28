@@ -169,7 +169,7 @@ class _SearchSuggestionsListState
               ),
             ),
             title: Text(
-              titleLarge,
+              item.title ?? item.name ?? '', // Safely falls back to title or name
               style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             subtitle: Text(
@@ -342,7 +342,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
 
         return MultimediaCard(
           imageUrl: imageUrl,
-          title: titleLarge,
+          title: title ?? item.name ?? '', // Safely falls back to title or name
           heroTag: uniqueTag,
           onTap: () {
             TmdbDetailsRoute(

@@ -54,7 +54,7 @@ class DownloadManagementDialog extends HookConsumerWidget {
 
     return AlertDialog(
       surfaceTintColor: Colors.transparent,
-      title: Text(headline6),
+      title: Text(titleLarge),
       content: Text(l10n.videoAlreadyDownloadedPrompt),
       actions: [
         CustomButton(

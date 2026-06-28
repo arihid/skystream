@@ -448,8 +448,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
-                        // ignore: deprecated_member_use
-                        movies: Color.value,
+                        movies: value,
                         scrollController: _scrollController,
                         onNavigateUp: () =>
                             _firstActionFocusNode.requestFocus(),
