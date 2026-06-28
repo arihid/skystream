@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:media_kit/media_kit.dart' hide PlayerState;
 import 'package:media_kit_video/media_kit_video.dart';
@@ -64,6 +65,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   // Some TVs deliver a single Back press through two channels (a goBack
   // KeyEvent *and* a route pop). This timestamp de-dupes them so one physical
   // press performs exactly one back action — see [_consumeBack].
+  Rect? _preFullscreenBounds;
   DateTime? _lastBackAt;
 
   bool _isTv = false;
@@ -82,9 +84,16 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     MediaKit.ensureInitialized();
     WidgetsBinding.instance.addObserver(this);
 
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      windowManager.getBounds().then((bounds) {
+        _preFullscreenBounds = bounds;
+      });
+    }
+
     final deviceProfile = ref.read(deviceProfileProvider).asData?.value;
     _isTv = deviceProfile?.isTv ?? false;
     _isTablet = deviceProfile?.isTablet ?? false;
+
 
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -257,9 +266,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     }
     if (!Platform.isAndroid && !Platform.isIOS) {
       try {
-        windowManager.setFullScreen(false);
-        if (Platform.isWindows || Platform.isLinux) {
-          windowManager.setTitleBarStyle(TitleBarStyle.normal);
+        // WIN32 QUIRK FIX: Only exit fullscreen if the user's global setting is OFF
+        final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+
+        if (!isAppFullscreen) {
+          windowManager.setFullScreen(false);
+          if (Platform.isWindows || Platform.isLinux) {
+            windowManager.setTitleBarStyle(TitleBarStyle.normal);
+          }
         }
       } catch (e) {
         if (kDebugMode) debugPrint('PlayerScreen.dispose: $e');
@@ -483,13 +497,29 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     return false;
   }
 
+
   Future<void> _handleBack() async {
     if (!context.mounted) return;
 
     if (!Platform.isAndroid && !Platform.isIOS) {
       try {
-        await windowManager.setFullScreen(false);
-        await Future<void>.delayed(const Duration(seconds: 1));
+        final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+        
+        if (!isAppFullscreen) {
+          // Force immediate re-normalization of window state
+          await windowManager.setFullScreen(false);
+          
+          if (Platform.isWindows || Platform.isLinux) {
+            await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+          }
+          
+          if (_preFullscreenBounds != null) {
+            await windowManager.setBounds(_preFullscreenBounds);
+          }
+          
+          await windowManager.restore();
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        }
       } catch (e) {
         if (kDebugMode) debugPrint('PlayerScreen._handleBack: $e');
       }

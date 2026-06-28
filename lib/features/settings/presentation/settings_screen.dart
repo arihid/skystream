@@ -470,8 +470,8 @@ class SettingsScreen extends ConsumerWidget {
 
                 return SettingsTile(
                   icon: Icons.monitor_rounded,
-                  title: "Target Monitor", // Replace with AppLocalizations later
-                  subtitle: "Select which screen goes fullscreen",
+                  title: AppLocalizations.of(context)!.targetMonitor,
+                  subtitle: AppLocalizations.of(context)!.selectTargetMonitor,
                   trailing: DropdownButton<String>(
                     value: generalSettings.targetDisplayId ?? displays.first.id.toString(),
                     underline: const SizedBox(), 

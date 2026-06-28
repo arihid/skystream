@@ -2442,6 +2442,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable or disable desktop fullscreen on Windows (and possibly other platforms).'**
   String get toggleFullscreenSubtitle;
+
+  /// Title for the settings tile to select target monitor
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Display'**
+  String get targetMonitor;
+
+  /// Subtitle for the target monitor selection
+  ///
+  /// In en, this message translates to:
+  /// **'In Fullscreen Mode, select which monitor the app should use. If not set, the app will use the last applied setting.'**
+  String get selectTargetMonitor;
 }
 
 class _AppLocalizationsDelegate

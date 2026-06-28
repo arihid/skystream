@@ -604,5 +604,13 @@
   "toggleFullscreenSubtitle": "Enable or disable desktop fullscreen on Windows (and possibly other platforms).",
   "@toggleFullscreenSubtitle": {
     "description": "Subtitle explaining the fullscreen toggle"
+  },
+  "targetMonitor": "Preferred Display",
+  "@targetMonitor": {
+    "description": "Title for the settings tile to select target monitor"
+  },
+  "selectTargetMonitor": "In Fullscreen Mode, select which monitor the app should use. If not set, the app will use the last applied setting.",
+  "@selectTargetMonitor": {
+    "description": "Subtitle for the target monitor selection"
   }
 }

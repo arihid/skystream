@@ -1255,4 +1255,11 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get toggleFullscreenSubtitle =>
       'Enable or disable desktop fullscreen on Windows (and possibly other platforms).';
+
+  @override
+  String get targetMonitor => 'Preferred Display';
+
+  @override
+  String get selectTargetMonitor =>
+      'In Fullscreen Mode, select which monitor the app should use. If not set, the app will use the last applied setting.';
 }
