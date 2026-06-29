@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
+import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
 import 'package:video_view/video_view.dart' as vv;
 import '../../../../l10n/generated/app_localizations.dart';
 import '../player_controller.dart';
@@ -411,7 +412,11 @@ class SkyStreamPlayerControlsState
     _platformService.toggleOrientation(context);
   }
 
+  // 1. Guard the toggle function so it does absolutely nothing in Big Picture mode
   Future<void> toggleFullscreen() async {
+    final isGlobalFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+    if (isGlobalFullscreen) return; // <-- BIG PICTURE GUARD
+
     final nowFullscreen = await _platformService.toggleFullscreen();
     if (mounted) {
       setState(() {
@@ -420,12 +425,16 @@ class SkyStreamPlayerControlsState
     }
   }
 
+  // 2. Prevent Double-Tap from triggering window changes in Big Picture mode
   Future<void> _handleDoubleTap() async {
     if (_isLocked || _panelOpen) return;
 
+    final isGlobalFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+
     // Desktop Double Tap -> Toggle Fullscreen
     try {
-      if (context.isDesktop &&
+      // BIG PICTURE GUARD: Only allow double-tap-to-fullscreen if global fullscreen is OFF
+      if (context.isDesktop && !isGlobalFullscreen &&
           (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
         unawaited(toggleFullscreen());
         return;
@@ -1329,6 +1338,9 @@ class SkyStreamPlayerControlsState
     // Right-side icon-only buttons (same style as resize/fullscreen). Sources,
     // Audio and Subtitles all open the same side panel, each landing on its own
     // tab; the panel applies every choice instantly.
+    
+    // Guard global fullscreen (Big Picture mode)
+    final isGlobalFullscreen = ref.watch(generalSettingsProvider).isFullscreenEnabled;
     final actions = <Widget>[
       PlayerIconButton(
         icon: Icons.source,
@@ -1405,7 +1417,8 @@ class SkyStreamPlayerControlsState
           onPressed: _enterPip,
           isTv: _isTv,
         ),
-      if (isDesktop)
+      // BIG PICTURE GUARD: Only render the fullscreen button if global fullscreen is OFF
+      if (isDesktop && !isGlobalFullscreen)
         PlayerIconButton(
           icon: _isFullscreen
               ? Icons.fullscreen_exit_rounded

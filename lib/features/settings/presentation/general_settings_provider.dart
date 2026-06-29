@@ -71,7 +71,7 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
   void setFullscreenEnabled(bool val) {
     state = state.copyWith(isFullscreenEnabled: val);
     final repository = ref.read(settingsRepositoryProvider);
-    repository.setFullscreenEnabled(val); // Saves to Hive via the repo
+    repository.setFullscreenEnabled(val);
   }
 
   void setTargetDisplayId(String? id) {

@@ -264,9 +264,10 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       final previousSpeed = _speedBeforeSpaceHold ?? 1.0;
       unawaited(_playerController.setPlaybackSpeed(previousSpeed));
     }
+    // WIN32 QUIRK FIX: making _handleback() and dispose() ignore window management
+    // if isAppFullscreenEnabled is true.
     if (!Platform.isAndroid && !Platform.isIOS) {
       try {
-        // WIN32 QUIRK FIX: Only exit fullscreen if the user's global setting is OFF
         final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
 
         if (!isAppFullscreen) {
@@ -434,8 +435,12 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.keyF) {
-      _controlsKeyFinal.currentState?.toggleFullscreen();
-      _controlsKeyFinal.currentState?.onUserInteraction();
+      // BIG PICTURE MODE: Block the 'F' key if we are globally fullscreen
+      final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+      if (!isAppFullscreen) {
+        _controlsKeyFinal.currentState?.toggleFullscreen();
+        _controlsKeyFinal.currentState?.onUserInteraction();
+      }
       return KeyEventResult.handled;
     }
 
@@ -505,20 +510,25 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       try {
         final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
         
+        // BIG PICTURE MODE: Only touch the OS window if we are NOT in global fullscreen
         if (!isAppFullscreen) {
-          // Force immediate re-normalization of window state
-          await windowManager.setFullScreen(false);
-          
-          if (Platform.isWindows || Platform.isLinux) {
-            await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+          final isCurrentlyFull = await windowManager.isFullScreen();
+
+          if (isCurrentlyFull) {
+            // Restore windowed mode logic
+            windowManager.setFullScreen(false);
+            
+            Future.delayed(const Duration(milliseconds: 250), () async {
+              if (Platform.isWindows || Platform.isLinux) {
+                await windowManager.setTitleBarStyle(TitleBarStyle.normal);
+              }
+              if (_preFullscreenBounds != null) {
+                await windowManager.setBounds(_preFullscreenBounds);
+              }
+              await windowManager.restore();
+            });
+            await Future<void>.delayed(const Duration(milliseconds: 300));
           }
-          
-          if (_preFullscreenBounds != null) {
-            await windowManager.setBounds(_preFullscreenBounds);
-          }
-          
-          await windowManager.restore();
-          await Future<void>.delayed(const Duration(milliseconds: 150));
         }
       } catch (e) {
         if (kDebugMode) debugPrint('PlayerScreen._handleBack: $e');
