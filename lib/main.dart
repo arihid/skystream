@@ -322,6 +322,32 @@ class _MyAppState extends ConsumerState<MyApp> {
           }
         }
       }
+
+    // Reactive listener: Fullscreen & Display Targeting (Desktop)
+    ref.listen(generalSettingsProvider, (previous, current) {
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        if (current.isFullscreenEnabled) {
+          windowManager.isMaximized().then((isMax) async {
+            if (isMax) await windowManager.unmaximize();
+            
+            final targetId = current.targetDisplayId;
+            if (targetId != null) {
+              List<Display> displays = await screenRetriever.getAllDisplays();
+              try {
+                Display targetDisplay = displays.firstWhere((d) => d.id.toString() == targetId);
+                await windowManager.setPosition(targetDisplay.visiblePosition ?? const Offset(0, 0));
+                await Future.delayed(const Duration(milliseconds: 50));
+              } catch (_) {}
+            }
+            
+            windowManager.setFullScreen(true);
+          });
+        } else {
+          // Only forces windowed mode if the user explicitly toggled the setting OFF
+          windowManager.setFullScreen(false);
+        }
+      }
+    });
     });
 
     return DynamicColorBuilder(
@@ -369,29 +395,6 @@ class _MyAppState extends ConsumerState<MyApp> {
                 child: result,
               );
             }
-            // Phase 1.5: Enforce Fullscreen via Riverpod
-            final generalSettings = ref.watch(generalSettingsProvider);
-            if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-                if (generalSettings.isFullscreenEnabled) {
-                  windowManager.isMaximized().then((isMax) async {
-                    if (isMax) await windowManager.unmaximize();
-                    
-                    final targetId = generalSettings.targetDisplayId;
-                    if (targetId != null) {
-                      List<Display> displays = await screenRetriever.getAllDisplays();
-                      try {
-                        Display targetDisplay = displays.firstWhere((d) => d.id.toString() == targetId);
-                        await windowManager.setPosition(targetDisplay.visiblePosition ?? const Offset(0, 0));
-                        await Future.delayed(const Duration(milliseconds: 50));
-                      } catch (_) {}
-                    }
-                    
-                    windowManager.setFullScreen(true);
-                  });
-                } else {
-                  windowManager.setFullScreen(false);
-                }
-              }
             // Phase 2: Gamepad input handling & Spatial Traversal Architecture
             // We pass 'result' down instead of 'child' to preserve Phase 1's changes.
             return GamepadShortcutManager(
