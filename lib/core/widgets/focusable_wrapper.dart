@@ -25,29 +25,19 @@ class _FocusableWrapperState extends State<FocusableWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. We wrap the item in Actions to catch the Gamepad 'A' Button
-    return Actions(
-      actions: <Type, Action<Intent>>{
-        ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (ActivateIntent intent) {
-            // 2. Trigger the exact same logic as a mouse/touch tap!
-            widget.onTap(); 
-            return null;
-          },
-        ),
+    return Focus(
+      focusNode: _focusNode,
+      onFocusChange: (hasFocus) {
+        if (hasFocus) {
+          // Automatically centers the focused card within any scrolling parent view
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+          );
+        }
       },
-      child: Focus(
-        focusNode: _focusNode,
-        onFocusChange: (hasFocus) {
-          if (hasFocus) {
-            Scrollable.ensureVisible(
-              context,
-              alignment: 0.5,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-            );
-          }
-        },
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedBuilder(

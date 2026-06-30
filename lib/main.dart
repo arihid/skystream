@@ -28,8 +28,6 @@ import 'core/network/cloudflare_bypass.dart';
 import 'package:dpad/dpad.dart';
 import 'core/config/tmdb_config.dart';
 import 'core/providers/device_info_provider.dart';
-import 'core/input/gamepad_shortcut_manager.dart';
-import 'core/input/gamepad_actions.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 
 void main() async {
@@ -395,17 +393,6 @@ class _MyAppState extends ConsumerState<MyApp> {
                 child: result,
               );
             }
-            // Phase 2: Gamepad input handling & Spatial Traversal Architecture
-            // We pass 'result' down instead of 'child' to preserve Phase 1's changes.
-            return GamepadShortcutManager(
-              child: Actions(
-                actions: AppActionBindings.getBindings(context),
-                child: FocusTraversalGroup(
-                  policy: ReadingOrderTraversalPolicy(), // FIXED: Concrete class implementing directional logic
-                  child: result, 
-                ),
-              ),
-            );
           },
         );
 
