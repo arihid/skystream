@@ -1244,4 +1244,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Bekijk applicatie-activiteit en fouten';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

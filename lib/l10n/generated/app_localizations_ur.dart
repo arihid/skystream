@@ -1252,4 +1252,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'ایپلیکیشن کی سرگرمی اور غلطیاں دیکھیں';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

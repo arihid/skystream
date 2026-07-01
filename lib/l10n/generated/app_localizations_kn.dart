@@ -1255,4 +1255,7 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'ಅಪ್ಲಿಕೇಶನ್ ಚಟುವಟಿಕೆ ಮತ್ತು ದೋಷಗಳನ್ನು ನೋಡಿ';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

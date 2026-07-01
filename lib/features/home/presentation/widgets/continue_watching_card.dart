@@ -14,6 +14,7 @@ import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../../../shared/widgets/loading_dialog.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/core/services/notification_service.dart';
+import '../../../../core/widgets/focusable_wrapper.dart'; 
 
 class ContinueWatchingCard extends ConsumerStatefulWidget {
   final HistoryItem historyItem;
@@ -154,24 +155,24 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           final refreshedItem = await _resolveFreshLiveItem(ref, item);
           if (!context.mounted || canceled) return;
 
-          if (!dialogDismissed) {
-            Navigator.of(context, rootNavigator: true).pop();
-            dialogDismissed = true;
-          }
-
-          final liveItem = refreshedItem ?? item;
-          if (!context.mounted || canceled) return;
-
-          unawaited(
-            PlayerRoute(
-              $extra: PlayerRouteExtra(item: liveItem, videoUrl: liveItem.url),
-            ).push<void>(context),
-          );
-          unawaited(
-            ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url),
-          );
-          return;
+        if (!dialogDismissed) {
+          Navigator.of(context, rootNavigator: true).pop();
+          dialogDismissed = true;
         }
+
+        final liveItem = refreshedItem ?? item;
+        if (!context.mounted || canceled) return;
+
+        unawaited(
+          PlayerRoute(
+            $extra: PlayerRouteExtra(item: liveItem, videoUrl: liveItem.url),
+          ).push<void>(context),
+        );
+        unawaited(
+          ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url),
+        );
+        return;
+      }
 
         unawaited(
           DetailsRoute(

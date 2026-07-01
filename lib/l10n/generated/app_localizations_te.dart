@@ -1251,4 +1251,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'అప్లి케షన్ కార్యకలాపాలు మరియు లోపాలను చూడండి';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

@@ -1240,4 +1240,7 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'अनुप्रयोग क्रियाकलाप आणि त्रुटी पहा';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

@@ -13,6 +13,7 @@ import '../../../../core/providers/device_info_provider.dart';
 
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/input/gamepad_actions.dart'; 
 
 /// Lightweight controller for the hero carousel.
 /// API-compatible with the old CarouselSliderController (nextPage/previousPage).
@@ -25,12 +26,14 @@ class HeroCarouselController {
       onPreviousPage?.call();
 }
 
+
 class ExploreCarousel extends ConsumerStatefulWidget {
   final List<MultimediaItem> movies;
   final ScrollController? scrollController;
   final void Function(MultimediaItem)? onTap;
   final VoidCallback? onNavigateUp;
 
+  final void Function(CarouselSliderController controller)? onControllerReady;
   /// Called once after initState with the internal [HeroCarouselController]
   /// so the parent can drive prev/next from an external UI (e.g. header arrows).
   final void Function(HeroCarouselController controller)? onControllerReady;
@@ -68,9 +71,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   final HeroCarouselController _heroCarouselController =
       HeroCarouselController();
   final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
-  // Single anchor focus node so the carousel acts as ONE focus target on TV/
-  // keyboard. Otherwise each slide is independently focusable and pages cause
-  // focus to drop into the next row when slides unmount.
   final FocusNode _carouselFocusNode = FocusNode(debugLabel: 'carousel_anchor');
   bool _isFocusHighlighted = false;
   // True while the carousel occupies any visible viewport. Drives autoPlay
@@ -123,9 +123,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     _heroCarouselController.onPreviousPage = _goToPreviousSlide;
 
     widget.scrollController?.addListener(_onParentScroll);
-    // Expose the internal controller to the parent so header arrows can
-    // drive carousel navigation. Deferred to post-frame to avoid calling
-    // setState on an ancestor while the widget tree is still building.
     if (widget.onControllerReady != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onControllerReady!(_heroCarouselController);
@@ -168,15 +165,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _onParentScroll() {
-    // Always update — do NOT gate on _isVisibleOnScreen. Earlier we tried
-    // to skip rebuilds while the carousel was off-screen, but that left
-    // _scrollOffset frozen at a stale value; when the user scrolled back
-    // up, syncing the offset on visibility-change caused a visible snap
-    // (VisibilityDetector throttles, so the catch-up frame lands after
-    // the user has already scrolled past it). The rebuild cost here is
-    // negligible — Transform/RenderTransform reuses its RenderObject, the
-    // CachedNetworkImage is cache-hit, and the whole carousel page is
-    // wrapped in a RepaintBoundary so off-screen rebuilds don't ripple.
     if (widget.scrollController!.hasClients) {
       _scrollOffset.value = widget.scrollController!.offset;
     }
@@ -208,8 +196,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
     final size = MediaQuery.sizeOf(context);
     final heroHeight = size.height * 0.60;
-    final isDesktop =
-        size.width > LayoutConstants.exploreCarouselDesktopBreakpoint;
+    final isDesktop = size.width > LayoutConstants.exploreCarouselDesktopBreakpoint;
 
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv ?? context.isTv;
@@ -445,7 +432,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _navigateToDetails(BuildContext context, MultimediaItem movie) {
-    // Standardize media type mapping (prevents TMDB ID collisions)
     final String mediaType = movie.tmdbMediaType;
 
     TmdbDetailsRoute(
@@ -468,11 +454,8 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     return CardsWrapper(
       scaleFactor: 1.0,
       onTap: () {
-        if (widget.onTap != null) {
-          widget.onTap!(movie);
-        } else {
-          _navigateToDetails(context, movie);
-        }
+        if (widget.onTap != null) widget.onTap!(movie);
+        else _navigateToDetails(context, movie);
       },
       borderRadius: BorderRadius.zero,
       child: RepaintBoundary(
@@ -688,9 +671,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: isDesktop
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
+      crossAxisAlignment: isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
         if (logoUrl != null)
           Padding(
@@ -702,43 +683,19 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
         Wrap(
           alignment: isDesktop ? WrapAlignment.start : WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8.0,
-          runSpacing: 4.0,
+          spacing: 8.0, runSpacing: 4.0,
           children: [
-            if (provider != null && provider.isNotEmpty) ...[
-              _buildMiniBadge(
-                context,
-                provider.toUpperCase(),
-                isProvider: true,
-              ),
-            ],
+            if (provider != null && provider.isNotEmpty) ...[_buildMiniBadge(context, provider.toUpperCase(), isProvider: true)],
             if (type != null) ...[_buildMiniBadge(context, type.toUpperCase())],
             if (genres.isNotEmpty) ...[
-              Text(
-                genres,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-              ),
+              Text(genres, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.7))),
             ],
             if (year.isNotEmpty) ...[
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 10,
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    year,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
+                  Icon(Icons.calendar_today_rounded, size: 10, color: Colors.white.withValues(alpha: 0.6)), const SizedBox(width: 4),
+                  Text(year, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.7))),
                 ],
               ),
             ],
@@ -751,22 +708,13 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   Widget _buildLogo(String logoUrl, String title, {bool isDesktop = false}) {
     if (logoUrl.toLowerCase().endsWith('.svg')) {
       return SvgPicture.network(
-        logoUrl,
-        height: 140,
-        width: 300,
-        fit: BoxFit.contain,
-        placeholderBuilder: (context) =>
-            const SizedBox(height: 140, width: 300),
-        errorBuilder: (context, error, stackTrace) =>
-            _buildTitleFallback(title, isDesktop: isDesktop),
+        logoUrl, height: 140, width: 300, fit: BoxFit.contain,
+        placeholderBuilder: (context) => const SizedBox(height: 140, width: 300),
+        errorBuilder: (context, error, stackTrace) => _buildTitleFallback(title, isDesktop: isDesktop),
       );
     }
     return CachedNetworkImage(
-      imageUrl: logoUrl,
-      height: 140,
-      width: 300,
-      fit: BoxFit.contain,
-      alignment: Alignment.bottomCenter,
+      imageUrl: logoUrl, height: 140, width: 300, fit: BoxFit.contain, alignment: Alignment.bottomCenter,
       placeholder: (context, url) => const SizedBox(height: 140, width: 300),
       errorWidget: (context, url, error) =>
           _buildTitleFallback(title, isDesktop: isDesktop),
@@ -777,47 +725,27 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     return Padding(
       padding: const EdgeInsets.only(bottom: LayoutConstants.spacingXs),
       child: Text(
-        title.toUpperCase(),
-        textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-        maxLines: isDesktop ? 2 : 3,
-        overflow: TextOverflow.ellipsis,
+        title.toUpperCase(), textAlign: isDesktop ? TextAlign.left : TextAlign.center, maxLines: isDesktop ? 2 : 3, overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 40,
-          fontFamily: 'RobotoCondensed',
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
-          shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+          color: Colors.white, fontSize: 40, fontFamily: 'RobotoCondensed', fontWeight: FontWeight.w900,
+          letterSpacing: 1.0, shadows: [Shadow(color: Colors.black, blurRadius: 10)],
         ),
       ),
     );
   }
 
-  Widget _buildMiniBadge(
-    BuildContext context,
-    String label, {
-    bool isProvider = false,
-  }) {
+  Widget _buildMiniBadge(BuildContext context, String label, {bool isProvider = false}) {
     final theme = Theme.of(context);
-    final color = isProvider
-        ? theme.colorScheme.primary
-        : theme.colorScheme.secondary;
+    final color = isProvider ? theme.colorScheme.primary : theme.colorScheme.secondary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.5), width: 0.5),
       ),
       child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: color,
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
+        label, style: theme.textTheme.labelSmall?.copyWith(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5),
       ),
     );
   }

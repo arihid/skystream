@@ -1240,6 +1240,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'عرض نشاط التطبيق والأخطاء';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }
 
 /// The translations for Arabic (`ar_apc`).

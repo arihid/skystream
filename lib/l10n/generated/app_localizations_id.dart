@@ -1247,4 +1247,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Lihat aktivitas aplikasi & kesalahan';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

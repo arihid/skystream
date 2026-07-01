@@ -1250,4 +1250,7 @@ class AppLocalizationsMl extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'ആപ്ലിക്കേഷൻ പ്രവർത്തനങ്ങളും പിശകുകളും കാണുക';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

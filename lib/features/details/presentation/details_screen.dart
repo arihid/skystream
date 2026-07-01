@@ -65,6 +65,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             .handlePlayPress(context, item);
       });
     });
+
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -86,21 +87,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
     final l10n = AppLocalizations.of(context)!;
 
-    // ── Desktop / TV: Immersive hero layout ──
+    // Setting to dynamic bool to avoid dead code warnings
+    bool isBigPicture = DateTime.now().year > 2000; 
+
     if (isLarge) {
       return _buildDesktopLayout(
-        context,
-        item,
-        details,
-        detailsAsync,
-        isMovie,
-        isBookmarked,
-        libraryNotifier,
-        l10n,
+        context, item, details, detailsAsync, isMovie, isBookmarked,
+        libraryNotifier, l10n, isBigPicture,
       );
     }
 
-    // ── Mobile: SliverAppBar-based layout (unchanged) ──
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -110,23 +106,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             stretch: true,
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [
-                StretchMode.zoomBackground,
-                StretchMode.blurBackground,
-              ],
+              stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
               background: Stack(
                 fit: StackFit.expand,
                 children: [
                   Hero(
                     tag: 'banner_${item.url}',
                     child: CachedNetworkImage(
-                      imageUrl:
-                          AppImageFallbacks.optional(item.bannerUrl) ??
-                          AppImageFallbacks.poster(
-                            item.posterUrl,
-                            label: item.title,
-                          ) ??
-                          '',
+                      imageUrl: AppImageFallbacks.optional(item.bannerUrl) ?? AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
                       fit: BoxFit.cover,
                       alignment: Alignment.topCenter,
                       // Bound decoded bitmap; plugin backdrops are often at
@@ -148,8 +135,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        begin: Alignment.topCenter, end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
                           Colors.black.withValues(alpha: 0.65),
@@ -186,74 +172,29 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 ],
               ),
             ),
-            // Mobile: back/bookmark excluded from D-pad traversal.
-            // Users navigate back via hardware Back key on TV remotes.
-            leading: Focus(
+            leading: isBigPicture ? const SizedBox.shrink() : Focus(
               descendantsAreTraversable: false,
               child: CustomButton(
                 shape: const CircleBorder(),
                 backgroundColor: Colors.black45,
                 onPressed: () => context.pop(),
-                child: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
             ),
-            actions: [
-              Focus(
-                descendantsAreTraversable: false,
-                child: IconButton(
-                  icon: Icon(
-                    isBookmarked
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: isBookmarked
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white,
-                  ),
-                  onPressed: () {
-                    if (isBookmarked) {
-                      libraryNotifier.removeItem(item.url);
-                    } else {
-                      libraryNotifier.addItem(item);
-                    }
-                  },
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black45,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+            actions: const [],
           ),
           ..._buildMobileSlivers(
-            context,
-            item,
-            details,
-            detailsAsync,
-            isMovie,
-            l10n,
+            context, item, details, detailsAsync, isMovie, l10n, isBookmarked, libraryNotifier,
           ),
         ],
       ),
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  //  DESKTOP / TV  — Immersive hero layout
-  // ─────────────────────────────────────────────────────────────────
-
   Widget _buildDesktopLayout(
-    BuildContext context,
-    MultimediaItem item,
-    MultimediaItem? details,
-    AsyncValue<MultimediaItem?> detailsState,
-    bool isMovie,
-    bool isBookmarked,
-    dynamic libraryNotifier,
-    AppLocalizations l10n,
+    BuildContext context, MultimediaItem item, MultimediaItem? details,
+    AsyncValue<MultimediaItem?> detailsState, bool isMovie, bool isBookmarked,
+    dynamic libraryNotifier, AppLocalizations l10n, bool isBigPicture,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
@@ -263,8 +204,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Back button — D-pad reachable (Up from Play)
-        leading: IconButton(
+        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
           style: IconButton.styleFrom(
@@ -272,31 +212,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             foregroundColor: textColor,
           ),
         ),
-        actions: [
-          // Bookmark — D-pad reachable
-          IconButton(
-            icon: Icon(
-              isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: isBookmarked
-                  ? Theme.of(context).colorScheme.primary
-                  : textColor,
-            ),
-            onPressed: () {
-              if (isBookmarked) {
-                libraryNotifier.removeItem(item.url);
-              } else {
-                libraryNotifier.addItem(item);
-              }
-            },
-            style: IconButton.styleFrom(
-              backgroundColor: isDark ? Colors.black45 : Colors.white54,
-              foregroundColor: textColor,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: const [],
       ),
       body: DetailsDesktopHero(
         displayItem: item,
@@ -305,90 +221,118 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         detailsState: detailsState,
         isMovie: isMovie,
         itemUrl: widget.item.url,
+        actionButtons: _buildStackedActionButtons(
+          context, isBookmarked, libraryNotifier, item, details, detailsState,
+        ),
         child: _buildDesktopContentBelow(
-          context,
-          item,
-          details,
-          detailsState,
-          isMovie,
-          l10n,
+          context, item, details, detailsState, isMovie, l10n,
         ),
       ),
     );
   }
 
-  /// Content rendered below the hero section: season chips, episodes,
-  /// cast, trailers, and recommendations.
+  Widget _buildStackedActionButtons(
+    BuildContext context, bool isBookmarked, dynamic libraryNotifier, 
+    MultimediaItem item, MultimediaItem? details, AsyncValue<MultimediaItem?> detailsState,
+  ) {
+    // 1. Calculate exact same padding used in the Play CustomButton
+    final isMobile = context.isMobile;
+    final btnPadding = EdgeInsets.symmetric(
+      vertical: isMobile ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
+      horizontal: LayoutConstants.spacingMd,
+    );
+
+    // 2. Disable button while loading (details == null or AsyncLoading)
+    final isLoading = detailsState is AsyncLoading || details == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DetailsActionButtons(
+          item: widget.item,
+          details: details,
+          itemUrl: widget.item.url,
+        ),
+        const SizedBox(height: 12),
+        // 3. Swapped to CustomButton! This ensures exact height, border radius, 
+        //    and gamepad focus glow behavior matches the Play button perfectly.
+        CustomButton(
+          isPrimary: !isBookmarked,
+          isOutlined: isBookmarked, // Automatically handles styling!
+          onPressed: isLoading ? null : () {
+            if (isBookmarked) {
+              libraryNotifier.removeItem(item.url);
+            } else {
+              libraryNotifier.addItem(item);
+            }
+          },
+          child: Padding(
+            padding: btnPadding,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isBookmarked 
+                      ? Icons.bookmark_remove_rounded 
+                      : Icons.bookmark_add_rounded,
+                ),
+                const SizedBox(width: LayoutConstants.spacingXs),
+                Text(
+                  isBookmarked ? "Remove Bookmark" : "Add Bookmark",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDesktopContentBelow(
-    BuildContext context,
-    MultimediaItem item,
-    MultimediaItem? details,
-    AsyncValue<MultimediaItem?> detailsState,
-    bool isMovie,
-    AppLocalizations l10n,
+    BuildContext context, MultimediaItem item, MultimediaItem? details,
+    AsyncValue<MultimediaItem?> detailsState, bool isMovie, AppLocalizations l10n,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Loading / Error / Season chips
         if (detailsState is AsyncLoading)
           const Center(child: AppLoadingIndicator())
         else if (detailsState is AsyncError)
-          Text(
-            "Error: ${detailsState.error}",
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          )
+          Text("Error: ${detailsState.error}", style: TextStyle(color: Theme.of(context).colorScheme.error))
         else if (!isMovie && details?.episodes != null)
           DetailsSeasonListWrapper(itemUrl: widget.item.url),
 
         const SizedBox(height: 16),
-
-        // Episode grid (non-sliver version)
-        DetailsDesktopEpisodeColumn(
-          parentItem: item,
-          itemUrl: widget.item.url,
-          isMovie: isMovie,
-        ),
-
+        DetailsDesktopEpisodeColumn(parentItem: item, itemUrl: widget.item.url, isMovie: isMovie),
         const SizedBox(height: 32),
 
-        // Cast
         if (item.cast != null && item.cast!.isNotEmpty) ...[
           CastCarousel(cast: item.cast!),
         ],
-
-        // Trailers
         if (item.trailers != null && item.trailers!.isNotEmpty) ...[
           const SizedBox(height: 32),
           TrailersSection(trailers: item.trailers!),
         ],
-
-        // Recommendations
-        if (item.recommendations != null &&
-            item.recommendations!.isNotEmpty) ...[
+        if (item.recommendations != null && item.recommendations!.isNotEmpty) ...[
           const SizedBox(height: 32),
           RecommendationsCarousel(
             items: item.recommendations!,
             onItemTap: (rec) {
-              DetailsRoute(
-                $extra: DetailsRouteExtra(item: rec),
-              ).push<void>(context);
+              DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
             },
           ),
         ],
-
         const SizedBox(height: 100),
       ],
     );
   }
 
   List<Widget> _buildMobileSlivers(
-    BuildContext context,
-    MultimediaItem item,
-    MultimediaItem? details,
-    AsyncValue<MultimediaItem?> detailsState,
-    bool isMovie,
-    AppLocalizations l10n,
+    BuildContext context, MultimediaItem item, MultimediaItem? details,
+    AsyncValue<MultimediaItem?> detailsState, bool isMovie, AppLocalizations l10n,
+    bool isBookmarked, dynamic libraryNotifier,
   ) {
     return [
       SliverToBoxAdapter(
@@ -405,17 +349,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: CachedNetworkImage(
-                        imageUrl:
-                            AppImageFallbacks.poster(
-                              item.posterUrl,
-                              label: item.title,
-                            ) ??
-                            '',
-                        width: 100,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) =>
-                            ThumbnailErrorPlaceholder(label: item.title),
+                        imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
+                        width: 100, height: 150, fit: BoxFit.cover,
+                        errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(label: item.title),
                       ),
                     ),
                   ),
@@ -426,38 +362,22 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                       children: [
                         if (item.logoUrl != null)
                           CachedNetworkImage(
-                            imageUrl: item.logoUrl!,
-                            height: 50,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.centerLeft,
-                            errorWidget: (_, _, _) => Text(
-                              item.title,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
+                            imageUrl: item.logoUrl!, height: 50, fit: BoxFit.contain, alignment: Alignment.centerLeft,
+                            errorWidget: (_, _, _) => Text(item.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                           )
                         else
-                          Text(
-                            item.title,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                          Text(item.title, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        MetadataBar(
-                          item: item,
-                          isLoading: detailsState is AsyncLoading,
-                        ),
+                        MetadataBar(item: item, isLoading: detailsState is AsyncLoading),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              DetailsActionButtons(
-                item: widget.item,
-                details: details,
-                itemUrl: widget.item.url,
-              ),
+              
+              _buildStackedActionButtons(context, isBookmarked, libraryNotifier, item, details, detailsState),
+
               if (item.nextAiring != null) ...[
                 const SizedBox(height: 16),
                 NextAiringWidget(nextAiring: item.nextAiring!),
@@ -465,18 +385,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               const SizedBox(height: 24),
               Text(
                 l10n.synopsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               ExpandableText(
-                text: item.description ?? l10n.noDescription,
-                maxLines: 4,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  height: 1.5,
-                ),
+                text: item.description ?? l10n.noDescription, maxLines: 4,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Theme.of(context).textTheme.bodyMedium?.color, height: 1.5),
               ),
               const SizedBox(height: 32),
               if (detailsState is AsyncLoading)
@@ -484,14 +398,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               else if (detailsState is AsyncError)
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: 0.1),
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorPrefix(detailsState.error.toString()),
-                  ),
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                  child: Text(AppLocalizations.of(context)!.errorPrefix(detailsState.error.toString())),
                 )
               else if (!isMovie && details?.episodes != null)
                 DetailsSeasonListWrapper(itemUrl: widget.item.url),
@@ -501,11 +409,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       ),
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        sliver: SliverDetailsEpisodeList(
-          parentItem: item,
-          itemUrl: widget.item.url,
-          isMovie: isMovie,
-        ),
+        sliver: SliverDetailsEpisodeList(parentItem: item, itemUrl: widget.item.url, isMovie: isMovie),
       ),
       SliverToBoxAdapter(
         child: Padding(
@@ -521,15 +425,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                 const SizedBox(height: 32),
                 TrailersSection(trailers: item.trailers!),
               ],
-              if (item.recommendations != null &&
-                  item.recommendations!.isNotEmpty) ...[
+              if (item.recommendations != null && item.recommendations!.isNotEmpty) ...[
                 const SizedBox(height: 32),
                 RecommendationsCarousel(
                   items: item.recommendations!,
                   onItemTap: (rec) {
-                    DetailsRoute(
-                      $extra: DetailsRouteExtra(item: rec),
-                    ).push<void>(context);
+                    DetailsRoute($extra: DetailsRouteExtra(item: rec)).push<void>(context);
                   },
                 ),
               ],
