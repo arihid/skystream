@@ -2424,6 +2424,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View application activity & errors'**
   String get viewLogsSubtitle;
+
+  /// No description provided for @bookmarked.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarked'**
+  String get bookmarked;
 }
 
 class _AppLocalizationsDelegate

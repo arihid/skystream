@@ -1237,4 +1237,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Alkalmazásaktivitás és hibák megtekintése';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

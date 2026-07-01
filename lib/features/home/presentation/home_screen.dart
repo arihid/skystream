@@ -138,12 +138,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 searchFocusNode: _firstActionFocusNode,
                 onShowProviderSelector: () =>
                     _showProviderSelector(context, ref),
-                onPrevious: _carouselController != null
-                    ? () => _carouselController!.previousPage()
-                    : null,
-                onNext: _carouselController != null
-                    ? () => _carouselController!.nextPage()
-                    : null,
               ),
             ),
             Expanded(

@@ -1252,4 +1252,7 @@ class AppLocalizationsEl extends AppLocalizations {
   @override
   String get viewLogsSubtitle =>
       'Προβολή δραστηριότητας και σφαλμάτων εφαρμογής';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

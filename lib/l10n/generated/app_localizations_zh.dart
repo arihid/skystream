@@ -1203,6 +1203,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => '查看应用程序活动和错误';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).

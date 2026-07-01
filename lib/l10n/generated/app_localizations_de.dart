@@ -1253,4 +1253,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Anwendungsaktivität und Fehler anzeigen';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

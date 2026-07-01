@@ -1234,4 +1234,7 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Zobrazit aktivitu aplikace a chyby';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

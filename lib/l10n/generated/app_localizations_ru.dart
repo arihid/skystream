@@ -1246,4 +1246,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Просмотр активности и ошибок приложения';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

@@ -591,5 +591,6 @@
   "openLink": "Open link",
   "diagnostics": "Diagnostics",
   "viewLogs": "View Logs",
-  "viewLogsSubtitle": "View application activity & errors"
+  "viewLogsSubtitle": "View application activity & errors",
+  "bookmarked": "Bookmarked"
 }

@@ -1244,4 +1244,7 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'এপ্লিকেচনৰ কাৰ্যকলাপ আৰু ত্ৰুটি চাওক';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

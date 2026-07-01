@@ -21,6 +21,8 @@ import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+import 'package:skystream/core/input/gamepad_actions.dart'; // Added for AppSecondaryIntent
+
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});
   final String itemUrl;
@@ -104,26 +106,20 @@ class DetailsActionButtons extends HookConsumerWidget {
     final isMobile = context.isMobile;
 
     final btnPadding = EdgeInsets.symmetric(
-      vertical: isMobile
-          ? LayoutConstants.spacingSm
-          : LayoutConstants.spacingMd,
+      vertical: isMobile ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
       horizontal: LayoutConstants.spacingMd,
     );
 
     final pos = targetEpisode != null
         ? historyRepo.getEpisodePosition(
-            targetEpisode.url,
-            mainUrl: item.url,
-            season: targetEpisode.season,
-            episode: targetEpisode.episode,
+            targetEpisode.url, mainUrl: item.url,
+            season: targetEpisode.season, episode: targetEpisode.episode,
           )
         : historyRepo.getPosition(item.url);
     final dur = targetEpisode != null
         ? historyRepo.getEpisodeDuration(
-            targetEpisode.url,
-            mainUrl: item.url,
-            season: targetEpisode.season,
-            episode: targetEpisode.episode,
+            targetEpisode.url, mainUrl: item.url,
+            season: targetEpisode.season, episode: targetEpisode.episode,
           )
         : historyRepo.getDuration(item.url);
 
@@ -135,31 +131,59 @@ class DetailsActionButtons extends HookConsumerWidget {
       if (isSingleSeason) {
         playLabel = l10n.playEpisodeOnly(playLabel, targetEpisode.episode);
       } else {
-        playLabel = l10n.playEpisode(
-          playLabel,
-          targetEpisode.season,
-          targetEpisode.episode,
-        );
+        playLabel = l10n.playEpisode(playLabel, targetEpisode.season, targetEpisode.episode);
       }
     }
+
+    // Download feature: only for single episode VOD content
+    final isLivestream = item.contentType == MultimediaContentType.livestream;
+    final showDownload = details?.episodes != null && details?.episodes?.length == 1 && !isLivestream;
+
+    final episodeUrl = details?.episodes?.firstOrNull?.url ?? item.url;
+    final activeDownloads = ref.watch(activeDownloadsProvider);
+    final isDownloading = activeDownloads.contains(episodeUrl);
+    final progressMap = ref.watch(downloadProgressProvider);
+    final downloadProgressData = progressMap[episodeUrl] ?? progressMap[item.url];
+    final downloadProgress = downloadProgressData?.progress ?? 0.0;
+
+    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
+
+    useEffect(() {
+      if (details != null && !isDownloading) {
+        Future.microtask(() {
+          ref.read(downloadedFilesProvider.notifier).checkFile(
+                details!,
+                episode: details?.episodes?.firstWhereOrNull((e) => e.url == episodeUrl),
+              );
+        });
+      }
+      return null;
+    }, [details, episodeUrl, isDownloading]);
+
+    // UX BRILLIANCE: Execute the download action!
+    final executeDownloadAction = () {
+      if (downloadedFile != null) {
+        DownloadManagementDialog.show(
+          context, details ?? item, downloadedFile,
+          episode: details?.episodes?.firstWhereOrNull((e) => e.url == episodeUrl),
+        );
+      } else if (isDownloading) {
+        DownloadProgressDialog.show(context, details?.title ?? item.title, episodeUrl);
+      } else {
+        ref.read(downloadLauncherProvider).launch(
+          context, details ?? item, episodeUrl: episodeUrl,
+        );
+      }
+    };
 
     final playBtn = CustomButton(
       isPrimary: true,
       focusNode: playFocusNode,
       autofocus: true,
-      onPressed:
-          (details != null &&
-              details!.episodes != null &&
-              details!.episodes!.isNotEmpty)
+      onPressed: (details != null && details!.episodes != null && details!.episodes!.isNotEmpty)
           ? () async {
-              await ref
-                  .read(detailsControllerProvider(item.url).notifier)
-                  .handlePlayPress(context, details!);
-
-              // Phase 10 Fix: TV Focus restoration on return from player
-              if (context.mounted && isTv) {
-                playFocusNode.requestFocus();
-              }
+              await ref.read(detailsControllerProvider(item.url).notifier).handlePlayPress(context, details!);
+              if (context.mounted && isTv) playFocusNode.requestFocus();
             }
           : null,
       child: Padding(
@@ -169,12 +193,8 @@ class DetailsActionButtons extends HookConsumerWidget {
           children: isLaunching
               ? [
                   const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   ),
                   const SizedBox(width: LayoutConstants.spacingXs),
                   Text(AppLocalizations.of(context)!.resolving),
@@ -183,131 +203,28 @@ class DetailsActionButtons extends HookConsumerWidget {
                   const Icon(Icons.play_arrow_rounded),
                   const SizedBox(width: LayoutConstants.spacingXs),
                   Text(playLabel),
+                  // Render a tiny download icon to hint that long-press works!
+                  if (showDownload) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Icon(
+                        downloadedFile != null 
+                            ? Icons.download_done_rounded 
+                            : (isDownloading ? Icons.cloud_sync_rounded : Icons.download_rounded),
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ]
                 ],
         ),
       ),
     );
-
-    // Download feature: only for single episode VOD content
-    final isLivestream = item.contentType == MultimediaContentType.livestream;
-    final showDownload =
-        details?.episodes != null &&
-        details?.episodes?.length == 1 &&
-        !isLivestream;
-
-    final episodeUrl = details?.episodes?.firstOrNull?.url ?? item.url;
-    final activeDownloads = ref.watch(activeDownloadsProvider);
-    final isDownloading = activeDownloads.contains(episodeUrl);
-    final progressMap = ref.watch(downloadProgressProvider);
-    final downloadProgressData =
-        progressMap[episodeUrl] ?? progressMap[item.url];
-    final downloadProgress = downloadProgressData?.progress ?? 0.0;
-
-    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
-
-    // Check for downloaded file on load
-    useEffect(() {
-      if (details != null && !isDownloading) {
-        Future.microtask(() {
-          ref
-              .read(downloadedFilesProvider.notifier)
-              .checkFile(
-                details!,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
-        });
-      }
-      return null;
-    }, [details, episodeUrl, isDownloading]);
-
-    final downloadBtn = !showDownload
-        ? const SizedBox.shrink()
-        : downloadedFile != null
-        ? CustomButton(
-            isPrimary: false,
-            isOutlined: true,
-            onPressed: () {
-              DownloadManagementDialog.show(
-                context,
-                details ?? item,
-                downloadedFile,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
-            },
-            child: Padding(
-              padding: btnPadding,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.download_done_sharp, color: Colors.green),
-                  const SizedBox(width: LayoutConstants.spacingXs),
-                  Text(AppLocalizations.of(context)!.downloaded),
-                ],
-              ),
-            ),
-          )
-        : CustomButton(
-            isPrimary: false,
-            isOutlined: true,
-            onPressed: isDownloading
-                ? () => DownloadProgressDialog.show(
-                    context,
-                    details?.title ?? item.title,
-                    episodeUrl,
-                  )
-                : () {
-                    ref
-                        .read(downloadLauncherProvider)
-                        .launch(
-                          context,
-                          details ?? item,
-                          episodeUrl: episodeUrl,
-                        );
-                  },
-            child: Padding(
-              padding: btnPadding,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: isDownloading
-                    ? [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child:
-                              downloadProgressData?.status == TaskStatus.paused
-                              ? Icon(
-                                  Icons.pause_rounded,
-                                  size: 18,
-                                  color: Theme.of(context).colorScheme.primary,
-                                )
-                              : CircularProgressIndicator(
-                                  value: downloadProgress > 0
-                                      ? downloadProgress
-                                      : null,
-                                  strokeWidth: 2,
-                                ),
-                        ),
-                        const SizedBox(width: LayoutConstants.spacingXs),
-                        Text(
-                          downloadProgressData?.status == TaskStatus.paused
-                              ? AppLocalizations.of(context)!.paused
-                              : downloadProgress > 0
-                              ? '${(downloadProgress * 100).toInt()}%'
-                              : AppLocalizations.of(context)!.starting,
-                        ),
-                      ]
-                    : [
-                        const Icon(Icons.download_rounded),
-                        const SizedBox(width: LayoutConstants.spacingXs),
-                        Text(AppLocalizations.of(context)!.download),
-                      ],
-              ),
-            ),
-          );
 
     Widget progressWidget = const SizedBox.shrink();
     if (pos > 0 && dur > 0 && !isLivestream) {
@@ -318,34 +235,23 @@ class DetailsActionButtons extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(100), // Stadium style
+              borderRadius: BorderRadius.circular(100),
               child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Theme.of(context).colorScheme.primary,
-                ),
+                value: progress, minHeight: 6,
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               ),
             ),
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(
-                  Icons.history_toggle_off_rounded,
-                  size: 14,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.history_toggle_off_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 4),
                 Text(
                   "${AppLocalizations.of(context)!.percentWatched((progress * 100).toInt())}${!isMovie && targetEpisode != null ? (isSingleSeason ? ' • E${targetEpisode.episode}' : ' • S${targetEpisode.season} E${targetEpisode.episode}') : ''}",
                   style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
+                    fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600, letterSpacing: 0.2,
                   ),
                 ),
               ],
@@ -355,36 +261,32 @@ class DetailsActionButtons extends HookConsumerWidget {
       );
     }
 
-    if (vertical) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          progressWidget,
-          playBtn,
-          if (showDownload) ...[
-            const SizedBox(height: LayoutConstants.spacingSm),
-            downloadBtn,
-          ],
-        ],
+    // UX BRILLIANCE: If Download is available, wrap the Play button so 
+    // Touch Long-Press and Gamepad 'X/Y' trigger the download!
+    Widget finalPlayBtn = playBtn;
+    if (showDownload) {
+      finalPlayBtn = Actions(
+        actions: <Type, Action<Intent>>{
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              executeDownloadAction();
+              return null;
+            }
+          ),
+        },
+        child: GestureDetector(
+          onLongPress: executeDownloadAction, // Catch touch-and-hold for Mobile
+          child: playBtn,
+        ),
       );
     }
 
+    // With the standalone download button gone, we just return the progress and the Play button!
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         progressWidget,
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: playBtn),
-              if (showDownload) ...[
-                const SizedBox(width: LayoutConstants.spacingSm),
-                Expanded(child: downloadBtn),
-              ],
-            ],
-          ),
-        ),
+        finalPlayBtn,
       ],
     );
   }
@@ -413,20 +315,17 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    // Apply Language Filter
     if (detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
-    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
-    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -460,26 +359,16 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
         SliverLayoutBuilder(
           builder: (context, constraints) {
             final double crossAxisExtent = constraints.crossAxisExtent;
-            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(
-              1,
-              5,
-            );
-            final int rowCount = (displayedEpisodes.length / crossAxisCount)
-                .ceil();
+            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(1, 5);
+            final int rowCount = (displayedEpisodes.length / crossAxisCount).ceil();
 
             return SliverList.separated(
               itemCount: rowCount,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, rowIndex) {
                 final int startIndex = rowIndex * crossAxisCount;
-                final int endIndex = (startIndex + crossAxisCount).clamp(
-                  0,
-                  displayedEpisodes.length,
-                );
-                final rowEpisodes = displayedEpisodes.sublist(
-                  startIndex,
-                  endIndex,
-                );
+                final int endIndex = (startIndex + crossAxisCount).clamp(0, displayedEpisodes.length);
+                final rowEpisodes = displayedEpisodes.sublist(startIndex, endIndex);
 
                 return IntrinsicHeight(
                   child: Row(
@@ -494,10 +383,9 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
                             ),
                             child: i < rowEpisodes.length
                                 ? EpisodeCard(
-                                        episode: rowEpisodes[i],
-                                        parentItem: parentItem,
-                                      )
-                                      as Widget
+                                    episode: rowEpisodes[i],
+                                    parentItem: parentItem,
+                                  ) as Widget
                                 : const SizedBox.shrink(),
                           ),
                         ),
@@ -536,20 +424,17 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    // Apply Language Filter
     if (detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
-    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
-    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -567,9 +452,7 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
               children: [
                 Text(
                   AppLocalizations.of(context)!.episodes,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 DetailsEpisodeFilterBar(
                   itemUrl: itemUrl,
@@ -791,18 +674,14 @@ class _LanguageButtonState extends State<_LanguageButton> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 40 / 255)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 40 / 255)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: _isFocused
                   ? Colors.white
                   : (widget.isSelected
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 80 / 255)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 80 / 255)
                         : Colors.transparent),
               width: _isFocused ? 2 : 1,
             ),
@@ -813,9 +692,7 @@ class _LanguageButtonState extends State<_LanguageButton> {
               color: widget.isSelected
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: widget.isSelected
-                  ? FontWeight.bold
-                  : FontWeight.normal,
+              fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ),
@@ -840,9 +717,7 @@ class DetailsChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -929,9 +804,6 @@ class DetailsProviderChip extends ConsumerWidget {
   }
 }
 
-/// Non-sliver desktop episode grid for use inside [DetailsDesktopHero]'s
-/// [SingleChildScrollView]. Mirrors [SliverDetailsDesktopEpisodeGrid] but
-/// uses [LayoutBuilder] + [Column] instead of sliver equivalents.
 class DetailsDesktopEpisodeColumn extends ConsumerWidget {
   final MultimediaItem parentItem;
   final String itemUrl;
@@ -953,20 +825,17 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
 
     if (episodes.isEmpty) return const SizedBox.shrink();
 
-    // Apply Language Filter
     if (detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
-    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
-    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -999,24 +868,14 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final double crossAxisExtent = constraints.maxWidth;
-            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(
-              1,
-              5,
-            );
-            final int rowCount = (displayedEpisodes.length / crossAxisCount)
-                .ceil();
+            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(1, 5);
+            final int rowCount = (displayedEpisodes.length / crossAxisCount).ceil();
 
             return Column(
               children: List.generate(rowCount, (rowIndex) {
                 final int startIndex = rowIndex * crossAxisCount;
-                final int endIndex = (startIndex + crossAxisCount).clamp(
-                  0,
-                  displayedEpisodes.length,
-                );
-                final rowEpisodes = displayedEpisodes.sublist(
-                  startIndex,
-                  endIndex,
-                );
+                final int endIndex = (startIndex + crossAxisCount).clamp(0, displayedEpisodes.length);
+                final rowEpisodes = displayedEpisodes.sublist(startIndex, endIndex);
 
                 return Padding(
                   padding: EdgeInsets.only(
@@ -1035,10 +894,9 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
                               ),
                               child: i < rowEpisodes.length
                                   ? EpisodeCard(
-                                          episode: rowEpisodes[i],
-                                          parentItem: parentItem,
-                                        )
-                                        as Widget
+                                      episode: rowEpisodes[i],
+                                      parentItem: parentItem,
+                                    ) as Widget
                                   : const SizedBox.shrink(),
                             ),
                           ),

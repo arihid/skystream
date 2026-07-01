@@ -1237,4 +1237,7 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Skatīt lietotnes darbību un kļūdas';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

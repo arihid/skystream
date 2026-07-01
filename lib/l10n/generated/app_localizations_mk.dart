@@ -1237,4 +1237,7 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Види активност на апликацијата и грешки';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

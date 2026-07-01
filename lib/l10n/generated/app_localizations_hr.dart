@@ -1231,4 +1231,7 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Vidi aktivnost aplikacije i pogreške';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

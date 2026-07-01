@@ -1247,4 +1247,7 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'એપ્લિકેશન પ્રવૃત્તિ અને ભૂલો જુઓ';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

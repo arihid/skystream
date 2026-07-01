@@ -9,6 +9,7 @@ import '../../../../shared/widgets/expandable_text.dart';
 import 'premium_details_widgets.dart';
 import 'details_layout_widgets.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+import '../../../../core/widgets/focusable_wrapper.dart'; // Added FocusableWrapper
 
 /// Immersive desktop/TV hero for non-TMDB details.
 ///
@@ -24,6 +25,7 @@ class DetailsDesktopHero extends ConsumerWidget {
     required this.detailsState,
     required this.isMovie,
     required this.itemUrl,
+    required this.actionButtons, // NEW: Accepts the 50/50 split buttons
     required this.child,
   });
 
@@ -41,6 +43,9 @@ class DetailsDesktopHero extends ConsumerWidget {
 
   final bool isMovie;
   final String itemUrl;
+
+  /// INJECTED buttons
+  final Widget actionButtons;
 
   /// Content rendered below the hero section (episodes, cast, etc.).
   final Widget child;
@@ -80,9 +85,6 @@ class DetailsDesktopHero extends ConsumerWidget {
               imageUrl: backdropUrl,
               fit: BoxFit.cover,
               alignment: Alignment.centerRight,
-              // Bound decoded bitmap; plugin-supplied backdrops are often
-              // already at source resolution (no size negotiation), so a 4K
-              // poster decoded at native size would burn ~33 MB.
               memCacheWidth:
                   (MediaQuery.sizeOf(context).width *
                           MediaQuery.devicePixelRatioOf(context))
@@ -140,18 +142,21 @@ class DetailsDesktopHero extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Logo or Title
-                      if (displayItem.logoUrl != null)
-                        CachedNetworkImage(
-                          imageUrl: displayItem.logoUrl!,
-                          height: 200,
-                          alignment: Alignment.centerLeft,
-                          fit: BoxFit.contain,
-                          placeholder: (_, _) => _buildTitle(textColor),
-                          errorWidget: (_, _, _) => _buildTitle(textColor),
-                        )
-                      else
-                        _buildTitle(textColor),
+                      // TOP ANCHOR: Wrapping the Logo/Title makes it focusable! 
+                      // Pressing UP from the lower buttons targets this and auto-scrolls to the top!
+                      FocusableWrapper(
+                        onTap: () {}, // Does nothing when clicked
+                        child: displayItem.logoUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: displayItem.logoUrl!,
+                                height: 200,
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.contain,
+                                placeholder: (_, _) => _buildTitle(textColor),
+                                errorWidget: (_, _, _) => _buildTitle(textColor),
+                              )
+                            : _buildTitle(textColor),
+                      ),
 
                       const SizedBox(height: 16),
 
@@ -182,16 +187,10 @@ class DetailsDesktopHero extends ConsumerWidget {
 
                       const SizedBox(height: 32),
 
-                      // Action buttons (Play / Download)
-                      // Constrained width so they don't stretch across
-                      // the full hero area — looks better on wide screens.
+                      // Action buttons (Play / Download) + INJECTED Bookmark Split
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        child: DetailsActionButtons(
-                          item: baseItem,
-                          details: details,
-                          itemUrl: itemUrl,
-                        ),
+                        constraints: const BoxConstraints(maxWidth: 500),
+                        child: actionButtons,
                       ),
                     ],
                   ),

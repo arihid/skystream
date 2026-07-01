@@ -1214,4 +1214,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'アプリのアクティビティとエラーを表示';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

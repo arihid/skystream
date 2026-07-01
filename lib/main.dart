@@ -4,7 +4,9 @@ import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kReleaseMode
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -28,10 +30,12 @@ import 'core/config/tmdb_config.dart';
 import 'core/providers/device_info_provider.dart';
 import 'core/input/gamepad_shortcut_manager.dart';
 import 'core/input/gamepad_actions.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await Hive.initFlutter();
 
   // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
   // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
@@ -51,8 +55,6 @@ void main() async {
 
     const windowOptions = WindowOptions(
       center: true,
-      backgroundColor: Colors
-          .black, // Solid black prevents transparency during fullscreen transition
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
     );
@@ -374,7 +376,10 @@ class _MyAppState extends ConsumerState<MyApp> {
               child: Actions(
                 actions: AppActionBindings.getBindings(context),
                 child: FocusTraversalGroup(
-                  policy: ReadingOrderTraversalPolicy(), // FIXED: Concrete class implementing directional logic
+                  // We enforce WidgetOrderTraversalPolicy globally as a stable baseline.
+                  // To fix the "jumping to random columns" bug, we must apply local FocusTraversalGroups
+                  // around your specific horizontal ListViews.
+                  policy: WidgetOrderTraversalPolicy(),
                   child: result, 
                 ),
               ),

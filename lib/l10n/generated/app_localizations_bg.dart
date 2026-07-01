@@ -1231,4 +1231,7 @@ class AppLocalizationsBg extends AppLocalizations {
   @override
   String get viewLogsSubtitle =>
       'Преглед на активността на приложението и грешки';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

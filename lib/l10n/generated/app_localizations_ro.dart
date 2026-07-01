@@ -1240,4 +1240,7 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Vezi activitatea și erorile aplicației';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

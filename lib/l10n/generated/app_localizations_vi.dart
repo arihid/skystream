@@ -1226,4 +1226,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Xem hoạt động và lỗi ứng dụng';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }

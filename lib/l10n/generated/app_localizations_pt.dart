@@ -1235,6 +1235,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'Ver atividade e erros da aplicação';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).

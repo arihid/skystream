@@ -1218,4 +1218,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => '앱 활동 및 오류 보기';
+
+  @override
+  String get bookmarked => 'Bookmarked';
 }
