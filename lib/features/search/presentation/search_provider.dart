@@ -335,11 +335,8 @@ class SearchSuggestionController extends _$SearchSuggestionController {
   void onQueryChanged(String query) {
     if (query == state.query) return;
 
-    if (kDebugMode) debugPrint("🧠 PROVIDER: onQueryChanged received: '$query'");
-
     final trimmed = query.trim();
     if (trimmed.length < 2) {
-      if (kDebugMode) debugPrint("🧠 PROVIDER: Query too short. Canceling.");
       _debounce?.cancel();
       state = state.copyWith(
         query: query,
@@ -352,11 +349,9 @@ class SearchSuggestionController extends _$SearchSuggestionController {
     state = state.copyWith(query: query, isLoading: true);
 
     _debounce?.cancel();
-    if (kDebugMode) debugPrint("🧠 PROVIDER: Starting 350ms debounce for: '$trimmed'");
     
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       try {
-        if (kDebugMode) debugPrint("🧠 PROVIDER: Debounce finished. Calling TMDB for: '$trimmed'");
         final tmdb = ref.read(tmdbServiceProvider);
         
         final suggestions = await tmdb.getSuggestions(
@@ -364,13 +359,11 @@ class SearchSuggestionController extends _$SearchSuggestionController {
           language: 'en-US',
         );
         
-        if (kDebugMode) debugPrint("🧠 PROVIDER: TMDB returned ${suggestions.length} suggestions: $suggestions");
-        
         if (state.query == query) {
           state = state.copyWith(suggestions: suggestions, isLoading: false);
         }
       } catch (e, stack) {
-        if (kDebugMode) debugPrint("❌ TMDB Suggestion Error: $e\n$stack");
+        if (kDebugMode) debugPrint("TMDB Suggestion Error: $e\n$stack");
         if (state.query == query) {
           state = state.copyWith(suggestions: const [], isLoading: false);
         }

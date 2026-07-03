@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/router/app_router.dart';
@@ -6,6 +7,9 @@ import '../../../../core/extensions/base_provider.dart';
 import '../../../../core/utils/image_fallbacks.dart';
 import '../../../search/presentation/search_provider.dart';
 import 'package:skystream/shared/widgets/multimedia_card.dart';
+import 'package:skystream/shared/widgets/virtual_keyboard.dart';
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../core/input/gamepad_intents.dart'; 
 
 class HomeSearchDelegate extends SearchDelegate<void> {
   final String? initialQuery;
@@ -45,42 +49,70 @@ class HomeSearchDelegate extends SearchDelegate<void> {
 
   @override
   List<Widget>? buildActions(BuildContext context) {
-    return [
-      if (query.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () {
-            query = '';
-            showSuggestions(context);
-          },
-        ),
-      const SizedBox(width: 8),
-    ];
+    return const [ SizedBox(width: 8) ];
   }
 
   @override
   Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back_rounded),
-      onPressed: () => close(context, null),
-    );
+    return const SizedBox.shrink();
   }
 
   @override
   Widget buildResults(BuildContext context) {
     if (query.isEmpty) return const SizedBox.shrink();
-    return _HomeSearchResults(query: query);
+    return _HomeSearchResults(
+      query: query,
+      onBack: () => showSuggestions(context), 
+    );
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    if (query.isEmpty) return const SizedBox.shrink();
-    return _HomeSearchSuggestions(
-      query: query,
-      onSelect: (val) {
-        query = val;
-        showResults(context);
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            Navigator.maybePop(context);
+            return null;
+          }
+        ),
       },
+      child: Column(
+        children: [
+          Expanded(
+            child: query.isEmpty
+                ? Center(
+                    child: Text(
+                      'Type to search...',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        fontSize: 18,
+                      ),
+                    ),
+                  )
+                : _HomeSearchSuggestions(
+                    query: query,
+                    onSelect: (val) {
+                      query = val;
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      showResults(context);
+                    },
+                  ),
+          ),
+          VirtualKeyboard(
+            query: query,
+            onQueryChanged: (newQuery) {
+              query = newQuery; 
+            },
+            onSearch: () {
+              if (query.isNotEmpty) {
+                FocusManager.instance.primaryFocus?.unfocus();
+                showResults(context); 
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -96,15 +128,15 @@ class _HomeSearchSuggestions extends ConsumerStatefulWidget {
       _HomeSearchSuggestionsState();
 }
 
-class _HomeSearchSuggestionsState
-    extends ConsumerState<_HomeSearchSuggestions> {
+class _HomeSearchSuggestionsState extends ConsumerState<_HomeSearchSuggestions> {
+  
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(searchSuggestionControllerProvider.notifier)
-          .onQueryChanged(widget.query);
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(searchSuggestionControllerProvider.notifier).onQueryChanged(widget.query);
+      }
     });
   }
 
@@ -113,19 +145,30 @@ class _HomeSearchSuggestionsState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.query != widget.query) {
       Future.microtask(() {
-        if (!context.mounted) return;
-        ref
-            .read(searchSuggestionControllerProvider.notifier)
-            .onQueryChanged(widget.query);
+        if (mounted) {
+          ref.read(searchSuggestionControllerProvider.notifier).onQueryChanged(widget.query);
+        }
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🎯 Unconditional ref.watch ensures Riverpod keeps the state alive
     final searchState = ref.watch(searchSuggestionControllerProvider);
     final isLoading = searchState.isLoading;
     final suggestions = searchState.suggestions;
+
+    if (widget.query.trim().length < 2) {
+      return Center(
+        child: Text(
+          'Keep typing...',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      );
+    }
 
     if (isLoading) {
       return Center(
@@ -140,9 +183,7 @@ class _HomeSearchSuggestionsState
         child: Text(
           'No results found',
           style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
       );
@@ -174,8 +215,9 @@ class _HomeSearchSuggestionsState
 
 class _HomeSearchResults extends ConsumerStatefulWidget {
   final String query;
+  final VoidCallback onBack; 
 
-  const _HomeSearchResults({required this.query});
+  const _HomeSearchResults({required this.query, required this.onBack});
 
   @override
   ConsumerState<_HomeSearchResults> createState() => _HomeSearchResultsState();
@@ -234,47 +276,71 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    Widget content;
 
-    if (result == null || result!.results.isEmpty) {
-      return Center(
-        child: Text(
-          'No results found',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+    if (isLoading) {
+      content = const Focus(
+        autofocus: true,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    } else if (result == null || result!.results.isEmpty) {
+      content = Focus(
+        autofocus: true,
+        child: Center(
+          child: Text(
+            'No results found',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
+    } else {
+      final isLarge = MediaQuery.of(context).size.width > 600;
+      final maxExtent = isLarge ? 200.0 : 130.0;
+
+      content = GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: maxExtent,
+          childAspectRatio: 2 / 3.2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: result!.results.length,
+        itemBuilder: (context, index) {
+          final item = result!.results[index];
+          final uniqueTag = 'search_${result!.providerId}_${item.url}_$index';
+
+          return FocusableWrapper(
+            autofocus: index == 0,
+            onTap: () => DetailsRoute(
+              $extra: DetailsRouteExtra(item: item),
+            ).push<void>(context),
+            child: MultimediaCard(
+              key: ValueKey(item.url),
+              imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title),
+              title: item.title,
+              heroTag: uniqueTag,
+              onTap: () => DetailsRoute(
+                $extra: DetailsRouteExtra(item: item),
+              ).push<void>(context),
+            ),
+          );
+        },
+      );
     }
 
-    final isLarge = MediaQuery.of(context).size.width > 600;
-    final maxExtent = isLarge ? 200.0 : 130.0;
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: maxExtent,
-        childAspectRatio: 2 / 3.2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: result!.results.length,
-      itemBuilder: (context, index) {
-        final item = result!.results[index];
-        final uniqueTag = 'search_${result!.providerId}_${item.url}_$index';
-
-        return MultimediaCard(
-          key: ValueKey(item.url),
-          imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title),
-          title: item.title,
-          heroTag: uniqueTag,
-          onTap: () => DetailsRoute(
-            $extra: DetailsRouteExtra(item: item),
-          ).push<void>(context),
-        );
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            widget.onBack(); 
+            return null;
+          }
+        ),
       },
+      child: content,
     );
   }
 }

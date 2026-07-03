@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../input/gamepad_actions.dart'; // Import custom intents
+import '../input/gamepad_actions.dart';
 
 class FocusableWrapper extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
-  final VoidCallback? onSecondaryTap; // <-- NEW: Accept 'X' button callbacks
-  final VoidCallback? onLongPress;    // <-- Accept 'Y' button / Touch-and-Hold
+  final VoidCallback? onSecondaryTap; 
+  final VoidCallback? onLongPress;    
+  final bool autofocus;
 
   const FocusableWrapper({
     super.key, 
@@ -13,6 +14,7 @@ class FocusableWrapper extends StatefulWidget {
     required this.onTap,
     this.onSecondaryTap,
     this.onLongPress,
+    this.autofocus = false,
   });
 
   @override
@@ -33,46 +35,42 @@ class _FocusableWrapperState extends State<FocusableWrapper> {
   Widget build(BuildContext context) {
     return Actions(
       actions: <Type, Action<Intent>>{
-        // 'A' Button / Tap
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (ActivateIntent intent) {
             widget.onTap(); 
             return null;
           },
         ),
-        // 'X' Button / Secondary Tap
-        AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
-          onInvoke: (AppSecondaryIntent intent) {
-            // Smart Fallback: If onSecondaryTap isn't defined, use onLongPress.
-            // This ensures episode cards still download on 'X' without breaking!
-            if (widget.onSecondaryTap != null) {
-              widget.onSecondaryTap!();
-            } else if (widget.onLongPress != null) {
-              widget.onLongPress!();
+        if (widget.onSecondaryTap != null || widget.onLongPress != null)
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (AppSecondaryIntent intent) {
+              if (widget.onSecondaryTap != null) widget.onSecondaryTap!();
+              else if (widget.onLongPress != null) widget.onLongPress!();
+              return null;
             }
-            return null;
-          }
-        ),
-        // 'Y' Button / Tertiary / Long Press
-        AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
-          onInvoke: (AppTertiaryIntent intent) {
-            if (widget.onLongPress != null) widget.onLongPress!();
-            return null;
-          }
-        ),
+          ),
+        if (widget.onLongPress != null)
+          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+            onInvoke: (AppTertiaryIntent intent) {
+              widget.onLongPress!();
+              return null;
+            }
+          ),
       },
       child: Focus(
+        autofocus: widget.autofocus,
         focusNode: _focusNode,
         onFocusChange: (hasFocus) {
-          if (hasFocus) {
-            if (Scrollable.maybeOf(context) != null) {
-              Scrollable.ensureVisible(
-                context,
-                alignment: 0.5,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-              );
-            }
+          // 🏎️ THE SMOOTH GLIDE FIX
+          // When the analog stick generates rapid focus changes, this aggressively fast 
+          // ease-out animation prevents the camera from stuttering or lagging behind!
+          if (hasFocus && Scrollable.maybeOf(context) != null) {
+            Scrollable.ensureVisible(
+              context,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic, 
+            );
           }
         },
         child: MouseRegion(
@@ -80,36 +78,23 @@ class _FocusableWrapperState extends State<FocusableWrapper> {
           onExit: (_) => setState(() => _isHovered = false),
           child: GestureDetector(
             onTap: widget.onTap,
-            onLongPress: widget.onLongPress, // Sync touch long-press to the Y action
+            onLongPress: widget.onLongPress,
             child: AnimatedBuilder(
               animation: _focusNode,
               builder: (context, child) {
                 final bool isActive = _focusNode.hasFocus || _isHovered;
-                
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
-                  transform: isActive 
-                      ? (Matrix4.identity()..scale(1.04)) 
-                      : Matrix4.identity(),
+                  transform: isActive ? (Matrix4.identity()..scale(1.04)) : Matrix4.identity(),
                   transformAlignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isActive 
-                          ? Theme.of(context).colorScheme.primary 
-                          : Colors.transparent,
+                      color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
                       width: 3,
                     ),
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: Theme.of(context).colorScheme.primary.withAlpha(100),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            )
-                          ]
-                        : [],
+                    boxShadow: isActive ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(100), blurRadius: 12, spreadRadius: 2)] : [],
                   ),
                   child: child,
                 );
