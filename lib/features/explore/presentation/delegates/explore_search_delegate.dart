@@ -7,6 +7,11 @@ import '../../../../core/utils/layout_constants.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/multimedia_card.dart';
 
+// NEW IMPORTS FOR VIRTUAL KEYBOARD
+import '../../../../shared/widgets/virtual_keyboard.dart';
+import '../../../../core/utils/responsive_breakpoints.dart';
+import '../../../../core/input/gamepad_intents.dart'; // Needed for AppBackIntent
+
 import '../controllers/explore_search_controller.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/providers/device_info_provider.dart';
@@ -50,39 +55,88 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
 
   @override
   List<Widget>? buildActions(BuildContext context) {
-    return [
-      if (query.isNotEmpty)
-        IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () {
-            query = '';
-            showSuggestions(context);
-          },
-        ),
-      const SizedBox(width: 8),
-    ];
+    // Hide the legacy top-right clear button
+    return const [ SizedBox(width: 8) ];
   }
 
   @override
   Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back_rounded),
-      onPressed: () => close(context, null),
-    );
+    // Hide the legacy top-left back button
+    return const SizedBox.shrink();
   }
 
   @override
   Widget buildResults(BuildContext context) {
     if (query.isEmpty) return const SizedBox.shrink();
+    
+    final isBigPicture = context.isTabletOrLarger;
+    Widget content = _SearchResultsGrid(query: query);
 
-    return _SearchResultsGrid(query: query);
+    if (isBigPicture) {
+      return Actions(
+        actions: <Type, Action<Intent>>{
+          AppBackIntent: CallbackAction<AppBackIntent>(
+            onInvoke: (_) {
+              showSuggestions(context);
+              return null;
+            }
+          ),
+        },
+        child: content,
+      );
+    }
+
+    return content;
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    if (query.isEmpty) return const SizedBox.shrink();
+    final isBigPicture = context.isTabletOrLarger;
+    
+    Widget content = query.isEmpty 
+        ? Center(
+            child: Text(
+              'Type to search...',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                fontSize: 18,
+              ),
+            ),
+          )
+        : _SearchSuggestionsList(query: query);
 
-    return _SearchSuggestionsList(query: query);
+    if (isBigPicture) {
+      return Actions(
+        actions: <Type, Action<Intent>>{
+          AppBackIntent: CallbackAction<AppBackIntent>(
+            onInvoke: (_) {
+              Navigator.maybePop(context);
+              return null;
+            }
+          ),
+        },
+        child: Column(
+          children: [
+            Expanded(child: content),
+            // The VirtualKeyboard needs full width at the bottom!
+            VirtualKeyboard(
+              query: query,
+              onQueryChanged: (newQuery) {
+                query = newQuery;
+              },
+              onSearch: () {
+                if (query.isNotEmpty) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  showResults(context);
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    return content;
   }
 }
 

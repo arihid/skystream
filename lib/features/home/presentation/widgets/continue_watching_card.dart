@@ -15,6 +15,7 @@ import '../../../../shared/widgets/loading_dialog.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/core/services/notification_service.dart';
 import '../../../../core/widgets/focusable_wrapper.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class ContinueWatchingCard extends ConsumerStatefulWidget {
   final HistoryItem historyItem;
@@ -174,166 +175,118 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         return;
       }
 
-        unawaited(
-          DetailsRoute(
-            $extra: DetailsRouteExtra(item: item, autoPlay: true),
-          ).push<void>(context),
-        );
-      },
-      onLongPress: () {
-        showModalBottomSheet<void>(
-          context: context,
-          builder: (context) => Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: Text(AppLocalizations.of(context)!.viewDetails),
-                  onTap: () {
-                    Navigator.pop(context);
-                    unawaited(
-                      DetailsRoute(
-                        $extra: DetailsRouteExtra(item: item),
-                      ).push<void>(context),
-                    );
-                  },
+      unawaited(
+        DetailsRoute(
+          $extra: DetailsRouteExtra(item: item, autoPlay: true),
+        ).push<void>(context),
+      );
+    };
+
+    // 2. GAMEPAD 'X' - Delete
+    final handleSecondaryTap = () {
+      ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url);
+      ref.read(notificationServiceProvider).showSuccess(
+        AppLocalizations.of(context)!.removedFromHistory(item.title),
+      );
+    };
+
+    // 3. GAMEPAD 'Y' (or Touch Hold) - Context Menu
+    final handleLongPress = () {
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: Text(AppLocalizations.of(context)!.viewDetails),
+                onTap: () {
+                  Navigator.pop(context);
+                  unawaited(
+                    DetailsRoute(
+                      $extra: DetailsRouteExtra(item: item),
+                    ).push<void>(context),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
                 ),
-                ListTile(
-                  leading: Icon(
-                    Icons.delete_outline,
+                title: Text(
+                  AppLocalizations.of(context)!.removeFromHistory,
+                  style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                   ),
-                  title: Text(
-                    AppLocalizations.of(context)!.removeFromHistory,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                  onTap: () {
-                    ref
-                        .read(watchHistoryProvider.notifier)
-                        .removeFromHistory(item.url);
-                    Navigator.pop(context);
-                    ref
-                        .read(notificationServiceProvider)
-                        .showSuccess(
-                          AppLocalizations.of(
-                            context,
-                          )!.removedFromHistory(item.title),
-                        );
-                  },
                 ),
-                ListTile(
-                  leading: const Icon(Icons.close),
-                  title: Text(AppLocalizations.of(context)!.cancel),
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
-            ),
+                onTap: () {
+                  handleSecondaryTap();
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: Text(AppLocalizations.of(context)!.cancel),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
           ),
-        );
-      },
-      borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: SizedBox(
-          width: widget.width,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
-            child: Stack(
-              children: [
-                // Banner background
-                Positioned.fill(
-                  child: Container(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    child: bannerUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: bannerUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (_, _) => const SizedBox.shrink(),
-                            errorWidget: (_, _, _) => const SizedBox.shrink(),
-                          )
-                        : null,
-                  ),
+        ),
+      );
+    };
+
+    // WIRED UP: Tap, SecondaryTap, and LongPress!
+    return FocusableWrapper(
+      onTap: handleTap,
+      onSecondaryTap: handleSecondaryTap,
+      onLongPress: handleLongPress,
+      // CONTEXT AWARE HINTS: Tell the global overlay what this specific card does!
+      gamepadHints: [
+        GamepadHint(buttonLabel: 'A', actionLabel: 'Play', buttonColor: Colors.greenAccent.shade400),
+        GamepadHint(buttonLabel: 'X', actionLabel: 'Remove', buttonColor: Colors.redAccent.shade400),
+        GamepadHint(buttonLabel: 'Y', actionLabel: 'Options', buttonColor: Colors.amberAccent.shade400),
+      ],
+      child: CardsWrapper(
+        onTap: handleTap,
+        onLongPress: handleLongPress,
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Container(
+              width: width,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
                 ),
-
-                // Dark overlay (full card) — 40% at rest, 60% on hover
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      color: Colors.black.withValues(
-                        alpha: _isHovered ? 0.40 : 0.20,
+              ),
+              child: Row(
+                children: [
+                  AspectRatio(
+                    aspectRatio: 2 / 3,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(12),
                       ),
-                    ),
-                  ),
-                ),
-
-                // Bottom scrim gradient (from-black/80 to transparent)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 64,
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black87, Colors.transparent],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Duration badge (bottom-right)
-                if (!isLivestream)
-                  Positioned(
-                    bottom: 10,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.70),
-                        borderRadius: BorderRadius.circular(
-                          LayoutConstants.radiusMd,
-                        ),
-                      ),
-                      child: Text(
-                        '${_formatDuration(widget.historyItem.position)} / ${_formatDuration(widget.historyItem.duration)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Progress bar (bottom edge)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: SizedBox(
-                    height: 4,
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.transparent,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+                      child: CachedNetworkImage(
+                        imageUrl:
+                            AppImageFallbacks.poster(
+                              item.posterUrl,
+                              label: item.title,
+                            ) ??
+                            '',
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) =>
+                            Container(color: Theme.of(context).dividerColor),
+                        errorWidget: (_, _, _) =>
+                            ThumbnailErrorPlaceholder(label: item.title),
                       ),
                     ),
                   ),

@@ -8,7 +8,6 @@ import '../data/explore_mode_provider.dart';
 import 'anilist_explore_screen.dart';
 import 'view_all_screen.dart';
 import 'widgets/explore_carousel.dart';
-import 'widgets/explore_header_bar.dart';
 import 'widgets/media_horizontal_list.dart';
 import 'widgets/unified_filter_dialog.dart';
 import '../data/explore_filter_provider.dart';
@@ -19,6 +18,7 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../../core/widgets/focusable_wrapper.dart';
 import 'dart:async';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -113,7 +113,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     _appBarOpacityNotifier.dispose();
     _showBottomFade.dispose();
     _isFabExtended.dispose();
-    _firstActionFocusNode.dispose();
     super.dispose();
   }
 
@@ -326,21 +325,101 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
+  Widget _buildWidescreenHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      height: LayoutConstants.dashboardHeaderHeight,
+      padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.dashboardContentPadding),
+      child: Row(
+        children: [
+          // Capsule search bar
+          Expanded(
+            child: FocusableWrapper(
+              onTap: () {
+                unawaited(
+                  showSearch<void>(
+                    context: context,
+                    delegate: ExploreSearchDelegate(),
+                    useRootNavigator: false,
+                    maintainState: true,
+                  ),
+                );
+              },
+              child: Container(
+                height: 38,
+                constraints: const BoxConstraints(maxWidth: 500),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${l10n.search}...',
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Filter button
+          FocusableWrapper(
+            onTap: () {
+              unawaited(
+                showDialog<void>(
+                  context: context,
+                  builder: (context) => const UnifiedFilterDialog(),
+                ),
+              );
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              ),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final filters = ref.watch(exploreFilterProvider);
+                  final hasActiveFilter = filters.selectedGenre != null ||
+                      filters.selectedYear != null ||
+                      filters.minRating != null;
+
+                  return Icon(
+                    Icons.tune,
+                    color: hasActiveFilter
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    size: 18,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWidescreenBody(BuildContext context) {
     final isAnime = ref.watch(exploreModeProvider);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: ExploreHeaderBar(
-            searchFocusNode: _firstActionFocusNode,
-            onPrevious: _carouselController != null
-                ? () => _carouselController!.previousPage()
-                : null,
-            onNext: _carouselController != null
-                ? () => _carouselController!.nextPage()
-                : null,
-          ),
+          child: _buildWidescreenHeader(context),
         ),
         Expanded(
           child: _withGradientEdgeHint(
@@ -450,10 +529,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                     : ExploreCarousel(
                         movies: value,
                         scrollController: _scrollController,
-                        onNavigateUp: () =>
-                            _firstActionFocusNode.requestFocus(),
-                        onControllerReady: (c) =>
-                            setState(() => _carouselController = c),
                       ),
               AsyncLoading() => _buildCarouselShimmer(context),
               AsyncError() => Container(

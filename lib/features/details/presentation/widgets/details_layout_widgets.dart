@@ -4,6 +4,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/features/library/presentation/library_provider.dart';
+import 'package:skystream/features/library/presentation/library_state.dart';
 import '../downloaded_file_provider.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
@@ -23,7 +26,8 @@ import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
-import 'package:skystream/core/input/gamepad_actions.dart'; // Added for AppSecondaryIntent
+import 'package:skystream/core/input/gamepad_intents.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});
@@ -216,6 +220,15 @@ class DetailsActionButtons extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
 
+    // Read bookmark state directly into the button layout so we can react to it!
+    final isBookmarked = ref.watch(
+      libraryProvider.select(
+        (state) =>
+            state is LibrarySuccess &&
+            state.items.any((i) => i.url == itemUrl),
+      ),
+    );
+
     useEffect(() {
       if (details != null && !isDownloading) {
         Future.microtask(() {
@@ -243,6 +256,44 @@ class DetailsActionButtons extends HookConsumerWidget {
         );
       }
     };
+
+    // 🎮 DYNAMIC CONTEXT AWARE HINTS: Hook directly into the Play Button's Focus Node!
+    final playHints = useMemoized(() => [
+      GamepadHint(buttonLabel: 'A', actionLabel: playLabel, buttonColor: Colors.greenAccent.shade400),
+      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+      GamepadHint(
+        buttonLabel: 'X', 
+        actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+        buttonColor: Colors.blueAccent.shade400
+      ),
+      if (showDownload)
+        GamepadHint(
+          buttonLabel: 'Y', 
+          actionLabel: downloadedFile != null ? 'Manage Download' : 'Download', 
+          buttonColor: Colors.amberAccent.shade400,
+        ),
+      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+    ], [playLabel, showDownload, downloadedFile, isBookmarked]); // <-- Added isBookmarked dependency!
+
+    // This brilliant combined hook instantly broadcasts hint updates if the state changes WHILE the button is focused!
+    useEffect(() {
+      void updateGlobalHints() {
+        Future.microtask(() {
+          if (!ref.context.mounted) return;
+          if (playFocusNode.hasFocus) {
+            ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
+          } else if (ref.read(focusedGamepadHintsProvider) == playHints) {
+            ref.read(focusedGamepadHintsProvider.notifier).state = null;
+          }
+        });
+      }
+      
+      updateGlobalHints(); // Broadcast immediately upon render!
+      
+      playFocusNode.addListener(updateGlobalHints); // Keep broadcasting on focus changes
+      return () => playFocusNode.removeListener(updateGlobalHints);
+    }, [playFocusNode, playHints]);
+
 
     final playBtn = CustomButton(
       isPrimary: true,
@@ -330,12 +381,13 @@ class DetailsActionButtons extends HookConsumerWidget {
     }
 
     // UX BRILLIANCE: If Download is available, wrap the Play button so 
-    // Touch Long-Press and Gamepad 'X/Y' trigger the download!
+    // Touch Long-Press and Gamepad 'Y' trigger the download!
     Widget finalPlayBtn = playBtn;
     if (showDownload) {
       finalPlayBtn = Actions(
         actions: <Type, Action<Intent>>{
-          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+          // FIXED: Shifted from AppSecondaryIntent (X) to AppTertiaryIntent (Y)!
+          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
             onInvoke: (_) {
               executeDownloadAction();
               return null;

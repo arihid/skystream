@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'gamepad_intents.dart';
+import '../../shared/widgets/global_system_menu.dart';
 
 // ---- CUSTOM GAMEPAD INTENTS ----
 class AppMenuIntent extends Intent { const AppMenuIntent(); }
@@ -70,16 +71,16 @@ class AppActionBindings {
         Actions.maybeInvoke(FocusManager.instance.primaryFocus?.context ?? context, const ScrollIntent(direction: AxisDirection.down, type: ScrollIncrementType.page));
         return null;
       }),
+      
       AppMenuIntent: CallbackAction<AppMenuIntent>(
         onInvoke: (_) {
-          final scaffold = Scaffold.maybeOf(FocusManager.instance.primaryFocus?.context ?? context);
-          if (scaffold != null) {
-            if (scaffold.hasDrawer && !scaffold.isDrawerOpen) scaffold.openDrawer();
-            else if (scaffold.hasEndDrawer && !scaffold.isEndDrawerOpen) scaffold.openEndDrawer();
-          }
+          // 🎯 Toggle the sliding Big Picture Menu from ANYWHERE!
+          final targetContext = FocusManager.instance.primaryFocus?.context ?? context;
+          GlobalSystemMenu.toggle(targetContext);
           return null;
         }
       ),
+      
       AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(onInvoke: (_) => null),
       AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(onInvoke: (_) => null),
       AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) => null),
