@@ -15,13 +15,18 @@ import 'package:skystream/shared/widgets/custom_widgets.dart';
 
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/library_state.dart';
-
 import 'details_controller.dart';
 import "widgets/details_layout_widgets.dart";
 import "widgets/details_desktop_hero.dart";
 import "widgets/premium_details_widgets.dart";
 import "../../../shared/widgets/expandable_text.dart";
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+
+// NEW IMPORTS FOR SHORTCUTS & FEEDBACK
+import '../../../core/input/gamepad_intents.dart';
+import '../../../core/input/gamepad_actions.dart'; // FIXED: Added to ensure AppSecondaryIntent is found
+import '../../../core/services/notification_service.dart';
 
 class DetailsScreen extends ConsumerStatefulWidget {
   final MultimediaItem item;
@@ -83,75 +88,102 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       detailsControllerProvider(widget.item.url).select((s) => s.isMovie),
     );
     final item = details ?? widget.item;
-
     final l10n = AppLocalizations.of(context)!;
+    
+    final isBigPicture = context.isTabletOrLarger; 
 
-    // Setting to dynamic bool to avoid dead code warnings
-    bool isBigPicture = DateTime.now().year > 2000; 
+    // 🎮 GLOBAL BOOKMARK TOGGLE LOGIC
+    void toggleBookmark() {
+      final isLoading = detailsAsync is AsyncLoading || details == null;
+      if (isLoading) return; // Prevent action while loading
+      
+      if (isBookmarked) {
+        libraryNotifier.removeItem(item.url);
+        ref.read(notificationServiceProvider).showSuccess("Removed Bookmark");
+      } else {
+        libraryNotifier.addItem(item);
+        ref.read(notificationServiceProvider).showSuccess("Added Bookmark");
+      }
+    }
+
+    Widget scaffoldContent;
 
     if (isLarge) {
-      return _buildDesktopLayout(
+      scaffoldContent = _buildDesktopLayout(
         context, item, details, detailsAsync, isMovie, isBookmarked,
         libraryNotifier, l10n, isBigPicture,
       );
-    }
-
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
-            stretch: true,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Hero(
-                    tag: 'banner_${item.url}',
-                    child: CachedNetworkImage(
-                      imageUrl: AppImageFallbacks.optional(item.bannerUrl) ?? AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      memCacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round(),
-                      placeholder: (context, url) => Container(color: Theme.of(context).dividerColor),
-                      errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(label: item.title, isBackdrop: true),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                        stops: const [0.0, 0.6, 1.0],
+    } else {
+      scaffoldContent = Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
+              stretch: true,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [StretchMode.zoomBackground, StretchMode.blurBackground],
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Hero(
+                      tag: 'banner_${item.url}',
+                      child: CachedNetworkImage(
+                        imageUrl: AppImageFallbacks.optional(item.bannerUrl) ?? AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        memCacheWidth: (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round(),
+                        placeholder: (context, url) => Container(color: Theme.of(context).dividerColor),
+                        errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(label: item.title, isBackdrop: true),
                       ),
                     ),
-                  ),
-                ],
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.5),
+                            Theme.of(context).scaffoldBackgroundColor,
+                          ],
+                          stops: const [0.0, 0.6, 1.0],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            leading: isBigPicture ? const SizedBox.shrink() : Focus(
-              descendantsAreTraversable: false,
-              child: CustomButton(
-                shape: const CircleBorder(),
-                backgroundColor: Colors.black45,
-                onPressed: () => context.pop(),
-                child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+              leading: isBigPicture ? const SizedBox.shrink() : Focus(
+                descendantsAreTraversable: false,
+                child: CustomButton(
+                  shape: const CircleBorder(),
+                  backgroundColor: Colors.black45,
+                  onPressed: () => context.pop(),
+                  child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                ),
               ),
+              actions: const [],
             ),
-            actions: const [],
-          ),
-          ..._buildMobileSlivers(
-            context, item, details, detailsAsync, isMovie, l10n, isBookmarked, libraryNotifier,
-          ),
-        ],
-      ),
+            ..._buildMobileSlivers(
+              context, item, details, detailsAsync, isMovie, l10n, isBookmarked, libraryNotifier, isBigPicture,
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Wrap the entire screen in the Gamepad X Button listener!
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+          onInvoke: (_) {
+            toggleBookmark();
+            return null;
+          }
+        ),
+      },
+      child: scaffoldContent,
     );
   }
 
@@ -178,19 +210,40 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         ),
         actions: const [],
       ),
-      body: DetailsDesktopHero(
-        displayItem: item,
-        baseItem: widget.item,
-        details: details,
-        detailsState: detailsState,
-        isMovie: isMovie,
-        itemUrl: widget.item.url,
-        actionButtons: _buildStackedActionButtons(
-          context, isBookmarked, libraryNotifier, item, details, detailsState,
-        ),
-        child: _buildDesktopContentBelow(
-          context, item, details, detailsState, isMovie, l10n,
-        ),
+      body: Column(
+        children: [
+          Expanded(
+            child: DetailsDesktopHero(
+              displayItem: item,
+              baseItem: widget.item,
+              details: details,
+              detailsState: detailsState,
+              isMovie: isMovie,
+              itemUrl: widget.item.url,
+              actionButtons: _buildStackedActionButtons(
+                context, isBookmarked, libraryNotifier, item, details, detailsState, isBigPicture,
+              ),
+              child: _buildDesktopContentBelow(
+                context, item, details, detailsState, isMovie, l10n,
+              ),
+            ),
+          ),
+          if (isBigPicture)
+            GamepadHintsOverlay(
+              customHints: [
+                GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Play', buttonColor: Colors.greenAccent.shade400),
+                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                // Dynamic Action Label!
+                GamepadHint(
+                  buttonLabel: 'X', 
+                  actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+                  buttonColor: Colors.blueAccent.shade400
+                ),
+                // REMOVED ghost 'Y' download hint from the general layout
+                GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -198,15 +251,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   Widget _buildStackedActionButtons(
     BuildContext context, bool isBookmarked, dynamic libraryNotifier, 
     MultimediaItem item, MultimediaItem? details, AsyncValue<MultimediaItem?> detailsState,
+    bool isBigPicture,
   ) {
-    // 1. Calculate exact same padding used in the Play CustomButton
     final isMobile = context.isMobile;
     final btnPadding = EdgeInsets.symmetric(
       vertical: isMobile ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
       horizontal: LayoutConstants.spacingMd,
     );
 
-    // 2. Disable button while loading (details == null or AsyncLoading)
     final isLoading = detailsState is AsyncLoading || details == null;
 
     return Column(
@@ -217,39 +269,40 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           details: details,
           itemUrl: widget.item.url,
         ),
-        const SizedBox(height: 12),
-        // 3. Swapped to CustomButton! This ensures exact height, border radius, 
-        //    and gamepad focus glow behavior matches the Play button perfectly.
-        CustomButton(
-          isPrimary: !isBookmarked,
-          isOutlined: isBookmarked, // Automatically handles styling!
-          onPressed: isLoading ? null : () {
-            if (isBookmarked) {
-              libraryNotifier.removeItem(item.url);
-            } else {
-              libraryNotifier.addItem(item);
-            }
-          },
-          child: Padding(
-            padding: btnPadding,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isBookmarked 
-                      ? Icons.bookmark_remove_rounded 
-                      : Icons.bookmark_add_rounded,
-                ),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                Text(
-                  isBookmarked ? "Remove Bookmark" : "Add Bookmark",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+        // UX MAGIC: Completely hide the visual button on TV mode!
+        if (!isBigPicture) ...[
+          const SizedBox(height: 12),
+          CustomButton(
+            isPrimary: !isBookmarked,
+            isOutlined: isBookmarked, 
+            onPressed: isLoading ? null : () {
+              if (isBookmarked) {
+                libraryNotifier.removeItem(item.url);
+              } else {
+                libraryNotifier.addItem(item);
+              }
+            },
+            child: Padding(
+              padding: btnPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isBookmarked 
+                        ? Icons.bookmark_remove_rounded 
+                        : Icons.bookmark_add_rounded,
+                  ),
+                  const SizedBox(width: LayoutConstants.spacingXs),
+                  Text(
+                    isBookmarked ? "Remove Bookmark" : "Add Bookmark",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -296,7 +349,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   List<Widget> _buildMobileSlivers(
     BuildContext context, MultimediaItem item, MultimediaItem? details,
     AsyncValue<MultimediaItem?> detailsState, bool isMovie, AppLocalizations l10n,
-    bool isBookmarked, dynamic libraryNotifier,
+    bool isBookmarked, dynamic libraryNotifier, bool isBigPicture,
   ) {
     return [
       SliverToBoxAdapter(
@@ -340,7 +393,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               ),
               const SizedBox(height: 24),
               
-              _buildStackedActionButtons(context, isBookmarked, libraryNotifier, item, details, detailsState),
+              _buildStackedActionButtons(context, isBookmarked, libraryNotifier, item, details, detailsState, isBigPicture),
 
               if (item.nextAiring != null) ...[
                 const SizedBox(height: 16),

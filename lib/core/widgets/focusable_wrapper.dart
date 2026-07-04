@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../input/gamepad_actions.dart';
+import '../../shared/widgets/gamepad_hints_overlay.dart';
 
-class FocusableWrapper extends StatefulWidget {
+class FocusableWrapper extends ConsumerStatefulWidget {
   final Widget child;
   final VoidCallback onTap;
   final VoidCallback? onSecondaryTap; 
   final VoidCallback? onLongPress;    
   final bool autofocus;
+  final List<GamepadHint>? gamepadHints; // Inject dynamic hints here!
 
   const FocusableWrapper({
     super.key, 
@@ -15,13 +18,14 @@ class FocusableWrapper extends StatefulWidget {
     this.onSecondaryTap,
     this.onLongPress,
     this.autofocus = false,
+    this.gamepadHints,
   });
 
   @override
-  State<FocusableWrapper> createState() => _FocusableWrapperState();
+  ConsumerState<FocusableWrapper> createState() => _FocusableWrapperState();
 }
 
-class _FocusableWrapperState extends State<FocusableWrapper> {
+class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
   final FocusNode _focusNode = FocusNode();
   bool _isHovered = false; 
 
@@ -61,6 +65,21 @@ class _FocusableWrapperState extends State<FocusableWrapper> {
         autofocus: widget.autofocus,
         focusNode: _focusNode,
         onFocusChange: (hasFocus) {
+          // 🎮 HINT SYSTEM OVERRIDE
+          // Broadcast our custom hints to the global overlay!
+          if (widget.gamepadHints != null) {
+            Future.microtask(() {
+              if (mounted) {
+                if (hasFocus) {
+                  ref.read(focusedGamepadHintsProvider.notifier).state = widget.gamepadHints;
+                } else if (ref.read(focusedGamepadHintsProvider) == widget.gamepadHints) {
+                  // Only clear it if we were the last ones to set it
+                  ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                }
+              }
+            });
+          }
+
           // 🏎️ THE SMOOTH GLIDE FIX
           // When the analog stick generates rapid focus changes, this aggressively fast 
           // ease-out animation prevents the camera from stuttering or lagging behind!

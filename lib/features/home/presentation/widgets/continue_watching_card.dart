@@ -15,6 +15,7 @@ import '../../../../shared/widgets/loading_dialog.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/core/services/notification_service.dart';
 import '../../../../core/widgets/focusable_wrapper.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class ContinueWatchingCard extends ConsumerWidget {
   final HistoryItem historyItem;
@@ -210,6 +211,12 @@ class ContinueWatchingCard extends ConsumerWidget {
       onTap: handleTap,
       onSecondaryTap: handleSecondaryTap,
       onLongPress: handleLongPress,
+      // CONTEXT AWARE HINTS: Tell the global overlay what this specific card does!
+      gamepadHints: [
+        GamepadHint(buttonLabel: 'A', actionLabel: 'Play', buttonColor: Colors.greenAccent.shade400),
+        GamepadHint(buttonLabel: 'X', actionLabel: 'Remove', buttonColor: Colors.redAccent.shade400),
+        GamepadHint(buttonLabel: 'Y', actionLabel: 'Options', buttonColor: Colors.amberAccent.shade400),
+      ],
       child: CardsWrapper(
         onTap: handleTap,
         onLongPress: handleLongPress,
