@@ -120,6 +120,15 @@ class GlobalSystemMenu extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         _MenuButton(
+                          icon: Icons.search_rounded,
+                          label: 'Search',
+                          onTap: () {
+                            Navigator.pop(context);
+                            const SearchRoute().go(context);
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        _MenuButton(
                           icon: Icons.explore_rounded,
                           label: 'Explore',
                           onTap: () {

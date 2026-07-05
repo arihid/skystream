@@ -9,7 +9,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
   final VoidCallback? onSecondaryTap; 
   final VoidCallback? onLongPress;    
   final bool autofocus;
-  final bool useScaleEffect; // 🎯 NEW: Toggle the physical zoom!
+  final bool useScaleEffect;
   final List<GamepadHint>? gamepadHints;
 
   const FocusableWrapper({
@@ -19,7 +19,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
     this.onSecondaryTap,
     this.onLongPress,
     this.autofocus = false,
-    this.useScaleEffect = true, // Defaults to true for standard cards
+    this.useScaleEffect = true,
     this.gamepadHints,
   });
 
@@ -79,13 +79,21 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
             });
           }
 
-          if (hasFocus && Scrollable.maybeOf(context) != null) {
-            Scrollable.ensureVisible(
-              context,
-              alignment: 0.5,
-              duration: const Duration(milliseconds: 120),
-              curve: Curves.easeOutCubic, 
-            );
+          if (hasFocus) {
+            // 🎯 THE FIX: Stripped out the buggy vertical viewport math!
+            // It was accidentally grabbing horizontal bounds and forcing the vertical screen to 0.0 (Top).
+            // With cacheExtent: 99999 applied elsewhere, Flutter's native focus engine handles vertical reveals safely.
+
+            // Strict Horizontal Snapping
+            final hScrollable = Scrollable.maybeOf(context, axis: Axis.horizontal);
+            if (hScrollable != null) {
+              hScrollable.position.ensureVisible(
+                context.findRenderObject()!,
+                alignment: 0.04, 
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeOutCubic, 
+              );
+            }
           }
         },
         child: MouseRegion(
@@ -101,7 +109,6 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
-                  // 🎯 DISABLED ZOOM if useScaleEffect is false!
                   transform: (isActive && widget.useScaleEffect) 
                       ? (Matrix4.identity()..scale(1.04)) 
                       : Matrix4.identity(),

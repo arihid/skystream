@@ -15,7 +15,7 @@ import 'package:skystream/shared/widgets/custom_widgets.dart';
 
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/library_state.dart';
-import 'details_controller.dart'; // FIXED: Corrected relative path
+import 'details_controller.dart'; 
 import "widgets/details_layout_widgets.dart";
 import "widgets/details_desktop_hero.dart";
 import "widgets/premium_details_widgets.dart";
@@ -24,10 +24,9 @@ import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import "../../../shared/widgets/loading_indicator.dart";
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
-// NEW IMPORTS FOR SHORTCUTS & FEEDBACK
 import '../../../core/input/gamepad_intents.dart';
-import '../../../core/input/gamepad_actions.dart'; // FIXED: Added to ensure AppSecondaryIntent is found
-import '../../../core/input/gamepad_shortcut_manager.dart'; // <-- ADDED FOR RIGHT STICK SCROLLER
+import '../../../core/input/gamepad_actions.dart'; 
+import '../../../core/input/gamepad_shortcut_manager.dart'; 
 import '../../../core/services/notification_service.dart';
 
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -94,10 +93,9 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     
     final isBigPicture = context.isTabletOrLarger; 
 
-    // 🎮 GLOBAL BOOKMARK TOGGLE LOGIC
     void toggleBookmark() {
       final isLoading = detailsAsync is AsyncLoading || details == null;
-      if (isLoading) return; // Prevent action while loading
+      if (isLoading) return; 
       
       if (isBookmarked) {
         libraryNotifier.removeItem(item.url);
@@ -118,6 +116,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     } else {
       scaffoldContent = Scaffold(
         body: CustomScrollView(
+          cacheExtent: 99999, // 🎯 THE FIX: Disable lazy rendering for vertical focus
           slivers: [
             SliverAppBar(
               pinned: true,
@@ -209,7 +208,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
     }
 
-    // Wrap the entire screen in the Gamepad X Button listener and our custom Right Stick Scroller!
     return RightStickScroller(
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -271,13 +269,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               customHints: [
                 GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Play', buttonColor: Colors.greenAccent.shade400),
                 GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
-                // Dynamic Action Label!
                 GamepadHint(
                   buttonLabel: 'X', 
                   actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
                   buttonColor: Colors.blueAccent.shade400
                 ),
-                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400), // <-- ADDED HINT
+                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400),
                 GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
               ],
             ),
@@ -307,7 +304,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           details: details,
           itemUrl: widget.item.url,
         ),
-        // UX MAGIC: Completely hide the visual button on TV mode!
         if (!isBigPicture) ...[
           const SizedBox(height: 12),
           CustomButton(

@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import '../../../../core/router/app_router.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../../core/utils/layout_constants.dart';
@@ -126,115 +127,178 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
     if (widget.mediaList.isEmpty) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
+    
     final isDesktop = context.isDesktop;
+    final isBigPicture = context.isTv || context.isDesktop || context.isTabletOrLarger;
+    
+    const int maxItems = 15;
+    final displayList = widget.mediaList.take(maxItems).toList();
+    final bool renderViewAll = widget.showViewAll && isBigPicture;
+    final int totalCount = displayList.length + (renderViewAll ? 1 : 0);
+
     final double cardWidth = isDesktop
         ? (_isPortrait ? 200.0 : 300.0)
         : (_isPortrait ? 130.0 : 200.0);
     final double imageHeight = cardWidth / (_isPortrait ? (2 / 3) : (16 / 9));
     final double listHeight = imageHeight + 40.0;
 
-    return FocusTraversalGroup(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
-              LayoutConstants.spacingLg,
-              isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
-              LayoutConstants.spacingSm,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // UI UX BRILLIANCE: Tight anchor on the left!
-                FocusableWrapper(
-                  onTap: () {}, // Just an anchor
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: isDesktop ? 24 : 20,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        width: isDesktop ? 30 : 20,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // RESTORED: View All button on the far right!
-                if (widget.showViewAll)
-                  FocusableWrapper(
-                    onTap: _navigateToViewAll,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: LayoutConstants.spacingSm,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            l10n.viewAll,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 10,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                        ],
-                      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
+            LayoutConstants.spacingLg,
+            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
+            LayoutConstants.spacingSm,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isDesktop ? 24 : 20,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-              ],
-            ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: isDesktop ? 30 : 20,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+              
+              if (widget.showViewAll && !isBigPicture)
+                FocusableWrapper(
+                  onTap: _navigateToViewAll,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: LayoutConstants.spacingSm,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          l10n.viewAll,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
+        ),
 
-          SizedBox(
-            height: listHeight,
-            child: Builder(
-              builder: (context) {
-                final double spacing = isDesktop
-                    ? LayoutConstants.spacingLg
-                    : LayoutConstants.spacingSm;
+        SizedBox(
+          height: listHeight,
+          child: Builder(
+            builder: (context) {
+              final double spacing = isDesktop
+                  ? LayoutConstants.spacingLg
+                  : LayoutConstants.spacingSm;
 
-                return ListView.builder(
+              // 🎯 THE FIX: Wrapped ListView in ScrollConfiguration to apply behaviors
+              return ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                  dragDevices: {
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.trackpad,
+                  },
+                ),
+                child: ListView.builder(
                   controller: _scrollController,
                   clipBehavior: Clip.none,
+                  cacheExtent: 99999,
+                  physics: const ClampingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
                     horizontal: isDesktop
                         ? LayoutConstants.dashboardContentPadding
                         : LayoutConstants.spacingMd,
                   ),
                   scrollDirection: Axis.horizontal,
-                  itemCount: widget.mediaList.length,
+                  itemCount: totalCount,
                   itemExtent: cardWidth + spacing,
                   itemBuilder: (context, index) {
-                    final item = widget.mediaList[index];
+                    
+                    if (index == displayList.length) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: spacing),
+                        child: FocusableWrapper(
+                          onTap: _navigateToViewAll,
+                          child: CardsWrapper(
+                            onTap: _navigateToViewAll,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: cardWidth,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.arrow_forward_rounded,
+                                      size: 32,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    l10n.viewAll,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final item = displayList[index];
                     final imageUrl = item.posterImageUrl;
                     final itemTitle = item.title;
                     final prefix = widget.heroTagPrefix ?? 'list';

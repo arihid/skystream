@@ -27,7 +27,8 @@ import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import 'package:skystream/core/input/gamepad_intents.dart';
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/widgets/focusable_wrapper.dart'; 
 
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});
@@ -45,9 +46,12 @@ class DetailsSeasonListWrapper extends ConsumerWidget {
     );
     final seasons = seasonMap.keys.toList()..sort();
 
+    // 🎯 INCREASED HEIGHT & ADDED PADDING:
+    // This allows the blue 3px focus outline from FocusableWrapper to render without being clipped!
     return SizedBox(
-      height: 40,
+      height: 56, 
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 4), 
         scrollDirection: Axis.horizontal,
         itemCount: seasons.length,
         separatorBuilder: (_, _) =>
@@ -55,19 +59,30 @@ class DetailsSeasonListWrapper extends ConsumerWidget {
         itemBuilder: (context, index) {
           final s = seasons[index];
           final isSelected = s == selectedSeason;
-          return FilterChip(
-            label: Text(AppLocalizations.of(context)!.seasonWithNumber(s)),
-            selected: isSelected,
-            onSelected: (_) => ref
-                .read(detailsControllerProvider(itemUrl).notifier)
-                .setSeason(s),
-            backgroundColor: isSelected
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            labelStyle: TextStyle(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.onPrimaryContainer
-                  : null,
+
+          return FocusableWrapper(
+            useScaleEffect: true, // 🎯 Re-enabled so you can actually see the pop!
+            onTap: () => ref.read(detailsControllerProvider(itemUrl).notifier).setSeason(s),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected 
+                    ? Theme.of(context).colorScheme.primaryContainer 
+                    : Theme.of(context).colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  AppLocalizations.of(context)!.seasonWithNumber(s),
+                  style: TextStyle(
+                    color: isSelected 
+                        ? Theme.of(context).colorScheme.onPrimaryContainer 
+                        : Theme.of(context).colorScheme.onSurface,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
           );
         },
@@ -207,7 +222,68 @@ class DetailsActionButtons extends HookConsumerWidget {
       ),
     );
 
-    // Download feature: only for single episode VOD content
+    // Dynamic quality preference selector button
+    final settingsAsync = ref.watch(playerSettingsProvider);
+    final settings = settingsAsync.asData?.value ?? const PlayerSettings();
+    final currentPreference = onWifi ? settings.wifiQuality : settings.mobileQuality;
+    final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
+
+    final qualityBtn = PopupMenuButton<QualityPreference>(
+      initialValue: currentPreference,
+      tooltip: 'Preferred Quality',
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under, // Drops DOWN below the button!
+      onSelected: (q) {
+        final notifier = ref.read(playerSettingsProvider.notifier);
+        if (onWifi) {
+          notifier.setWifiQuality(q);
+        } else {
+          notifier.setMobileQuality(q);
+        }
+      },
+      itemBuilder: (context) => QualityPreference.values.map((q) {
+        return PopupMenuItem<QualityPreference>(
+          value: q,
+          child: Row(
+            children: [
+              if (q == currentPreference)
+                const Icon(Icons.check_rounded, color: Colors.blue, size: 18)
+              else
+                const SizedBox(width: 18),
+              const SizedBox(width: 8),
+              Text(qualityPreferenceLabel(q, l10n)),
+            ],
+          ),
+        );
+      }).toList(),
+      child: IgnorePointer(
+        child: CustomButton(
+          isPrimary: false,
+          isOutlined: true,
+          onPressed: () {},
+          child: Padding(
+            padding: btnPadding,
+            child: Row(
+              children: [
+                const Icon(Icons.hd_rounded, size: 20),
+                const SizedBox(width: LayoutConstants.spacingXs),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Preferred Quality: $currentPrefLabel',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: LayoutConstants.spacingXs),
+                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
     final isLivestream = item.contentType == MultimediaContentType.livestream;
     final showDownload = details?.episodes != null && details?.episodes?.length == 1 && !isLivestream;
 
@@ -220,7 +296,6 @@ class DetailsActionButtons extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
 
-    // Read bookmark state directly into the button layout so we can react to it!
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -241,7 +316,6 @@ class DetailsActionButtons extends HookConsumerWidget {
       return null;
     }, [details, episodeUrl, isDownloading]);
 
-    // UX BRILLIANCE: Execute the download action!
     final executeDownloadAction = () {
       if (downloadedFile != null) {
         DownloadManagementDialog.show(
@@ -257,7 +331,6 @@ class DetailsActionButtons extends HookConsumerWidget {
       }
     };
 
-    // 🎮 DYNAMIC CONTEXT AWARE HINTS: Hook directly into the Play Button's Focus Node!
     final playHints = useMemoized(() => [
       GamepadHint(buttonLabel: 'A', actionLabel: playLabel, buttonColor: Colors.greenAccent.shade400),
       GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
@@ -273,9 +346,8 @@ class DetailsActionButtons extends HookConsumerWidget {
           buttonColor: Colors.amberAccent.shade400,
         ),
       GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
-    ], [playLabel, showDownload, downloadedFile, isBookmarked]); // <-- Added isBookmarked dependency!
+    ], [playLabel, showDownload, downloadedFile, isBookmarked]);
 
-    // This brilliant combined hook instantly broadcasts hint updates if the state changes WHILE the button is focused!
     useEffect(() {
       void updateGlobalHints() {
         Future.microtask(() {
@@ -288,12 +360,10 @@ class DetailsActionButtons extends HookConsumerWidget {
         });
       }
       
-      updateGlobalHints(); // Broadcast immediately upon render!
-      
-      playFocusNode.addListener(updateGlobalHints); // Keep broadcasting on focus changes
+      updateGlobalHints();
+      playFocusNode.addListener(updateGlobalHints);
       return () => playFocusNode.removeListener(updateGlobalHints);
     }, [playFocusNode, playHints]);
-
 
     final playBtn = CustomButton(
       isPrimary: true,
@@ -322,7 +392,6 @@ class DetailsActionButtons extends HookConsumerWidget {
                   const Icon(Icons.play_arrow_rounded),
                   const SizedBox(width: LayoutConstants.spacingXs),
                   Text(playLabel),
-                  // Render a tiny download icon to hint that long-press works!
                   if (showDownload) ...[
                     const SizedBox(width: 8),
                     Container(
@@ -380,13 +449,10 @@ class DetailsActionButtons extends HookConsumerWidget {
       );
     }
 
-    // UX BRILLIANCE: If Download is available, wrap the Play button so 
-    // Touch Long-Press and Gamepad 'Y' trigger the download!
     Widget finalPlayBtn = playBtn;
     if (showDownload) {
       finalPlayBtn = Actions(
         actions: <Type, Action<Intent>>{
-          // FIXED: Shifted from AppSecondaryIntent (X) to AppTertiaryIntent (Y)!
           AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
             onInvoke: (_) {
               executeDownloadAction();
@@ -395,13 +461,12 @@ class DetailsActionButtons extends HookConsumerWidget {
           ),
         },
         child: GestureDetector(
-          onLongPress: executeDownloadAction, // Catch touch-and-hold for Mobile
+          onLongPress: executeDownloadAction,
           child: playBtn,
         ),
       );
     }
 
-    // With the standalone download button gone, we just return the progress and the Play button!
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -618,7 +683,7 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
   }
 }
 
-class DetailsEpisodeFilterBar extends ConsumerWidget {
+class DetailsEpisodeFilterBar extends ConsumerStatefulWidget {
   final String itemUrl;
   final int totalEpisodes;
   final int batchSize;
@@ -631,8 +696,15 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailsState = ref.watch(detailsControllerProvider(itemUrl));
+  ConsumerState<DetailsEpisodeFilterBar> createState() => _DetailsEpisodeFilterBarState();
+}
+
+class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBar> {
+  final GlobalKey<PopupMenuButtonState<int>> _popupKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    final detailsState = ref.watch(detailsControllerProvider(widget.itemUrl));
     final int selectedIndex = detailsState.selectedRangeIndex;
     final bool isAscending = detailsState.isAscending;
     final DubStatus selectedDub = detailsState.selectedDubStatus;
@@ -643,7 +715,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
         ? allEpisodes
         : allEpisodes.where((e) => e.dubStatus == selectedDub).toList();
 
-    final int batchCount = (filteredEpisodes.length / batchSize).ceil();
+    final int batchCount = (filteredEpisodes.length / widget.batchSize).ceil();
 
     final hasDub = allEpisodes.any((e) => e.dubStatus == DubStatus.dubbed);
     final hasSub = allEpisodes.any((e) => e.dubStatus == DubStatus.subbed);
@@ -659,88 +731,72 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
             _buildLanguageToggle(context, ref, selectedDub),
             const SizedBox(width: 8),
           ],
-          if (filteredEpisodes.length > batchSize) ...[
-            Focus(
-              child: Builder(
-                builder: (context) {
-                  final isFocused = Focus.of(context).hasFocus;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isFocused ? Colors.white : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: DropdownButton<int>(
-                        value: selectedIndex,
-                        dropdownColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHigh,
-                        underline: const SizedBox(),
-                        elevation: 4,
-                        borderRadius: BorderRadius.circular(12),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        items: List.generate(batchCount, (index) {
-                          final start = index * batchSize + 1;
-                          final end = ((index + 1) * batchSize).clamp(
-                            1,
-                            filteredEpisodes.length,
-                          );
-                          return DropdownMenuItem(
-                            value: index,
-                            child: Text("$start-$end"),
-                          );
-                        }),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ref
-                                .read(
-                                  detailsControllerProvider(itemUrl).notifier,
-                                )
-                                .setRangeIndex(val);
-                          }
-                        },
+          if (filteredEpisodes.length > widget.batchSize) ...[
+            FocusableWrapper(
+              onTap: () => _popupKey.currentState?.showButtonMenu(),
+              child: PopupMenuButton<int>(
+                key: _popupKey,
+                tooltip: 'Select Range',
+                onSelected: (val) {
+                  ref.read(detailsControllerProvider(widget.itemUrl).notifier).setRangeIndex(val);
+                },
+                offset: const Offset(0, 48),
+                itemBuilder: (_) => List.generate(batchCount, (index) {
+                  final start = index * widget.batchSize + 1;
+                  final end = ((index + 1) * widget.batchSize).clamp(1, filteredEpisodes.length);
+                  return PopupMenuItem(
+                    value: index,
+                    child: Text(
+                      "$start-$end",
+                      style: TextStyle(
+                        color: selectedIndex == index ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                        fontWeight: selectedIndex == index ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   );
-                },
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "${selectedIndex * widget.batchSize + 1}-${((selectedIndex + 1) * widget.batchSize).clamp(1, filteredEpisodes.length)}",
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
           ],
-          Material(
-            color: Colors.transparent,
-            child: Ink(
+          FocusableWrapper(
+            onTap: () => ref.read(detailsControllerProvider(widget.itemUrl).notifier).toggleSort(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => ref
-                    .read(detailsControllerProvider(itemUrl).notifier)
-                    .toggleSort(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Icon(
-                    Icons.swap_vert_rounded,
-                    size: 22,
-                    color: isAscending
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+              child: Icon(
+                Icons.swap_vert_rounded,
+                size: 22,
+                color: isAscending
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -767,7 +823,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
             label: AppLocalizations.of(context)!.sub,
             isSelected: selected == DubStatus.subbed,
             onTap: () => ref
-                .read(detailsControllerProvider(itemUrl).notifier)
+                .read(detailsControllerProvider(widget.itemUrl).notifier)
                 .setDubStatus(DubStatus.subbed),
           ),
           const SizedBox(width: 4),
@@ -775,7 +831,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
             label: AppLocalizations.of(context)!.dub,
             isSelected: selected == DubStatus.dubbed,
             onTap: () => ref
-                .read(detailsControllerProvider(itemUrl).notifier)
+                .read(detailsControllerProvider(widget.itemUrl).notifier)
                 .setDubStatus(DubStatus.dubbed),
           ),
         ],
@@ -784,7 +840,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
   }
 }
 
-class _LanguageButton extends StatefulWidget {
+class _LanguageButton extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -796,46 +852,27 @@ class _LanguageButton extends StatefulWidget {
   });
 
   @override
-  State<_LanguageButton> createState() => _LanguageButtonState();
-}
-
-class _LanguageButtonState extends State<_LanguageButton> {
-  bool _isFocused = false;
-
-  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onFocusChange: (hasFocus) => setState(() => _isFocused = hasFocus),
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: widget.isSelected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 40 / 255)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _isFocused
-                  ? Colors.white
-                  : (widget.isSelected
-                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 80 / 255)
-                        : Colors.transparent),
-              width: _isFocused ? 2 : 1,
-            ),
-          ),
-          child: Text(
-            widget.label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: widget.isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+    return FocusableWrapper(
+      onTap: onTap,
+      useScaleEffect: true, // 🎯 Re-enabled so you can see the focus outline!
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 40 / 255)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),

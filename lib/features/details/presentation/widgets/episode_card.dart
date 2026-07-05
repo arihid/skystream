@@ -8,14 +8,14 @@ import 'package:background_downloader/background_downloader.dart';
 
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/input/gamepad_actions.dart';
-import 'package:skystream/core/input/gamepad_intents.dart';
+import 'package:skystream/core/input/gamepad_intents.dart'; 
 import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/services/download_service.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/features/library/presentation/library_provider.dart';
 import 'package:skystream/features/library/presentation/library_state.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
-import '../../../library/presentation/history_provider.dart';
+import '../../../library/presentation/history_provider.dart';  
 import '../details_controller.dart';
 import '../download_launcher.dart';
 import '../downloaded_file_provider.dart';
@@ -94,7 +94,6 @@ class EpisodeCard extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episode.url];
 
-    // Read bookmark state directly so the card knows exactly what label to show!
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -103,7 +102,6 @@ class EpisodeCard extends HookConsumerWidget {
       ),
     );
 
-    // Check for downloaded file on load
     useEffect(() {
       if (!isDownloading) {
         Future.microtask(() {
@@ -144,6 +142,7 @@ class EpisodeCard extends HookConsumerWidget {
       }
     }
 
+    // 🎯 FIXED: LS Hint added, and 'Y' dynamically hides for livestreams!
     final playHints = [
       GamepadHint(buttonLabel: 'A', actionLabel: 'Play', buttonColor: Colors.greenAccent.shade400),
       GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
@@ -152,33 +151,34 @@ class EpisodeCard extends HookConsumerWidget {
         actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
         buttonColor: Colors.blueAccent.shade400,
       ),
-      GamepadHint(
-        buttonLabel: 'Y', 
-        actionLabel: downloadedFile != null ? 'Manage Download' : 'Download', 
-        buttonColor: Colors.amberAccent.shade400,
-      ),
+      if (parentItem.contentType != MultimediaContentType.livestream)
+        GamepadHint(
+          buttonLabel: 'Y', 
+          actionLabel: downloadedFile != null ? 'Manage Download' : 'Download', 
+          buttonColor: Colors.amberAccent.shade400,
+        ),
+      GamepadHint(buttonLabel: 'LS', actionLabel: 'Scroll', buttonColor: Colors.white),
       GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
     ];
 
-    // UX BRILLIANCE: Explicit intent mapping completely decouples X and Y keys!
     return Actions(
       actions: <Type, Action<Intent>>{
         AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
           onInvoke: (_) {
-            triggerDownload();
+            if (parentItem.contentType != MultimediaContentType.livestream) {
+              triggerDownload();
+            }
             return null;
           }
         ),
       },
       child: GestureDetector(
-        onLongPress: triggerDownload, // Catch touch-and-hold for Mobile outside the Focus wrapper!
+        onLongPress: triggerDownload, 
         child: FocusableWrapper(
           onTap: triggerPlay,
           gamepadHints: playHints,
           child: Builder(
             builder: (focusContext) {
-              // DYNAMIC REFRESH: Whenever the bookmark changes, if this card holds focus, 
-              // it forces the global overlay to re-draw immediately!
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (focusContext.mounted && Focus.of(focusContext).hasFocus) {
                   ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
@@ -209,7 +209,6 @@ class EpisodeCard extends HookConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: LayoutConstants.spacingXs),
-                        // Replaced the interactive button with a pure visual indicator
                         _buildDownloadIndicator(
                           context,
                           downloadedFile,
@@ -255,6 +254,10 @@ class EpisodeCard extends HookConsumerWidget {
     double downloadProgress,
     DownloadProgressData? downloadProgressData,
   ) {
+    if (parentItem.contentType == MultimediaContentType.livestream) {
+      return const SizedBox.shrink();
+    }
+
     if (downloadedFile != null) {
       return const Padding(
         padding: EdgeInsets.all(4.0),

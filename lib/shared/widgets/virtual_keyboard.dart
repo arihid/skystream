@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/widgets/focusable_wrapper.dart';
 import '../../core/input/gamepad_actions.dart'; 
 
-class VirtualKeyboard extends StatefulWidget {
+class VirtualKeyboard extends ConsumerStatefulWidget {
   final String query;
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearch;
@@ -15,10 +16,10 @@ class VirtualKeyboard extends StatefulWidget {
   });
 
   @override
-  State<VirtualKeyboard> createState() => _VirtualKeyboardState();
+  ConsumerState<VirtualKeyboard> createState() => _VirtualKeyboardState();
 }
 
-class _VirtualKeyboardState extends State<VirtualKeyboard> {
+class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
   bool _isUppercase = false;
   bool _isSymbols = false;
   
@@ -28,7 +29,9 @@ class _VirtualKeyboardState extends State<VirtualKeyboard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _initialFocusNode.requestFocus();
+      if (mounted) {
+        _initialFocusNode.requestFocus();
+      }
     });
   }
 
@@ -140,6 +143,7 @@ class _VirtualKeyboardState extends State<VirtualKeyboard> {
     );
   }
 
+  // 🎯 FIXED: Removed individual gamepadHints from here to prevent the UI from spamming updates!
   Widget _buildKey(String label, {bool isInitialFocus = false}) {
     final displayLabel = _isUppercase && !_isSymbols ? label.toUpperCase() : label;
     return Padding(
@@ -162,6 +166,7 @@ class _VirtualKeyboardState extends State<VirtualKeyboard> {
     );
   }
 
+  // 🎯 FIXED: Removed individual gamepadHints from here to prevent the UI from spamming updates!
   Widget _buildActionKey(
     String label, {
     required double width, 

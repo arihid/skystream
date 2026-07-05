@@ -9,6 +9,9 @@ import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
 import 'package:skystream/shared/widgets/desktop_scroll_wrapper.dart';
 import 'package:skystream/shared/widgets/multimedia_card.dart';
+
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 import 'stamp_in_label.dart';
 import 'bouncy_entry_animation.dart';
 
@@ -45,13 +48,11 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
     if (widget.results.isEmpty) return const SizedBox.shrink();
 
     final isLarge = context.isTabletOrLarger;
-    // Matching MediaHorizontalList/ContinueWatchingSection dimensions
     final double listHeight = isLarge ? 350.0 : 230.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with Blue Accent Style
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
           child: Row(
@@ -119,22 +120,33 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
 
                     return Padding(
                       padding: EdgeInsets.only(right: spacing),
-                      child: BouncyEntryAnimation(
+                      child: FocusableWrapper(
+                        gamepadHints: [
+                          GamepadHint(buttonLabel: 'A', actionLabel: 'View', buttonColor: Colors.greenAccent.shade400),
+                          GamepadHint(buttonLabel: 'LT', actionLabel: 'Keyboard', buttonColor: Colors.grey.shade400),
+                          // 🎯 FIXED: Changed from Y to RT
+                          GamepadHint(buttonLabel: 'RT', actionLabel: 'Filter', buttonColor: Colors.amberAccent.shade400),
+                        ],
+                        onTap: () => DetailsRoute(
+                          $extra: DetailsRouteExtra(item: item),
+                        ).push<void>(context),
+                        child: BouncyEntryAnimation(
                         delay: Duration(milliseconds: rIndex * 50),
                         child: MultimediaCard(
-                          key: ValueKey(item.url),
-                          imageUrl: AppImageFallbacks.poster(
-                            item.posterUrl,
-                            label: item.title,
-                          ),
-                          title: item.title,
-                          heroTag: uniqueTag,
-                          focusNode: rIndex == 0
+                            key: ValueKey(item.url),
+                            imageUrl: AppImageFallbacks.poster(
+                              item.posterUrl,
+                              label: item.title,
+                            ) ?? '',
+                            title: item.title,
+                            heroTag: uniqueTag,
+                            focusNode: rIndex == 0
                               ? widget.firstCardFocusNode
                               : null,
                           onTap: () => DetailsRoute(
-                            $extra: DetailsRouteExtra(item: item),
-                          ).push<void>(context),
+                              $extra: DetailsRouteExtra(item: item),
+                            ).push<void>(context),
+                        ),
                         ),
                       ),
                     );

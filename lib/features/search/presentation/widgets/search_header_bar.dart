@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../search_provider.dart';
+
+import '../../../../core/widgets/focusable_wrapper.dart';
+
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
 
@@ -295,6 +298,8 @@ class _SearchScopeSwitcherState extends State<SearchScopeSwitcher>
 class SearchHeaderBar extends ConsumerStatefulWidget {
   final TextEditingController textController;
   final FocusNode searchFocusNode;
+  final bool isBigPicture; 
+  final VoidCallback onTapFakeInput; 
   final FocusNode clearButtonFocusNode;
   final FocusNode moviesShowsFocusNode;
   final FocusNode liveTvFocusNode;
@@ -306,6 +311,8 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
     super.key,
     required this.textController,
     required this.searchFocusNode,
+    required this.isBigPicture,
+    required this.onTapFakeInput,
     required this.clearButtonFocusNode,
     required this.moviesShowsFocusNode,
     required this.liveTvFocusNode,
@@ -319,6 +326,8 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
 }
 
 class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
+  final GlobalKey<PopupMenuButtonState<SearchFilter>> _popupKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

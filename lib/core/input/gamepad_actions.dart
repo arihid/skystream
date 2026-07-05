@@ -30,41 +30,47 @@ class AppActionBindings {
       ),
       AppBackIntent: CallbackAction<AppBackIntent>(
         onInvoke: (_) {
-          final targetContext = FocusManager.instance.primaryFocus?.context;
-          if (targetContext != null) {
-            Navigator.maybePop(targetContext);
-          }
+          final targetContext = FocusManager.instance.primaryFocus?.context ?? context;
+          Navigator.maybePop(targetContext);
           return null;
         },
       ),
       GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
         onInvoke: (GamepadDirectionalIntent intent) {
           final primaryFocus = FocusManager.instance.primaryFocus;
-
-          // 🎯 DEAD NODE RECOVERY: If the previously focused item was destroyed (e.g. scrolled off screen)
-          // or focus dropped to a root scope, we must recover it before attempting to move!
-          if (primaryFocus == null || primaryFocus.context == null) {
-            FocusScope.of(context).nextFocus();
+          
+          if (primaryFocus == null || primaryFocus.context == null || !primaryFocus.context!.mounted) {
+            FocusManager.instance.rootScope.focusInDirection(intent.direction);
             return null;
           }
 
           final currentRenderObject = primaryFocus.context!.findRenderObject();
+
           if (currentRenderObject is! RenderBox || !currentRenderObject.attached) {
-            FocusScope.of(context).nextFocus();
+            FocusManager.instance.rootScope.focusInDirection(intent.direction);
             return null;
           }
 
           final currentRect = currentRenderObject.localToGlobal(Offset.zero) & currentRenderObject.size;
+          
+          // Normal native directional movement
           bool moved = primaryFocus.focusInDirection(intent.direction);
 
-          // 🎯 HORIZONTAL ROW JUMP FIX
+          // 🎯 SAFENET: If native movement hits a wall, force focus sequentially so it doesn't freeze
+          if (!moved) {
+            primaryFocus.nextFocus();
+            return null;
+          }
+
           if (moved && (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right)) {
             final newContext = FocusManager.instance.primaryFocus?.context;
             if (newContext != null) {
               final newRenderObject = newContext.findRenderObject();
               if (newRenderObject is RenderBox) {
                 final newRect = newRenderObject.localToGlobal(Offset.zero) & newRenderObject.size;
-                if ((currentRect.center.dy - newRect.center.dy).abs() > (currentRect.height / 2)) {
+                final dyDiff = (currentRect.center.dy - newRect.center.dy).abs();
+                
+                if (dyDiff > (currentRect.height / 2)) {
                   primaryFocus.requestFocus(); 
                 }
               }
@@ -73,14 +79,10 @@ class AppActionBindings {
           return null;
         },
       ),
-      AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(onInvoke: (_) {
-        Actions.maybeInvoke(FocusManager.instance.primaryFocus?.context ?? context, const ScrollIntent(direction: AxisDirection.up, type: ScrollIncrementType.page));
-        return null;
-      }),
-      AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(onInvoke: (_) {
-        Actions.maybeInvoke(FocusManager.instance.primaryFocus?.context ?? context, const ScrollIntent(direction: AxisDirection.down, type: ScrollIncrementType.page));
-        return null;
-      }),
+      
+      // 🎯 FIXED: Removed rogue Global Scroll bindings so Bumpers don't randomly scroll the details screen!
+      AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(onInvoke: (_) => null),
+      AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(onInvoke: (_) => null),
       
       AppMenuIntent: CallbackAction<AppMenuIntent>(
         onInvoke: (_) {
