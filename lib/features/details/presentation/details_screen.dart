@@ -15,7 +15,7 @@ import 'package:skystream/shared/widgets/custom_widgets.dart';
 
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/library_state.dart';
-import 'details_controller.dart';
+import 'details_controller.dart'; // FIXED: Corrected relative path
 import "widgets/details_layout_widgets.dart";
 import "widgets/details_desktop_hero.dart";
 import "widgets/premium_details_widgets.dart";
@@ -27,6 +27,7 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 // NEW IMPORTS FOR SHORTCUTS & FEEDBACK
 import '../../../core/input/gamepad_intents.dart';
 import '../../../core/input/gamepad_actions.dart'; // FIXED: Added to ensure AppSecondaryIntent is found
+import '../../../core/input/gamepad_shortcut_manager.dart'; // <-- ADDED FOR RIGHT STICK SCROLLER
 import '../../../core/services/notification_service.dart';
 
 class DetailsScreen extends ConsumerStatefulWidget {
@@ -199,7 +200,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                 ),
               ),
-              actions: const [],
             ),
             ..._buildMobileSlivers(
               context, item, details, detailsAsync, isMovie, l10n, isBookmarked, libraryNotifier, isBigPicture,
@@ -209,17 +209,19 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
     }
 
-    // Wrap the entire screen in the Gamepad X Button listener!
-    return Actions(
-      actions: <Type, Action<Intent>>{
-        AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
-          onInvoke: (_) {
-            toggleBookmark();
-            return null;
-          }
-        ),
-      },
-      child: scaffoldContent,
+    // Wrap the entire screen in the Gamepad X Button listener and our custom Right Stick Scroller!
+    return RightStickScroller(
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              toggleBookmark();
+              return null;
+            }
+          ),
+        },
+        child: scaffoldContent,
+      ),
     );
   }
 
@@ -275,7 +277,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
                   buttonColor: Colors.blueAccent.shade400
                 ),
-                // REMOVED ghost 'Y' download hint from the general layout
+                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400), // <-- ADDED HINT
                 GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
               ],
             ),

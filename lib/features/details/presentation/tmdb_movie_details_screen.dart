@@ -22,6 +22,9 @@ import 'widgets/movie_seasons_list.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/input/gamepad_shortcut_manager.dart';
+
 class TmdbMovieDetailsScreen extends ConsumerStatefulWidget {
   final int movieId;
   final String mediaType; // 'movie' or 'tv'
@@ -121,10 +124,12 @@ class _TmdbMovieDetailsScreenState
     final isHeavyLoading = detailsAsync.isLoading;
     final hasAnyData = data != null;
 
+    final isBigPicture = context.isTabletOrLarger;
+
     final content = hasAnyData
-        ? (context.isDesktop
-              ? _buildDesktopLayout(data, isHeavyLoading)
-              : _buildMobileLayout(data, isHeavyLoading))
+        ? (isBigPicture
+              ? _buildDesktopLayout(data, isHeavyLoading, isBigPicture)
+              : _buildMobileLayout(data, isHeavyLoading, isBigPicture))
         : detailsAsync.when(
             skipLoadingOnReload: false,
             skipLoadingOnRefresh: false,
@@ -136,7 +141,7 @@ class _TmdbMovieDetailsScreenState
                 appBar: AppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  leading: const BackButton(),
+                  leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
                 ),
                 body: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -183,7 +188,7 @@ class _TmdbMovieDetailsScreenState
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                leading: const BackButton(),
+                leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
               ),
               body: Center(
                 child: Column(
@@ -213,10 +218,10 @@ class _TmdbMovieDetailsScreenState
       body: content,
     );
 
-    return scaffold;
+    return RightStickScroller(child: scaffold);
   }
 
-  Widget _buildDesktopLayout(TmdbDetails data, bool isHeavyLoading) {
+  Widget _buildDesktopLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
     final isMovie = widget.mediaType == 'movie';
     final seasons = data.seasons;
     final cast = data.tmdbCast;
@@ -234,7 +239,7 @@ class _TmdbMovieDetailsScreenState
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
+        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
           style: IconButton.styleFrom(
@@ -244,54 +249,70 @@ class _TmdbMovieDetailsScreenState
         ),
       ),
       extendBodyBehindAppBar: true,
-      body: TmdbDetailsDesktopHero(
-        data: data,
-        isMovie: isMovie,
+      body: Column(
+        children: [
+          Expanded(
+            child: TmdbDetailsDesktopHero(
+              data: data,
+              isMovie: isMovie,
         source: widget.source,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 60),
-            if (!isMovie) ...[
-              MovieSeasonsList(
-                movieId: widget.movieId,
-                seasons: seasons,
-                textColor: textColor,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 60),
+                  // Duplicate ProviderSearchSection REMOVED completely!
+                  if (!isMovie) ...[
+                    MovieSeasonsList(
+                      movieId: widget.movieId,
+                      seasons: seasons,
+                      textColor: textColor,
                 source: widget.source,
+                    ),
+                  ],
+                  if (isHeavyLoading || cast.isNotEmpty) ...[
+                    MovieCastList(
+                      cast: cast,
+                      isLoading: isHeavyLoading,
+                      textColor: textColor,
+                      textSecondary: textSecondary,
+                    ),
+                  ],
+                  if (isHeavyLoading || trailers.isNotEmpty) ...[
+                    MovieTrailersCarousel(
+                      trailers: trailers,
+                      isLoading: isHeavyLoading,
+                      textColor: textColor,
+                    ),
+                  ],
+                  if (isHeavyLoading || productionCompanies.isNotEmpty) ...[
+                    MovieProductionCompanies(
+                      productionCompanies: productionCompanies,
+                      isLoading: isHeavyLoading,
+                      textColor: textColor,
+                      textSecondary: textSecondary,
+                    ),
+                  ],
+                  TmdbDetailsStatsSection(data: data, isMovie: isMovie),
+                  const SizedBox(height: 100),
+                ],
               ),
-            ],
-            if (isHeavyLoading || cast.isNotEmpty) ...[
-              MovieCastList(
-                cast: cast,
-                isLoading: isHeavyLoading,
-                textColor: textColor,
-                textSecondary: textSecondary,
-              ),
-            ],
-            if (isHeavyLoading || trailers.isNotEmpty) ...[
-              MovieTrailersCarousel(
-                trailers: trailers,
-                isLoading: isHeavyLoading,
-                textColor: textColor,
-              ),
-            ],
-            if (isHeavyLoading || productionCompanies.isNotEmpty) ...[
-              MovieProductionCompanies(
-                productionCompanies: productionCompanies,
-                isLoading: isHeavyLoading,
-                textColor: textColor,
-                textSecondary: textSecondary,
-              ),
-            ],
-            TmdbDetailsStatsSection(data: data, isMovie: isMovie),
-            const SizedBox(height: 100),
-          ],
-        ),
+            ),
+          ),
+          if (isBigPicture)
+            GamepadHintsOverlay(
+              customHints: [
+                GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
+                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400),
+                GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+              ],
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildMobileLayout(TmdbDetails data, bool isHeavyLoading) {
+  Widget _buildMobileLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
     final isMovie = widget.mediaType == 'movie';
 
     final backdropImageUrl = data.backdropImageUrl;
@@ -318,13 +339,6 @@ class _TmdbMovieDetailsScreenState
     final director = data.director;
     final logoUrl = data.logoUrl;
 
-    // The expanded hero is designed for portrait. In landscape phones
-    // (~360 dp tall) a 550 dp expanded header overflows the entire screen,
-    // forcing the user to scroll past nothing-but-AppBar before reaching
-    // any content. Clamp by orientation: portrait keeps the original
-    // 550 dp; landscape uses ~80% of available height, bounded so the
-    // hero stays meaningful on tiny screens and doesn't dominate on tall
-    // foldables.
     final mq = MediaQuery.sizeOf(context);
     final isLandscape = mq.width > mq.height;
     final double expandedHeaderHeight = isLandscape
@@ -340,7 +354,7 @@ class _TmdbMovieDetailsScreenState
           backgroundColor: Theme.of(
             context,
           ).scaffoldBackgroundColor, // Theme aware
-          leading: Padding(
+          leading: isBigPicture ? const SizedBox.shrink() : Padding(
             padding: const EdgeInsets.all(8.0),
             child: CircleAvatar(
               backgroundColor: Theme.of(
@@ -392,10 +406,6 @@ class _TmdbMovieDetailsScreenState
                       child: CachedNetworkImage(
                         imageUrl: backdropImageUrl,
                         fit: BoxFit.cover,
-                        // Bound the decoded bitmap to display pixels. After
-                        // H29, TV / desktop fetches `original`-size backdrops
-                        // (~3840 px on 4K) — decoding at source would cost
-                        // ~33 MB per image and starve the image cache.
                         memCacheWidth:
                             (MediaQuery.sizeOf(context).width *
                                     MediaQuery.devicePixelRatioOf(context))

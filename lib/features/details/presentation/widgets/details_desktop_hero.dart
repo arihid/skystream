@@ -9,7 +9,6 @@ import '../../../../shared/widgets/expandable_text.dart';
 import 'premium_details_widgets.dart';
 import 'details_layout_widgets.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
-import '../../../../core/widgets/focusable_wrapper.dart'; // Added FocusableWrapper
 
 /// Immersive desktop/TV hero for non-TMDB details.
 ///
@@ -25,7 +24,7 @@ class DetailsDesktopHero extends ConsumerWidget {
     required this.detailsState,
     required this.isMovie,
     required this.itemUrl,
-    required this.actionButtons, // NEW: Accepts the 50/50 split buttons
+    required this.actionButtons, 
     required this.child,
   });
 
@@ -159,21 +158,16 @@ class DetailsDesktopHero extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // TOP ANCHOR: Wrapping the Logo/Title makes it focusable! 
-                      // Pressing UP from the lower buttons targets this and auto-scrolls to the top!
-                      FocusableWrapper(
-                        onTap: () {}, // Does nothing when clicked
-                        child: displayItem.logoUrl != null
-                            ? CachedNetworkImage(
-                                imageUrl: displayItem.logoUrl!,
-                                height: 200,
-                                alignment: Alignment.centerLeft,
-                                fit: BoxFit.contain,
-                                placeholder: (_, _) => _buildTitle(textColor),
-                                errorWidget: (_, _, _) => _buildTitle(textColor),
-                              )
-                            : _buildTitle(textColor),
-                      ),
+                      displayItem.logoUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: displayItem.logoUrl!,
+                              height: 200,
+                              alignment: Alignment.centerLeft,
+                              fit: BoxFit.contain,
+                              placeholder: (_, _) => _buildTitle(textColor),
+                              errorWidget: (_, _, _) => _buildTitle(textColor),
+                            )
+                          : _buildTitle(textColor),
 
                       const SizedBox(height: 16),
 
