@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../input/gamepad_actions.dart';
-import '../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class FocusableWrapper extends ConsumerStatefulWidget {
   final Widget child;
@@ -9,7 +9,8 @@ class FocusableWrapper extends ConsumerStatefulWidget {
   final VoidCallback? onSecondaryTap; 
   final VoidCallback? onLongPress;    
   final bool autofocus;
-  final List<GamepadHint>? gamepadHints; // Inject dynamic hints here!
+  final bool useScaleEffect; // 🎯 NEW: Toggle the physical zoom!
+  final List<GamepadHint>? gamepadHints;
 
   const FocusableWrapper({
     super.key, 
@@ -18,6 +19,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
     this.onSecondaryTap,
     this.onLongPress,
     this.autofocus = false,
+    this.useScaleEffect = true, // Defaults to true for standard cards
     this.gamepadHints,
   });
 
@@ -65,24 +67,18 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
         autofocus: widget.autofocus,
         focusNode: _focusNode,
         onFocusChange: (hasFocus) {
-          // 🎮 HINT SYSTEM OVERRIDE
-          // Broadcast our custom hints to the global overlay!
           if (widget.gamepadHints != null) {
             Future.microtask(() {
               if (mounted) {
                 if (hasFocus) {
                   ref.read(focusedGamepadHintsProvider.notifier).state = widget.gamepadHints;
                 } else if (ref.read(focusedGamepadHintsProvider) == widget.gamepadHints) {
-                  // Only clear it if we were the last ones to set it
                   ref.read(focusedGamepadHintsProvider.notifier).state = null;
                 }
               }
             });
           }
 
-          // 🏎️ THE SMOOTH GLIDE FIX
-          // When the analog stick generates rapid focus changes, this aggressively fast 
-          // ease-out animation prevents the camera from stuttering or lagging behind!
           if (hasFocus && Scrollable.maybeOf(context) != null) {
             Scrollable.ensureVisible(
               context,
@@ -105,7 +101,10 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,
-                  transform: isActive ? (Matrix4.identity()..scale(1.04)) : Matrix4.identity(),
+                  // 🎯 DISABLED ZOOM if useScaleEffect is false!
+                  transform: (isActive && widget.useScaleEffect) 
+                      ? (Matrix4.identity()..scale(1.04)) 
+                      : Matrix4.identity(),
                   transformAlignment: Alignment.center,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
@@ -113,7 +112,9 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                       color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
                       width: 3,
                     ),
-                    boxShadow: isActive ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(100), blurRadius: 12, spreadRadius: 2)] : [],
+                    boxShadow: isActive 
+                        ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(100), blurRadius: 12, spreadRadius: 2)] 
+                        : [],
                   ),
                   child: child,
                 );

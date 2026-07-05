@@ -9,6 +9,8 @@ import '../../../../shared/widgets/multimedia_card.dart';
 import '../library_provider.dart';
 
 import '../library_state.dart';
+import '../../../../core/widgets/focusable_wrapper.dart'; // 🎯 NEW IMPORT
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; // 🎯 NEW IMPORT
 import '../../../../shared/widgets/loading_indicator.dart';
 
 class BookmarksTab extends ConsumerStatefulWidget {
@@ -45,16 +47,30 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          return MultimediaCard(
-            key: ValueKey(item.url),
-            imageUrl:
-                AppImageFallbacks.poster(item.posterUrl, label: item.title) ??
-                '',
-            title: item.title,
-            heroTag: 'lib_bookmark_${item.url}_$index',
-            onTap: () => DetailsRoute(
-              $extra: DetailsRouteExtra(item: item),
-            ).push<void>(context),
+          
+          final handleTap = () => DetailsRoute(
+            $extra: DetailsRouteExtra(item: item),
+          ).push<void>(context);
+
+          return FocusableWrapper(
+            onTap: handleTap,
+            gamepadHints: [
+              GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
+              GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+              // 🎯 Split into two beautiful distinct buttons!
+              GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.white), 
+              GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.white), 
+              GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+            ],
+            child: MultimediaCard(
+              key: ValueKey(item.url),
+              imageUrl:
+                  AppImageFallbacks.poster(item.posterUrl, label: item.title) ??
+                  '',
+              title: item.title,
+              heroTag: 'lib_bookmark_${item.url}_$index',
+              onTap: handleTap,
+            ),
           );
         },
       ),
