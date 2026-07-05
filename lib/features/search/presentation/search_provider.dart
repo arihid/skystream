@@ -33,9 +33,6 @@ class SearchAggregateState {
   const SearchAggregateState({this.results = const [], this.isLoading = false});
 }
 
-// ---------------------------------------------------------------------------
-// Background isolate helper — runs title filtering off the main thread.
-// ---------------------------------------------------------------------------
 class _FilterParams {
   final List<MultimediaItem> items;
   final List<String> queryParts;
@@ -190,7 +187,8 @@ Stream<SearchAggregateState> searchAllProviders(
         if (isCancelled() || token.isCancelled) return;
 
         try {
-          final rawResults = await provider.search(query, cancelToken: token);
+          // 🎯 THE FIX: Force a 15-second timeout so dead servers don't permanently hog queue slots and freeze the app!
+          final rawResults = await provider.search(query, cancelToken: token).timeout(const Duration(seconds: 15));
           if (isCancelled() || token.isCancelled) return;
 
           final providerItems = rawResults
@@ -226,6 +224,9 @@ Stream<SearchAggregateState> searchAllProviders(
               ),
             );
           }
+        } on TimeoutException {
+          // Gracefully drop dead servers
+          if (kDebugMode) debugPrint('Provider ${provider.name} timed out after 15s.');
         } catch (e) {
           if (isCancelled() || token.isCancelled) return;
           if (e is DioException && e.type == DioExceptionType.cancel) return;
@@ -297,7 +298,7 @@ Stream<SearchAggregateState> searchResults(Ref ref) {
 }
 
 class SearchSuggestionState {
-  final List<String> suggestions;
+  final List<MultimediaItem> suggestions;
   final bool isLoading;
   final String query;
 
@@ -308,7 +309,7 @@ class SearchSuggestionState {
   });
 
   SearchSuggestionState copyWith({
-    List<String>? suggestions,
+    List<MultimediaItem>? suggestions,
     bool? isLoading,
     String? query,
   }) {
@@ -354,13 +355,13 @@ class SearchSuggestionController extends _$SearchSuggestionController {
       try {
         final tmdb = ref.read(tmdbServiceProvider);
         
-        final suggestions = await tmdb.getSuggestions(
+        final results = await tmdb.multiSearch(
           query: trimmed,
           language: 'en-US',
         );
         
         if (state.query == query) {
-          state = state.copyWith(suggestions: suggestions, isLoading: false);
+          state = state.copyWith(suggestions: results.take(10).toList(), isLoading: false);
         }
       } catch (e, stack) {
         if (kDebugMode) debugPrint("TMDB Suggestion Error: $e\n$stack");

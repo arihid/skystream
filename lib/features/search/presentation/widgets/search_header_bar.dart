@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import '../search_provider.dart';
 
-/// A custom header bar for the search screen in widescreen/desktop layout.
-///
-/// Contains: an interactive search TextField and a filter popup, matching
-/// the dashboard header bar style used by Home and Explore screens.
+import '../../../../core/widgets/focusable_wrapper.dart';
+
 class SearchHeaderBar extends ConsumerStatefulWidget {
   final TextEditingController textController;
   final FocusNode searchFocusNode;
+  final bool isBigPicture; 
+  final VoidCallback onTapFakeInput; 
   final ValueChanged<String> onSubmitted;
   final ValueChanged<String> onChanged;
 
@@ -19,6 +18,8 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
     super.key,
     required this.textController,
     required this.searchFocusNode,
+    required this.isBigPicture,
+    required this.onTapFakeInput,
     required this.onSubmitted,
     required this.onChanged,
   });
@@ -28,6 +29,8 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
 }
 
 class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
+  final GlobalKey<PopupMenuButtonState<SearchFilter>> _popupKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -43,13 +46,54 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
       ),
       child: Row(
         children: [
-          // Search TextField
           Expanded(
             child: SizedBox(
               height: 42,
               child: ValueListenableBuilder<TextEditingValue>(
                 valueListenable: widget.textController,
                 builder: (context, value, child) {
+                  final query = value.text;
+
+                  if (widget.isBigPicture) {
+                    // 🎯 FIXED: Hard-excluded from focus traversal so pressing "Up" from the results grid doesn't trap you!
+                    return ExcludeFocus(
+                      excluding: true,
+                      child: FocusableWrapper(
+                        onTap: widget.onTapFakeInput,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                            border: Border.all(color: Colors.transparent), 
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  query.isEmpty ? l10n.searchHint : query,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: query.isEmpty ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (query.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: Icon(Icons.edit_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
                   final isSearching = searchResultsAsync.maybeWhen(
                     data: (state) => state.isLoading,
                     loading: () => true,
@@ -148,12 +192,10 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
 
           const SizedBox(width: 12),
 
-          // Filter popup
-          CardsWrapper(
-            scaleFactor: 1.01,
-            onTap: () {},
-            borderRadius: BorderRadius.circular(50),
+          FocusableWrapper(
+            onTap: () => _popupKey.currentState?.showButtonMenu(),
             child: PopupMenuButton<SearchFilter>(
+              key: _popupKey,
               tooltip: 'Search scope',
               onSelected: (value) =>
                   ref.read(searchFilterProvider.notifier).set(value),

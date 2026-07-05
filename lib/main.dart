@@ -31,27 +31,20 @@ import 'core/providers/device_info_provider.dart';
 import 'core/input/gamepad_shortcut_manager.dart';
 import 'core/input/gamepad_actions.dart';
 import 'package:screen_retriever/screen_retriever.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await Hive.initFlutter();
-  await dotenv.load(fileName: ".env");
 
-  // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
-  // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
-  // it quickly. Tighter limits force earlier eviction and keep raster smooth.
   PaintingBinding.instance.imageCache
     ..maximumSize = 200
     ..maximumSizeBytes = 50 * 1024 * 1024; // 50 MB
 
-  // Silence logs in release mode
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // Native window init (Desktop) - Run once
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
 
@@ -111,9 +104,6 @@ class _AppRootState extends State<AppRoot> {
         setState(() {
           _initialized = true;
         });
-        // Pre-warm the system WebView after the first frame so the initial
-        // render isn't delayed. This eliminates the frame jank that occurs
-        // when the CF bypass spawns its HeadlessInAppWebView cold during search.
         if (Platform.isAndroid || Platform.isIOS) {
           Future.delayed(
             const Duration(seconds: 3),
@@ -146,9 +136,7 @@ class _AppRootState extends State<AppRoot> {
         textDirection: TextDirection.ltr,
         child: DynamicColorBuilder(
           builder: (lightDynamic, darkDynamic) {
-            final color =
-                lightDynamic?.primary ??
-                const Color(0xFF6200EE); // Default Purple/Blue
+            final color = lightDynamic?.primary ?? const Color(0xFF6200EE); 
             return ColoredBox(
               color: Colors.black,
               child: Center(child: CircularProgressIndicator(color: color)),
@@ -222,11 +210,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
 
     if (!isLaidOut) {
-      if (kDebugMode) {
-        debugPrint(
-          '[FocusGuard] Consumed key event ${event.logicalKey.keyLabel} because primary focus context or its ancestor is not laid out.',
-        );
-      }
       return KeyEventResult.handled;
     }
 
@@ -234,24 +217,14 @@ class _MyAppState extends ConsumerState<MyApp> {
   }
 
   Future<void> _checkAppUpdates() async {
-    if (kDebugMode) {
-      debugPrint('[Lifecycle] Starting _checkAppUpdates after 5s delay...');
-    }
     await Future<void>.delayed(const Duration(seconds: 5));
-    if (!mounted) {
-      if (kDebugMode) {
-        debugPrint('[Lifecycle] _checkAppUpdates aborted: MyApp unmounted');
-      }
-      return;
-    }
+    if (!mounted) return;
 
     try {
       final controller = ref.read(updateControllerProvider.notifier);
       await controller.checkForUpdates();
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint("[Lifecycle] App update trigger failed: $e");
-      }
+      if (kDebugMode) debugPrint("[Lifecycle] App update trigger failed: $e");
     }
   }
 
@@ -272,12 +245,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
   }
 
-  /// Builds a human-readable update toast message that lists plugin names.
-  /// Shows up to 5 names; any remainder is shown as "-- N more".
-  /// Examples:
-  ///   "Updated: SuperStream"
-  ///   "Updated 3 extensions: SuperStream, AniStream, StreamFlix"
-  ///   "Updated 7 extensions: A, B, C, D, E -- 2 more"
   static String _buildUpdateMessage(List<String> names) {
     final count = names.length;
     if (count == 1) return 'Updated: ${names.first}';
@@ -295,34 +262,17 @@ class _MyAppState extends ConsumerState<MyApp> {
     final locale = ref.watch(localeProvider);
     final profileAsync = ref.watch(deviceProfileProvider);
 
-    // Mirror the resolved device profile into TmdbConfig's static cache so
-    // pure-utility URL builders (AppImageFallbacks, TmdbDetails ctor) pick
-    // TV / desktop-class image sizes once the async profile resolves.
-    // Until then they fall back to the mobile defaults — a few cold-start
-    // frames may use w1280 backdrops on TV before snapping to original.
     ref.listen<AsyncValue<DeviceProfile>>(deviceProfileProvider, (prev, next) {
       final value = next.value;
       if (value != null) TmdbConfig.setProfile(value);
     });
 
-    // Reactive Listener: Keeps UpdateController alive and handles the UI side-effect
     ref.listen<UpdateState>(updateControllerProvider, (previous, next) {
       if (next is UpdateAvailable) {
         final navContext = appRouter.routerDelegate.navigatorKey.currentContext;
         if (navContext != null && navContext.mounted) {
-          if (kDebugMode) {
-            debugPrint(
-              '[Lifecycle] State update detected: UpdateAvailable. Showing dialog.',
-            );
-          }
           UpdateDialog.show(navContext, next.release);
-        } else {
-          if (kDebugMode) {
-            debugPrint(
-              '[Lifecycle] Update available but navContext not ready/mounted.',
-            );
-          }
-        }
+        } 
       }
     });
 
@@ -334,9 +284,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         }
 
         final materialApp = MaterialApp.router(
-          scaffoldMessengerKey: ref
-              .read(notificationServiceProvider)
-              .messengerKey,
+          scaffoldMessengerKey: ref.read(notificationServiceProvider).messengerKey,
           title: 'SkyStream Beta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
@@ -359,8 +307,6 @@ class _MyAppState extends ConsumerState<MyApp> {
             final mq = MediaQuery.of(context);
             Widget result = child;
 
-            // Phase 1: Density override for TV devices
-            // Android TV often reports inflated pixel density; we clamp to 1.0 for standard scaling.
             final profile = profileAsync.asData?.value;
             if (profile?.isTv == true) {
               result = MediaQuery(
@@ -372,16 +318,12 @@ class _MyAppState extends ConsumerState<MyApp> {
               );
             }
             
-            // Phase 2: Gamepad input handling & Spatial Traversal Architecture
-            // We pass 'result' down instead of 'child' to preserve Phase 1's changes.
             return GamepadShortcutManager(
               child: Actions(
                 actions: AppActionBindings.getBindings(context),
                 child: FocusTraversalGroup(
-                  // We enforce WidgetOrderTraversalPolicy globally as a stable baseline.
-                  // To fix the "jumping to random columns" bug, we must apply local FocusTraversalGroups
-                  // around your specific horizontal ListViews.
-                  policy: WidgetOrderTraversalPolicy(),
+                  // 🎯 RESTORED FIX: Strict Widget Order prevents spatial "wrap around" jumps!
+                  policy: WidgetOrderTraversalPolicy(), 
                   child: result, 
                 ),
               ),
@@ -428,19 +370,11 @@ class LaunchErrorApp extends StatelessWidget {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.white,
-                    ),
+                    const Icon(Icons.error_outline, size: 64, color: Colors.white),
                     const SizedBox(height: 16),
                     Text(
                       l10n?.startupError ?? 'Startup Error',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -474,10 +408,7 @@ class LaunchErrorApp extends StatelessWidget {
                         side: const BorderSide(color: Colors.orange),
                       ),
                       icon: const Icon(Icons.restore),
-                      label: Text(
-                        l10n?.resetDataKeepExtensions ??
-                            'Reset Data (Keep Extensions)',
-                      ),
+                      label: Text(l10n?.resetDataKeepExtensions ?? 'Reset Data (Keep Extensions)'),
                       onPressed: () async {
                         await storageService.clearPreferences();
                         if (context.mounted) await AppUtils.restartApp(context);

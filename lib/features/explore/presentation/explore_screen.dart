@@ -53,7 +53,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   void _onScroll() {
     if (!_scrollController.hasClients) return;
 
-    // On widescreen there is no mobile AppBar, skip calculations
     if (_isWidescreenForScroll()) return;
 
     final offset = _scrollController.offset * 0.8;
@@ -78,13 +77,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context); 
 
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    // Use profile?.isLargeScreen so this matches AppScaffold's sidebar
-    // decision even when the ExploreScreen's context width is narrowed
-    // by the sidebar (e.g. iPad portrait).
     final isWidescreen = isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
 
     if (isWidescreen) {
@@ -95,7 +91,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       );
     }
 
-    // Mobile layout: existing AppBar
     return ValueListenableBuilder<bool>(
       valueListenable: _isScrolledNotifier,
       builder: (context, isScrolled, child) {
@@ -105,9 +100,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             : SystemUiOverlayStyle.dark;
 
         return Scaffold(
-          backgroundColor: Theme.of(
-            context,
-          ).scaffoldBackgroundColor, // Base background
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             systemOverlayStyle: overlayStyle,
@@ -116,13 +109,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             elevation: 0,
             flexibleSpace: ValueListenableBuilder<double>(
               valueListenable: _appBarOpacityNotifier,
-              // See home_screen.dart for why we fade via color alpha rather
-              // than Opacity — same saveLayer-per-frame issue.
               builder: (context, opacity, child) {
                 return Container(
-                  color: Theme.of(
-                    context,
-                  ).scaffoldBackgroundColor.withValues(alpha: opacity),
+                  color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: opacity),
                 );
               },
             ),
@@ -136,9 +125,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             centerTitle: false,
             actions: [
               Padding(
-                padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
-                ),
+                padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
                 child: CardsWrapper(
                   onTap: () {
                     unawaited(
@@ -151,10 +138,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   borderRadius: BorderRadius.circular(50),
                   child: Consumer(
                     builder: (context, ref, _) {
-                      final filters = ref.watch(
-                        exploreFilterProvider,
-                      ); // Updated
-                      // Language exclusion: Only highlight for content filters
+                      final filters = ref.watch(exploreFilterProvider); 
                       final hasActiveFilter =
                           filters.selectedGenre != null ||
                           filters.selectedYear != null ||
@@ -163,9 +147,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                       return CircleAvatar(
                         backgroundColor: hasActiveFilter
                             ? Theme.of(context).colorScheme.primary
-                            : Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.1),
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                         radius: 18,
                         child: Icon(
                           Icons.tune,
@@ -179,9 +161,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               ),
 
               Padding(
-                padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
-                ),
+                padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
                 child: CardsWrapper(
                   onTap: () {
                     unawaited(
@@ -195,9 +175,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   },
                   borderRadius: BorderRadius.circular(50),
                   child: CircleAvatar(
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                     radius: 18,
                     child: Icon(
                       Icons.search,
@@ -224,7 +202,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.dashboardContentPadding),
       child: Row(
         children: [
-          // Capsule search bar
           Expanded(
             child: FocusableWrapper(
               onTap: () {
@@ -261,8 +238,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
           ),
           const SizedBox(width: 16),
-
-          // Filter button
           FocusableWrapper(
             onTap: () {
               unawaited(
@@ -320,6 +295,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   Widget _buildScrollView(BuildContext context) {
     return CustomScrollView(
       controller: _scrollController,
+      cacheExtent: 99999, // 🎯 THE FIX: Disables lazy rendering so TV focus engine can always "see" the next row!
       slivers: [
         ..._buildContentSlivers(context),
         const SliverToBoxAdapter(child: SizedBox(height: 100)),
@@ -350,9 +326,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   bottom: LayoutConstants.spacingLg,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -389,66 +363,31 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(popularMoviesProvider),
-          l10n.popularMovies,
-          ViewAllCategory.popularMovies,
-        ),
+        child: _buildSection(context, ref.watch(popularMoviesProvider), l10n.popularMovies, ViewAllCategory.popularMovies),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(popularTVProvider),
-          l10n.popularTVShows,
-          ViewAllCategory.popularTV,
-        ),
+        child: _buildSection(context, ref.watch(popularTVProvider), l10n.popularTVShows, ViewAllCategory.popularTV),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(nowPlayingMoviesProvider),
-          l10n.newMovies,
-          ViewAllCategory.nowPlayingMovies,
-        ),
+        child: _buildSection(context, ref.watch(nowPlayingMoviesProvider), l10n.newMovies, ViewAllCategory.nowPlayingMovies),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(onTheAirTVProvider),
-          l10n.newTVShows,
-          ViewAllCategory.onTheAirTV,
-        ),
+        child: _buildSection(context, ref.watch(onTheAirTVProvider), l10n.newTVShows, ViewAllCategory.onTheAirTV),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(topRatedMoviesProvider),
-          l10n.featuredMovies,
-          ViewAllCategory.topRatedMovies,
-        ),
+        child: _buildSection(context, ref.watch(topRatedMoviesProvider), l10n.featuredMovies, ViewAllCategory.topRatedMovies),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(topRatedTVProvider),
-          l10n.featuredTVShows,
-          ViewAllCategory.topRatedTV,
-        ),
+        child: _buildSection(context, ref.watch(topRatedTVProvider), l10n.featuredTVShows, ViewAllCategory.topRatedTV),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(
-          context,
-          ref.watch(airingTodayTVProvider),
-          l10n.lastVideosTVShows,
-          ViewAllCategory.airingTodayTV,
-        ),
+        child: _buildSection(context, ref.watch(airingTodayTVProvider), l10n.lastVideosTVShows, ViewAllCategory.airingTodayTV),
       ),
     ];
   }
@@ -514,16 +453,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title Placeholder
         Padding(
           padding: EdgeInsets.fromLTRB(
-            isDesktop
-                ? LayoutConstants.dashboardContentPadding
-                : LayoutConstants.spacingMd,
+            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
             LayoutConstants.spacingLg,
-            isDesktop
-                ? LayoutConstants.dashboardContentPadding
-                : LayoutConstants.spacingMd,
+            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
             LayoutConstants.spacingSm,
           ),
             child: ShimmerPlaceholder.rectangular(
@@ -533,21 +467,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
           ),
           const SizedBox(height: LayoutConstants.spacingMd),
-          // List Placeholder
           SizedBox(
             height: listHeight,
             child: ListView.separated(
               padding: EdgeInsets.symmetric(
-                horizontal: isDesktop
-                    ? LayoutConstants.dashboardContentPadding
-                    : LayoutConstants.spacingMd,
+                horizontal: isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
               ),
               scrollDirection: Axis.horizontal,
               itemCount: 10,
               separatorBuilder: (_, _) => SizedBox(
-                width: isDesktop
-                    ? LayoutConstants.spacingLg
-                    : LayoutConstants.spacingSm,
+                width: isDesktop ? LayoutConstants.spacingLg : LayoutConstants.spacingSm,
               ),
               itemBuilder: (context, index) {
                 return Column(
