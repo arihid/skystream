@@ -1,5 +1,6 @@
 import '../domain/entity/multimedia_item.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/tmdb_genre.dart';
 import '../config/tmdb_config.dart';
 
@@ -14,8 +15,15 @@ class TmdbService {
     _dio.interceptors.addAll(baseDio.interceptors);
   }
 
+  // 🚨 CENTRALIZED API KEY CHECK
+  void _requireApiKey() {
+    if (TmdbConfig.apiKey.isEmpty) {
+      throw Exception('TMDB API Key is missing! Check your tmdb_config.dart or .env file.');
+    }
+  }
+
   Future<List<TmdbGenre>> getGenres({String language = 'en-US'}) async {
-    if (TmdbConfig.apiKey.isEmpty) return [];
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/genre/movie/list',
@@ -26,12 +34,15 @@ class TmdbService {
             .map((dynamic i) => TmdbGenre.fromJson(i as Map<String, dynamic>))
             .toList();
       }
-    } catch (_) {}
-    return [];
+      throw Exception('Failed to load genres: ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getGenres Error: $e');
+      rethrow;
+    }
   }
 
   Future<List<TmdbGenre>> getTvGenres({String language = 'en-US'}) async {
-    if (TmdbConfig.apiKey.isEmpty) return [];
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/genre/tv/list',
@@ -42,18 +53,19 @@ class TmdbService {
             .map((dynamic i) => TmdbGenre.fromJson(i as Map<String, dynamic>))
             .toList();
       }
-    } catch (_) {}
-    return [];
+      throw Exception('Failed to load TV genres: ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getTvGenres Error: $e');
+      rethrow;
+    }
   }
 
-  /// Lightweight detail fetch for the hero carousel — only appends images,
-  /// skipping credits/videos/translations to keep the call fast.
   Future<Map<String, dynamic>?> getDetailsForCarousel(
     int id,
     String mediaType, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
+    _requireApiKey();
     try {
       final langCode = language.split('-')[0];
       final response = await _dio.get<Map<String, dynamic>>(
@@ -66,33 +78,18 @@ class TmdbService {
         },
       );
       if (response.statusCode == 200) return response.data;
-    } catch (_) {}
-    return null;
+      throw Exception('Failed to load details: ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getDetailsForCarousel Error: $e');
+      rethrow;
+    }
   }
 
-  /// Returns a language-appropriate minimum vote count to avoid empty results
-  /// for regional languages that have fewer TMDB entries.
   static int minVoteCount(String fullLanguageCode) {
     final iso = fullLanguageCode.split('-')[0].toLowerCase();
     const regional = {'kn', 'ml', 'bn', 'mr', 'pa', 'gu', 'or', 'as'};
     const major = {
-      'hi',
-      'ta',
-      'te',
-      'es',
-      'fr',
-      'de',
-      'it',
-      'ja',
-      'ko',
-      'ru',
-      'pt',
-      'zh',
-      'tr',
-      'ar',
-      'pl',
-      'nl',
-      'sv',
+      'hi', 'ta', 'te', 'es', 'fr', 'de', 'it', 'ja', 'ko', 'ru', 'pt', 'zh', 'tr', 'ar', 'pl', 'nl', 'sv',
     };
     if (iso == 'en') return 100;
     if (major.contains(iso)) return 25;
@@ -100,8 +97,6 @@ class TmdbService {
     return 25;
   }
 
-  /// Shared pattern: use discover endpoint when filters are active, otherwise
-  /// fall back to the simpler direct endpoint.
   Future<List<MultimediaItem>> _fetchWithFilterFallback({
     required String discoverPath,
     required String directPath,
@@ -314,7 +309,7 @@ class TmdbService {
     String language = 'en-US',
     int page = 1,
   }) async {
-    // --- Advanced Search Parsing ---
+    _requireApiKey();
     String cleanQuery = query;
     int? filterYear;
     String? filterLanguageCode;
@@ -322,43 +317,29 @@ class TmdbService {
     final yearMatch = _yearRegex.firstMatch(cleanQuery);
     if (yearMatch != null) {
       filterYear = int.tryParse(yearMatch.group(0)!);
-      // Remove year from query to improve search relevance
       cleanQuery = cleanQuery
           .replaceAll(yearMatch.group(0)!, '')
           .replaceAll('()', '')
           .trim();
     }
 
-    // 2. Extract Language (e.g., "Kannada", "Tamil")
     final languageMap = {
-      'kannada': 'kn',
-      'tamil': 'ta',
-      'telugu': 'te',
-      'hindi': 'hi',
-      'malayalam': 'ml',
-      'english': 'en',
-      'korean': 'ko',
-      'japanese': 'ja',
+      'kannada': 'kn', 'tamil': 'ta', 'telugu': 'te', 'hindi': 'hi',
+      'malayalam': 'ml', 'english': 'en', 'korean': 'ko', 'japanese': 'ja',
     };
 
     for (final key in languageMap.keys) {
       if (cleanQuery.toLowerCase().contains(key)) {
         filterLanguageCode = languageMap[key];
-        // Remove language name using case-insensitive replace
         cleanQuery = cleanQuery
             .replaceAll(RegExp(key, caseSensitive: false), '')
             .trim();
-        break; // Assume single language filter
+        break; 
       }
     }
 
-    // If query became empty (e.g. user just typed "2023"), revert to original but keep filters
     if (cleanQuery.isEmpty) cleanQuery = query;
-
-    // Clean up double spaces
     cleanQuery = cleanQuery.replaceAll(RegExp(r'\s+'), ' ');
-
-    if (TmdbConfig.apiKey.isEmpty) return [];
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -379,18 +360,15 @@ class TmdbService {
 
         final List<Map<String, dynamic>> processedResults = [];
 
-        // Process results to handle 'person' type and flatten 'known_for'
         for (final item in rawResults) {
           final mediaType = item['media_type'];
 
           if (mediaType == 'person') {
-            // Hero Search: Extract movies from person's known_for
             if (item['known_for'] != null) {
               final knownFor = List<Map<String, dynamic>>.from(
                 item['known_for'] as List,
               );
               for (final known in knownFor) {
-                // known_for items often miss media_type, infer if possible or default to movie
                 known['media_type'] ??= 'movie';
                 processedResults.add(known);
               }
@@ -405,7 +383,6 @@ class TmdbService {
           final mediaType = item['media_type'];
           if (mediaType != 'movie' && mediaType != 'tv') return false;
 
-          // --- Filter 1: Release Status (Existing logic) ---
           String? dateStr;
           if (mediaType == 'movie') {
             dateStr = item['release_date'] as String?;
@@ -414,25 +391,20 @@ class TmdbService {
           }
           if (dateStr == null || dateStr.isEmpty) return false;
 
-          // --- Filter 2: Year (New) ---
           if (filterYear != null) {
             try {
               final date = DateTime.parse(dateStr);
-              // Allow +/- 1 year tolerance or exact match
-              // Actually strict year match is better for "Mark 2025"
               if (date.year != filterYear) return false;
             } catch (_) {
               return false;
             }
           }
 
-          // --- Filter 3: Language (New) ---
           if (filterLanguageCode != null) {
             final originalLang = item['original_language'];
             if (originalLang != filterLanguageCode) return false;
           }
 
-          // Future date check
           try {
             final date = DateTime.parse(dateStr);
             return date.isBefore(today);
@@ -441,8 +413,7 @@ class TmdbService {
           }
         }).toList();
 
-        // Deduplicate results based on ID (Person's known_for might duplicate direct search results)
-        final seenParams = <String>{}; // unique key: id + type
+        final seenParams = <String>{}; 
         final uniqueResults = <Map<String, dynamic>>[];
         for (final item in finalResults) {
           final key = '${item['id']}_${item['media_type']}';
@@ -456,21 +427,20 @@ class TmdbService {
             .map((i) => MultimediaItem.fromTmdbJson(i))
             .toList();
       }
-    } catch (_) {}
-    return [];
+      throw Exception('Search failed with status: ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB multiSearch Error: $e');
+      rethrow;
+    }
   }
 
-  /// Fetches search suggestions from TMDB multi-search.
-  ///
-  /// Returns title-only suggestions for movie/tv results, deduplicated and
-  /// capped to 10 items.
   Future<List<String>> getSuggestions({
     required String query,
     String language = 'en-US',
   }) async {
     final trimmed = query.trim();
     if (trimmed.length < 2) return [];
-    if (TmdbConfig.apiKey.isEmpty) return [];
+    _requireApiKey();
 
     final cacheKey = '${language.toLowerCase()}|${trimmed.toLowerCase()}';
     final cached = _suggestionsCache[cacheKey];
@@ -490,7 +460,9 @@ class TmdbService {
         },
       );
 
-      if (response.statusCode != 200 || response.data == null) return [];
+      if (response.statusCode != 200 || response.data == null) {
+        throw Exception('Suggestions failed: ${response.statusCode}');
+      }
 
       final results = List<Map<String, dynamic>>.from(
         (response.data!['results'] as List?) ?? const <dynamic>[],
@@ -517,8 +489,9 @@ class TmdbService {
       );
 
       return suggestions;
-    } catch (_) {
-      return [];
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getSuggestions Error: $e');
+      rethrow;
     }
   }
 
@@ -532,33 +505,29 @@ class TmdbService {
     double? minRating,
     int page = 1,
   }) async {
+    _requireApiKey();
     final isoCode = fullLanguageCode.split('-')[0];
     final today = DateTime.now().toString().split(' ')[0];
     final isMovie = path.contains('movie');
 
     final query = <String, dynamic>{
       'api_key': TmdbConfig.apiKey,
-      'language': 'en-US', // Always show titles in English per user request
+      'language': 'en-US', 
       'sort_by': sortBy,
       'page': page,
       'include_null_first_air_dates': false,
       'vote_count.gte': minVoteCount(fullLanguageCode),
-      // Content Filter: Original Language
       if (fullLanguageCode != 'en-US') 'with_original_language': isoCode,
-      // Content Filter: Released Only (Fix for user request)
       if (isMovie) 'release_date.lte': today,
       if (!isMovie) 'first_air_date.lte': today,
       ...?additionalParams,
     };
 
-    // Add nullable filters
     if (genreId != null) query['with_genres'] = genreId;
     if (year != null) {
       query[isMovie ? 'primary_release_year' : 'first_air_date_year'] = year;
     }
     if (minRating != null) query['vote_average.gte'] = minRating;
-
-    if (TmdbConfig.apiKey.isEmpty) return [];
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -571,18 +540,19 @@ class TmdbService {
             .map((i) => MultimediaItem.fromTmdbJson(i as Map<String, dynamic>))
             .toList();
       }
-    } catch (_) {}
-    return [];
+      throw Exception('Discovery API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB _getDiscoveryResults Error: $e');
+      rethrow;
+    }
   }
 
-  /// Helper to reduce boilerplate
   Future<List<MultimediaItem>> _getResults(
     String path, {
     String language = 'en-US',
     int page = 1,
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return [];
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         path,
@@ -597,8 +567,11 @@ class TmdbService {
             .map((i) => MultimediaItem.fromTmdbJson(i as Map<String, dynamic>))
             .toList();
       }
-    } catch (_) {}
-    return [];
+      throw Exception('Results API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB _getResults Error: $e');
+      rethrow;
+    }
   }
 
   Future<String?> getBestLogo(
@@ -607,7 +580,6 @@ class TmdbService {
     String mediaType = 'movie',
   }) async {
     if (TmdbConfig.apiKey.isEmpty) return null;
-
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/$mediaType/$id/images',
@@ -628,76 +600,43 @@ class TmdbService {
     return null;
   }
 
-  /// Reusable logic to pick the best logo from a list of TMDB logo objects.
   static String? pickBestLogo(
     List<Map<String, dynamic>> logos,
     String language,
   ) {
     if (logos.isEmpty) return null;
 
-    // Normalize language (e.g., 'en-US' -> 'en')
     final langCode = language.split('-')[0];
 
-    // Helper to find logo matching criteria
     Map<String, dynamic> findLogo(bool Function(Map<String, dynamic>) test) {
       return logos.firstWhere(test, orElse: () => {});
     }
 
     var bestLogo = <String, dynamic>{};
 
-    // --- Priority 1: Exact Language Match (PNG > SVG) ---
-    bestLogo = findLogo(
-      (l) =>
-          l['iso_639_1'] == langCode &&
-          l['file_path'].toString().endsWith('.png'),
-    );
+    bestLogo = findLogo((l) => l['iso_639_1'] == langCode && l['file_path'].toString().endsWith('.png'));
     if (bestLogo.isEmpty) {
-      bestLogo = findLogo(
-        (l) =>
-            l['iso_639_1'] == langCode &&
-            l['file_path'].toString().endsWith('.svg'),
-      );
+      bestLogo = findLogo((l) => l['iso_639_1'] == langCode && l['file_path'].toString().endsWith('.svg'));
     }
 
-    // --- Priority 2: English (PNG > SVG) ---
-    // Moved above Textless because usually we want a readable title if exact match fails
     if (bestLogo.isEmpty && langCode != 'en') {
-      bestLogo = findLogo(
-        (l) =>
-            l['iso_639_1'] == 'en' &&
-            l['file_path'].toString().endsWith('.png'),
-      );
+      bestLogo = findLogo((l) => l['iso_639_1'] == 'en' && l['file_path'].toString().endsWith('.png'));
     }
     if (bestLogo.isEmpty && langCode != 'en') {
-      bestLogo = findLogo(
-        (l) =>
-            l['iso_639_1'] == 'en' &&
-            l['file_path'].toString().endsWith('.svg'),
-      );
+      bestLogo = findLogo((l) => l['iso_639_1'] == 'en' && l['file_path'].toString().endsWith('.svg'));
     }
 
-    // --- Priority 3: International / Textless (iso_639_1 == null) (PNG > SVG) ---
     if (bestLogo.isEmpty) {
-      bestLogo = findLogo(
-        (l) =>
-            l['iso_639_1'] == null &&
-            l['file_path'].toString().endsWith('.png'),
-      );
+      bestLogo = findLogo((l) => l['iso_639_1'] == null && l['file_path'].toString().endsWith('.png'));
     }
     if (bestLogo.isEmpty) {
-      bestLogo = findLogo(
-        (l) =>
-            l['iso_639_1'] == null &&
-            l['file_path'].toString().endsWith('.svg'),
-      );
+      bestLogo = findLogo((l) => l['iso_639_1'] == null && l['file_path'].toString().endsWith('.svg'));
     }
 
-    // --- Priority 4: Any Wide PNG ---
     if (bestLogo.isEmpty) {
       bestLogo = findLogo((l) => (((l['aspect_ratio'] as num?) ?? 0) > 1));
     }
 
-    // --- Fallback ---
     if (bestLogo.isEmpty) {
       bestLogo = logos.first;
     }
@@ -712,8 +651,7 @@ class TmdbService {
     int movieId, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/movie/$movieId',
@@ -726,16 +664,18 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('Movie Details API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getMovieDetails Error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> getMovieExtra(
     int movieId, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/movie/$movieId',
@@ -749,17 +689,18 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('Movie Extra API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getMovieExtra Error: $e');
+      rethrow;
+    }
   }
 
-  /// Helper to fetch specific credits if not using append_to_response
   Future<Map<String, dynamic>?> getCredits(
     int movieId, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/movie/$movieId/credits',
@@ -768,16 +709,18 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('Credits API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getCredits Error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> getTvDetails(
     int tvId, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/tv/$tvId',
@@ -790,16 +733,18 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('TV Details API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getTvDetails Error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> getTvExtra(
     int tvId, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/tv/$tvId',
@@ -813,8 +758,11 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('TV Extra API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getTvExtra Error: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> getTvSeasonDetails(
@@ -822,8 +770,7 @@ class TmdbService {
     int seasonNumber, {
     String language = 'en-US',
   }) async {
-    if (TmdbConfig.apiKey.isEmpty) return null;
-
+    _requireApiKey();
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/tv/$tvId/season/$seasonNumber',
@@ -832,8 +779,11 @@ class TmdbService {
       if (response.statusCode == 200) {
         return response.data;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('TV Season Details API returned ${response.statusCode}');
+    } catch (e) {
+      if (kDebugMode) debugPrint('TMDB getTvSeasonDetails Error: $e');
+      rethrow;
+    }
   }
 }
 

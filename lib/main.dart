@@ -31,11 +31,13 @@ import 'core/providers/device_info_provider.dart';
 import 'core/input/gamepad_shortcut_manager.dart';
 import 'core/input/gamepad_actions.dart';
 import 'package:screen_retriever/screen_retriever.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   await Hive.initFlutter();
+  await dotenv.load(fileName: ".env");
 
   // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
   // generous for low-RAM TVs and even most phones — decoded TMDB posters fill

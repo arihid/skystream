@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'gamepad_intents.dart';
-import '../../shared/widgets/global_system_menu.dart';
+import '../../shared/widgets/global_system_menu.dart'; 
 
 // ---- CUSTOM GAMEPAD INTENTS ----
 class AppMenuIntent extends Intent { const AppMenuIntent(); }
@@ -40,14 +40,24 @@ class AppActionBindings {
       GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
         onInvoke: (GamepadDirectionalIntent intent) {
           final primaryFocus = FocusManager.instance.primaryFocus;
-          if (primaryFocus == null || primaryFocus.context == null) return null;
+
+          // 🎯 DEAD NODE RECOVERY: If the previously focused item was destroyed (e.g. scrolled off screen)
+          // or focus dropped to a root scope, we must recover it before attempting to move!
+          if (primaryFocus == null || primaryFocus.context == null) {
+            FocusScope.of(context).nextFocus();
+            return null;
+          }
 
           final currentRenderObject = primaryFocus.context!.findRenderObject();
-          if (currentRenderObject is! RenderBox) return null;
+          if (currentRenderObject is! RenderBox || !currentRenderObject.attached) {
+            FocusScope.of(context).nextFocus();
+            return null;
+          }
 
           final currentRect = currentRenderObject.localToGlobal(Offset.zero) & currentRenderObject.size;
           bool moved = primaryFocus.focusInDirection(intent.direction);
 
+          // 🎯 HORIZONTAL ROW JUMP FIX
           if (moved && (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right)) {
             final newContext = FocusManager.instance.primaryFocus?.context;
             if (newContext != null) {
@@ -74,7 +84,6 @@ class AppActionBindings {
       
       AppMenuIntent: CallbackAction<AppMenuIntent>(
         onInvoke: (_) {
-          // 🎯 Toggle the sliding Big Picture Menu from ANYWHERE!
           final targetContext = FocusManager.instance.primaryFocus?.context ?? context;
           GlobalSystemMenu.toggle(targetContext);
           return null;
