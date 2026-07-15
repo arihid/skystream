@@ -56,31 +56,33 @@ class AppActionBindings {
           // Normal native directional movement
           bool moved = primaryFocus.focusInDirection(intent.direction);
 
-          // 🎯 SAFENET: If native movement hits a wall, force focus sequentially so it doesn't freeze
-          if (!moved) {
-            primaryFocus.nextFocus();
-            return null;
-          }
-
-          if (moved && (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right)) {
+          if (moved) {
             final newContext = FocusManager.instance.primaryFocus?.context;
             if (newContext != null) {
-              final newRenderObject = newContext.findRenderObject();
-              if (newRenderObject is RenderBox) {
-                final newRect = newRenderObject.localToGlobal(Offset.zero) & newRenderObject.size;
-                final dyDiff = (currentRect.center.dy - newRect.center.dy).abs();
-                
-                if (dyDiff > (currentRect.height / 2)) {
-                  primaryFocus.requestFocus(); 
+              if (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right) {
+                // Safenet: Prevent horizontal movement from jumping to a different vertical row
+                final newRenderObject = newContext.findRenderObject();
+                if (newRenderObject is RenderBox) {
+                  final newRect = newRenderObject.localToGlobal(Offset.zero) & newRenderObject.size;
+                  final dyDiff = (currentRect.center.dy - newRect.center.dy).abs();
+                  
+                  if (dyDiff > (currentRect.height / 2)) {
+                    primaryFocus.requestFocus(); 
+                  }
                 }
               }
             }
+          } else {
+            // Horizontal blind fallback
+            if (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right) {
+              primaryFocus.nextFocus();
+            }
+            // Vertical failure is now completely ignored, letting Flutter's upstream engine handle it natively!
           }
           return null;
         },
       ),
       
-      // 🎯 FIXED: Removed rogue Global Scroll bindings so Bumpers don't randomly scroll the details screen!
       AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(onInvoke: (_) => null),
       AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(onInvoke: (_) => null),
       
