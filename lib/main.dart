@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // LogicalKeyboardKey, KeyDownEvent
 import 'package:flutter/foundation.dart'; // For kReleaseMode
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:skystream/features/settings/presentation/general_settings_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -27,12 +28,14 @@ import 'core/network/cloudflare_bypass.dart';
 import 'package:dpad/dpad.dart';
 import 'core/config/tmdb_config.dart';
 import 'core/providers/device_info_provider.dart';
-import 'shared/widgets/loading_indicator.dart';
-import 'features/settings/presentation/general_settings_provider.dart';
+import 'core/input/gamepad_shortcut_manager.dart';
+import 'core/input/gamepad_actions.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await Hive.initFlutter();
 
   // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
   // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
@@ -50,18 +53,18 @@ void main() async {
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
 
-    final windowOptions = WindowOptions(
-      size: const Size(1280, 720),
-      minimumSize: const Size(360, 640),
+    const windowOptions = WindowOptions(
       center: true,
-      backgroundColor: Colors.black, // Solid black prevents transparency during fullscreen transition
       skipTaskbar: false,
-      titleBarStyle: Platform.isMacOS ? TitleBarStyle.normal : TitleBarStyle.hidden,
+      titleBarStyle: TitleBarStyle.normal,
     );
 
     unawaited(
       windowManager.waitUntilReadyToShow(windowOptions, () async {
         await windowManager.show();
+        if (!Platform.isWindows) {
+          await windowManager.maximize();
+        }
         await windowManager.focus();
       }),
     );
@@ -101,11 +104,6 @@ class _AppRootState extends State<AppRoot> {
             if (kDebugMode) debugPrint("Error setting high refresh rate: $e");
           }),
       ]);
-
-      if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-        final alwaysOnTop = _storageService.isAlwaysOnTop();
-        await windowManager.setAlwaysOnTop(alwaysOnTop);
-      }
 
       if (mounted) {
         setState(() {
@@ -151,7 +149,7 @@ class _AppRootState extends State<AppRoot> {
                 const Color(0xFF6200EE); // Default Purple/Blue
             return ColoredBox(
               color: Colors.black,
-              child: Center(child: AppLoadingIndicator(color: color)),
+              child: Center(child: CircularProgressIndicator(color: color)),
             );
           },
         ),
@@ -172,17 +170,11 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> with WindowListener {
-  bool _isFullScreen = false;
-
+class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
     FocusManager.instance.addEarlyKeyEventHandler(_handleEarlyKeyEvent);
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      windowManager.addListener(this);
-      _updateFullScreenState();
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(downloadServiceProvider).init();
       _checkExtensionsUpdates();
@@ -193,33 +185,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
   @override
   void dispose() {
     FocusManager.instance.removeEarlyKeyEventHandler(_handleEarlyKeyEvent);
-    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      windowManager.removeListener(this);
-    }
     super.dispose();
-  }
-
-  @override
-  void onWindowEnterFullScreen() {
-    setState(() {
-      _isFullScreen = true;
-    });
-  }
-
-  @override
-  void onWindowLeaveFullScreen() {
-    setState(() {
-      _isFullScreen = false;
-    });
-  }
-
-  Future<void> _updateFullScreenState() async {
-    final isFull = await windowManager.isFullScreen();
-    if (mounted) {
-      setState(() {
-        _isFullScreen = isFull;
-      });
-    }
   }
 
   KeyEventResult _handleEarlyKeyEvent(KeyEvent event) {
@@ -320,16 +286,6 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     return 'Updated $count extensions: $namesPart';
   }
 
-  Future<void> _toggleFullscreen() async {
-    if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) return;
-    try {
-      final isFull = await windowManager.isFullScreen();
-      await windowManager.setFullScreen(!isFull);
-    } catch (e) {
-      if (kDebugMode) debugPrint('_toggleFullscreen: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(appThemeModeProvider);
@@ -379,7 +335,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
           scaffoldMessengerKey: ref
               .read(notificationServiceProvider)
               .messengerKey,
-          title: 'SkyStream',
+          title: 'SkyStream Beta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
           theme: lightDynamic != null
@@ -396,8 +352,10 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
+            if (child == null) return const SizedBox.shrink();
+
             final mq = MediaQuery.of(context);
-            Widget result = child!;
+            Widget result = child;
 
             // Phase 1: Density override for TV devices
             // Android TV often reports inflated pixel density; we clamp to 1.0 for standard scaling.
@@ -411,116 +369,22 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
                 child: result,
               );
             }
-
-            if (!kIsWeb &&
-                (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-              final isMac = Platform.isMacOS;
-              if (!isMac) {
-                result = Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(child: result),
-                    const Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: CustomTitleBar(),
-                    ),
-                  ],
-                );
-              }
-            }
-
-            return result;
+            
+            // Phase 2: Gamepad input handling & Spatial Traversal Architecture
+            // 🎯 CRITICAL FIX: Actions MUST wrap the GamepadShortcutManager so fallbacks work!
+            return Actions(
+              actions: AppActionBindings.getBindings(context),
+              child: GamepadShortcutManager(
+                child: FocusTraversalGroup(
+                  policy: WidgetOrderTraversalPolicy(),
+                  child: result, 
+                ),
+              ),
+            );
           },
         );
 
-        Widget rootWidget = Focus(
-          autofocus: true,
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.f11) {
-              _toggleFullscreen();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: DpadNavigator(child: materialApp),
-        );
-
-        if (Platform.isMacOS) {
-          final alwaysOnTop = ref.watch(generalSettingsProvider.select((s) => s.alwaysOnTop));
-          rootWidget = PlatformMenuBar(
-            menus: <PlatformMenuItem>[
-              PlatformMenu(
-                label: 'SkyStream',
-                menus: <PlatformMenuItem>[
-                  if (PlatformProvidedMenuItem.hasMenu(PlatformProvidedMenuItemType.about))
-                    const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.about),
-                  const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.quit),
-                ],
-              ),
-              PlatformMenu(
-                label: 'Edit',
-                menus: <PlatformMenuItem>[
-                  PlatformMenuItem(
-                    label: 'Undo',
-                    shortcut: const SingleActivator(LogicalKeyboardKey.keyZ, meta: true),
-                    onSelected: () {},
-                  ),
-                  PlatformMenuItem(
-                    label: 'Redo',
-                    shortcut: const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true),
-                    onSelected: () {},
-                  ),
-                  const PlatformMenuItemGroup(
-                    members: <PlatformMenuItem>[
-                      PlatformMenuItem(
-                        label: 'Cut',
-                        shortcut: SingleActivator(LogicalKeyboardKey.keyX, meta: true),
-                        onSelected: null,
-                      ),
-                      PlatformMenuItem(
-                        label: 'Copy',
-                        shortcut: SingleActivator(LogicalKeyboardKey.keyC, meta: true),
-                        onSelected: null,
-                      ),
-                      PlatformMenuItem(
-                        label: 'Paste',
-                        shortcut: SingleActivator(LogicalKeyboardKey.keyV, meta: true),
-                        onSelected: null,
-                      ),
-                      PlatformMenuItem(
-                        label: 'Select All',
-                        shortcut: SingleActivator(LogicalKeyboardKey.keyA, meta: true),
-                        onSelected: null,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              PlatformMenu(
-                label: 'Window',
-                menus: <PlatformMenuItem>[
-                  const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.minimizeWindow),
-                  const PlatformProvidedMenuItem(type: PlatformProvidedMenuItemType.zoomWindow),
-                  PlatformMenuItem(
-                    label: alwaysOnTop ? 'Disable Stay on Top' : 'Stay on Top',
-                    shortcut: const SingleActivator(LogicalKeyboardKey.keyT, meta: true, control: true),
-                    onSelected: () async {
-                      final nextVal = !alwaysOnTop;
-                      await ref.read(generalSettingsProvider.notifier).setAlwaysOnTop(nextVal);
-                      await windowManager.setAlwaysOnTop(nextVal);
-                    },
-                  ),
-                ],
-              ),
-            ],
-            child: rootWidget,
-          );
-        }
-
-        return rootWidget;
+        return materialApp;
       },
     );
   }
@@ -617,388 +481,6 @@ class LaunchErrorApp extends StatelessWidget {
                   ],
                 );
               },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CustomTitleBar extends StatefulWidget {
-  const CustomTitleBar({super.key});
-
-  @override
-  State<CustomTitleBar> createState() => _CustomTitleBarState();
-}
-
-class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
-  bool _hovered = false;
-  bool _isMaximized = false;
-  bool _isFullScreen = false;
-  bool _isAlwaysOnTop = false;
-
-  @override
-  void initState() {
-    super.initState();
-    windowManager.addListener(this);
-    _updateStates();
-  }
-
-  @override
-  void dispose() {
-    windowManager.removeListener(this);
-    super.dispose();
-  }
-
-  @override
-  void onWindowMaximize() {
-    _updateStates();
-  }
-
-  @override
-  void onWindowUnmaximize() {
-    _updateStates();
-  }
-
-  @override
-  void onWindowEnterFullScreen() {
-    _updateStates();
-  }
-
-  @override
-  void onWindowLeaveFullScreen() {
-    _updateStates();
-  }
-
-  Future<void> _updateStates() async {
-    // A short delay gives the OS window manager time to finalize transitions (fullscreen/maximize/etc.)
-    await Future<void>.delayed(const Duration(milliseconds: 150));
-    if (!mounted) return;
-    final isMax = await windowManager.isMaximized();
-    final isFull = await windowManager.isFullScreen();
-    final isAlways = await windowManager.isAlwaysOnTop();
-    if (mounted) {
-      setState(() {
-        _isMaximized = isMax;
-        _isFullScreen = isFull;
-        _isAlwaysOnTop = isAlways;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final titleBarColor = isDark
-        ? const Color(0xE0050505)
-        : const Color(0xD8FAF8F5); // Transparent warm off-white (85% opacity)
-    final iconColor = isDark
-        ? Colors.white.withValues(alpha: 0.85)
-        : const Color(0xFF5C5C5C); // High contrast text/icon color
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: _hovered ? (Platform.isMacOS ? 28 : 48) : 8,
-        curve: Curves.easeInOut,
-        decoration: BoxDecoration(
-          color: _hovered ? titleBarColor : Colors.transparent,
-          boxShadow: _hovered
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            if (_hovered)
-              Positioned(
-                left: Platform.isMacOS ? 80 : 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onPanStart: (_) {
-                    windowManager.startDragging();
-                  },
-                  onDoubleTap: () async {
-                    final isMax = await windowManager.isMaximized();
-                    if (isMax) {
-                      await windowManager.unmaximize();
-                    } else {
-                      await windowManager.maximize();
-                    }
-                  },
-                ),
-              ),
-            // Pin icon on the left (visible when neither maximized nor fullscreen)
-            if (_hovered && !_isFullScreen && !_isMaximized)
-              Positioned(
-                left: Platform.isMacOS ? 80 : 12,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: _PinButton(
-                    isActive: _isAlwaysOnTop,
-                    onPressed: () async {
-                      final nextState = !_isAlwaysOnTop;
-                      await windowManager.setAlwaysOnTop(nextState);
-                      await _updateStates();
-                    },
-                  ),
-                ),
-              ),
-            // Right-side window controls (fullscreen, minimize, maximize/restore, close)
-            if (!Platform.isMacOS)
-              Positioned(
-                right: 12,
-                top: 0,
-                bottom: 0,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _hovered ? 1.0 : 0.0,
-                child: IgnorePointer(
-                  ignoring: !_hovered,
-                  child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 1. Full Screen Toggle / Exit Full Screen
-                        _TitleBarButton(
-                          onPressed: () async {
-                            await windowManager.setFullScreen(!_isFullScreen);
-                            await _updateStates();
-                          },
-                          child: Icon(
-                            _isFullScreen
-                                ? Icons.fullscreen_exit_rounded
-                                : Icons.fullscreen_rounded,
-                            color: iconColor,
-                            size: 16,
-                          ),
-                        ),
-                        if (!_isFullScreen) ...[
-                          const SizedBox(width: 6),
-                          // 2. Minimize
-                          _TitleBarButton(
-                            onPressed: () => windowManager.minimize(),
-                            child: Center(
-                              child: Container(
-                                width: 10,
-                                height: 1.5,
-                                color: iconColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // 3. Maximize / Restore
-                          _TitleBarButton(
-                            onPressed: () async {
-                              if (_isMaximized) {
-                                await windowManager.unmaximize();
-                              } else {
-                                await windowManager.maximize();
-                              }
-                              await _updateStates();
-                            },
-                            child: Center(
-                              child: _isMaximized
-                                  ? SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: Stack(
-                                        children: [
-                                          Positioned(
-                                            right: 0,
-                                            top: 0,
-                                            child: Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: iconColor,
-                                                  width: 1.2,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            left: 0,
-                                            bottom: 0,
-                                            child: Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: isDark
-                                                    ? const Color(0xFF050505)
-                                                    : const Color(
-                                                        0xFFFAF8F5,
-                                                      ), // overlap box bg matches titlebar
-                                                border: Border.all(
-                                                  color: iconColor,
-                                                  width: 1.2,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: iconColor,
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // 4. Close
-                          _CloseButton(onPressed: () => windowManager.close()),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PinButton extends StatefulWidget {
-  final bool isActive;
-  final VoidCallback onPressed;
-
-  const _PinButton({required this.isActive, required this.onPressed});
-
-  @override
-  State<_PinButton> createState() => _PinButtonState();
-}
-
-class _PinButtonState extends State<_PinButton> {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final hoverColor = isDark
-        ? Colors.white.withValues(alpha: 0.15)
-        : const Color(
-            0xFFE4D9C8,
-          ); // Darker warm neutral tan hover background (#E4D9C8)
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: widget.onPressed,
-        borderRadius: BorderRadius.circular(6),
-        hoverColor: hoverColor,
-        splashColor: hoverColor.withValues(alpha: 0.2),
-        child: SizedBox(
-          width: 32,
-          height: Platform.isMacOS ? 28 : 32,
-          child: Icon(
-            widget.isActive ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-            color: widget.isActive
-                ? theme.colorScheme.primary
-                : (isDark
-                      ? Colors.white.withValues(alpha: 0.5)
-                      : const Color(0xFF5C5C5C).withValues(alpha: 0.6)),
-            size: 16,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TitleBarButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onPressed;
-
-  const _TitleBarButton({required this.child, required this.onPressed});
-
-  @override
-  State<_TitleBarButton> createState() => _TitleBarButtonState();
-}
-
-class _TitleBarButtonState extends State<_TitleBarButton> {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hoverColor = isDark
-        ? Colors.white.withValues(alpha: 0.15)
-        : const Color(
-            0xFFE4D9C8,
-          ); // Darker warm neutral tan hover background (#E4D9C8)
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: widget.onPressed,
-        borderRadius: BorderRadius.circular(6),
-        hoverColor: hoverColor,
-        splashColor: hoverColor.withValues(alpha: 0.2),
-        child: SizedBox(width: 32, height: 32, child: widget.child),
-      ),
-    );
-  }
-}
-
-class _CloseButton extends StatefulWidget {
-  final VoidCallback onPressed;
-
-  const _CloseButton({required this.onPressed});
-
-  @override
-  State<_CloseButton> createState() => _CloseButtonState();
-}
-
-class _CloseButtonState extends State<_CloseButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: Colors.transparent,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: InkWell(
-          onTap: widget.onPressed,
-          borderRadius: BorderRadius.circular(6),
-          hoverColor: Colors.red.withValues(alpha: 0.8),
-          splashColor: Colors.red,
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(
-              Icons.close_rounded,
-              color: _isHovered
-                  ? Colors.white
-                  : (isDark
-                        ? Colors.white.withValues(alpha: 0.85)
-                        : const Color(0xFF5C5C5C)),
-              size: 16,
             ),
           ),
         ),

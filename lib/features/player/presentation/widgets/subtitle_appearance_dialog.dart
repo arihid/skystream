@@ -284,7 +284,8 @@ class DpadColorCircle extends StatelessWidget {
       child: DpadFocusable(
         onSelect: onTap,
         builder: (context, isFocused, child) {
-          final size = isFocused ? 38.0 : 28.0;
+        final bool isFocused = Focus.of(context).hasFocus;
+        final size = isFocused ? 38.0 : 28.0;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -321,6 +322,7 @@ class DpadColorCircle extends StatelessWidget {
             ),
           );
         },
+        child: const SizedBox.shrink(), // Dummy child to satisfy the builder signature if required
       ),
     );
   }
@@ -344,6 +346,8 @@ class DpadButton extends StatelessWidget {
     return DpadFocusable(
       onSelect: onPressed,
       builder: (context, isFocused, child) {
+        final bool isFocused = Focus.of(context).hasFocus;
+        final size = isFocused ? 38.0 : 28.0;
         final baseColor = isPrimary
             ? HotstarPlayerStyle.accent
             : Colors.transparent;
@@ -353,8 +357,8 @@ class DpadButton extends StatelessWidget {
         final textColor = isPrimary
             ? (isFocused ? Colors.black : Colors.white)
             : (isFocused
-                  ? HotstarPlayerStyle.accent
-                  : HotstarPlayerStyle.secondaryText);
+                ? HotstarPlayerStyle.accent
+                : HotstarPlayerStyle.secondaryText);
 
         return Material(
           color: Colors.transparent,
@@ -397,6 +401,7 @@ class DpadButton extends StatelessWidget {
           ),
         );
       },
+      child: const SizedBox.shrink(), // Dummy child to satisfy the builder signature if required
     );
   }
 }
