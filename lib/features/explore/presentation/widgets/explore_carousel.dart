@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../../core/router/app_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,6 +14,7 @@ import '../../../../core/providers/device_info_provider.dart';
 
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+
 
 /// Lightweight controller for the hero carousel.
 /// API-compatible with the old CarouselSliderController (nextPage/previousPage).
@@ -168,15 +170,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _onParentScroll() {
-    // Always update — do NOT gate on _isVisibleOnScreen. Earlier we tried
-    // to skip rebuilds while the carousel was off-screen, but that left
-    // _scrollOffset frozen at a stale value; when the user scrolled back
-    // up, syncing the offset on visibility-change caused a visible snap
-    // (VisibilityDetector throttles, so the catch-up frame lands after
-    // the user has already scrolled past it). The rebuild cost here is
-    // negligible — Transform/RenderTransform reuses its RenderObject, the
-    // CachedNetworkImage is cache-hit, and the whole carousel page is
-    // wrapped in a RepaintBoundary so off-screen rebuilds don't ripple.
     if (widget.scrollController!.hasClients) {
       _scrollOffset.value = widget.scrollController!.offset;
     }
@@ -216,10 +209,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
     return VisibilityDetector(
       key: const Key('explore-carousel-visibility'),
-      // Visibility is still tracked — but only to gate the 5s auto-advance
-      // timer (so we don't fire page transitions for an audience that
-      // isn't watching). Parallax offset updates ignore this flag; see
-      // [_onParentScroll] for the rationale.
       onVisibilityChanged: (info) {
         final visible = info.visibleFraction > 0.1;
         if (visible != _isVisibleOnScreen && mounted) {
@@ -233,20 +222,8 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       },
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
-        // Only auto-focus on TV where D-pad is the primary input. On desktop
-        // we skip autofocus so the focus ring doesn't appear on app launch
-        // (Flutter defaults to 'traditional' highlight mode until a mouse
-        // event arrives, which would show the ring immediately).
         autofocus: false,
         mouseCursor: SystemMouseCursors.click,
-        // Arrow keys are wired as explicit Shortcuts/Actions at this level so
-        // they fire when _carouselFocusNode has focus. Using a nested
-        // Focus(onKeyEvent:) for arrows is unreliable here — that child Focus
-        // is a descendant of _carouselFocusNode, and key events only propagate
-        // UP from the focused node, so the child's handler never runs. Worse,
-        // unhandled arrow keys fall through to Flutter's default ScrollAction
-        // which then scrolls the outer vertical CustomScrollView — exactly the
-        // "Right pages carousel AND scrolls page vertically" bug we saw.
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
@@ -259,6 +236,20 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
               _activateCurrent();
+              return null;
+            },
+          ),
+          GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
+            onInvoke: (intent) {
+              if (intent.direction == TraversalDirection.left) {
+                _goToPreviousSlide();
+              } else if (intent.direction == TraversalDirection.right) {
+                _goToNextSlide();
+              } else if (intent.direction == TraversalDirection.up) {
+                widget.onNavigateUp?.call();
+              } else if (intent.direction == TraversalDirection.down) {
+                FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
+              }
               return null;
             },
           ),
@@ -354,7 +345,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
   // ---------------------------------------------------------------------------
   // Custom carousel with crossfade + scale transition
-  // Entry: scale 0.8→1, opacity 0→1  |  Exit: scale 1→1.2, opacity 1→0  |  400ms
   // ---------------------------------------------------------------------------
 
   Widget _buildCarouselStack(double height, {required bool isDesktop}) {
@@ -824,15 +814,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 }
 
 /// A single progress dot whose width animates with spring physics.
-///
-/// When [isActive] toggles the dot springs between inactive (11 px) and active
-/// (35 px) width. The active dot also renders a fill bar driven by
-/// [fillController] that grows from 0 % → 100 % over the auto-advance interval.
-///
-/// Each dot manages its own [AnimationController] for the spring width
-/// transition — only two dots tick per toggle. The fill bar is a separate
-/// [AnimatedBuilder] that exists only on the active dot, so per-frame fill
-/// rebuilds are limited to exactly one dot.
 class _ProgressDot extends StatefulWidget {
   final bool isActive;
   final AnimationController fillController;

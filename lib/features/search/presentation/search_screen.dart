@@ -1026,7 +1026,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-class _SuggestionCard extends StatefulWidget {
+class _SuggestionCard extends StatelessWidget {
   final String suggestion;
   final VoidCallback onTap;
   final VoidCallback onFill;
@@ -1046,253 +1046,71 @@ class _SuggestionCard extends StatefulWidget {
   });
 
   @override
-  State<_SuggestionCard> createState() => _SuggestionCardState();
-}
-
-class _SuggestionCardState extends State<_SuggestionCard> {
-  bool _isBodyHovered = false;
-  bool _isButtonHovered = false;
-
-  late final FocusNode _bodyNode;
-  late final FocusNode _buttonNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _bodyNode = widget.focusNode ?? FocusNode();
-    _bodyNode.addListener(_onFocusChange);
-    _buttonNode = FocusNode();
-    _buttonNode.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    if (mounted) {
-      setState(() {});
-      if (_bodyNode.hasFocus) {
-        Future.microtask(() {
-          if (mounted) {
-            FocusManager.instance.primaryFocus?.context?.visitAncestorElements((_) => false);
-          }
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    if (widget.focusNode == null) {
-      _bodyNode.dispose();
-    } else {
-      if (_bodyNode.hasFocus) {
-        _bodyNode.unfocus();
-      }
-      _bodyNode.removeListener(_onFocusChange);
-    }
-    _buttonNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final nativeFont = theme.textTheme.bodyLarge?.fontFamily;
 
-    final isBodyHighlighted = _isBodyHovered || _bodyNode.hasFocus;
-    final isButtonHighlighted = _isButtonHovered || _buttonNode.hasFocus;
-    final isAnyHighlighted = isBodyHighlighted || isButtonHighlighted;
-
-    final baseBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.1)
-        : theme.colorScheme.outlineVariant;
-    final highlightColor = isDark
-        ? const Color(0xFF1F80E0)
-        : theme.colorScheme.primary;
-
-    final borderColor = isAnyHighlighted
-        ? highlightColor.withValues(alpha: 0.85)
-        : baseBorderColor;
-
-    final cardBgColor = isDark
-        ? Colors.black.withValues(alpha: 0.65)
-        : theme.colorScheme.surfaceContainer;
-
-    final bodyHighlightBg = isDark
-        ? const Color(0xFF1F80E0).withValues(alpha: 0.25)
-        : theme.colorScheme.primary.withValues(alpha: 0.12);
-
-    final buttonHighlightBg = isDark
-        ? const Color(0xFF1F80E0).withValues(alpha: 0.35)
-        : theme.colorScheme.primary.withValues(alpha: 0.18);
-
-    final iconColor = isDark
-        ? Colors.white70
-        : theme.colorScheme.onSurfaceVariant;
-
-    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
-
-    final buttonIconColor = isDark
-        ? Colors.white54
-        : theme.colorScheme.onSurfaceVariant;
-
-    final dividerColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : theme.colorScheme.outlineVariant;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: isAnyHighlighted
-            ? [
-                BoxShadow(
-                  color: highlightColor.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Focus(
-              focusNode: _bodyNode,
-              onKeyEvent: (node, event) {
-                if (event is KeyDownEvent) {
-                  if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
-                      widget.isFirst) {
-                    widget.onFocusSearch();
-                    return KeyEventResult.handled;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                    _buttonNode.requestFocus();
-                    return KeyEventResult.handled;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.select ||
-                      event.logicalKey == LogicalKeyboardKey.enter ||
-                      event.logicalKey == LogicalKeyboardKey.numpadEnter ||
-                      event.logicalKey == LogicalKeyboardKey.space) {
-                    widget.onTap();
-                    return KeyEventResult.handled;
-                  }
-                }
-                return KeyEventResult.ignored;
-              },
-              child: MouseRegion(
-                onEnter: (_) => setState(() => _isBodyHovered = true),
-                onExit: (_) => setState(() => _isBodyHovered = false),
-                child: GestureDetector(
-                  onTap: widget.onTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isBodyHighlighted
-                          ? bodyHighlightBg
-                          : Colors.transparent,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(11),
-                        bottomLeft: Radius.circular(11),
+    return FocusableWrapper(
+      focusNode: focusNode,
+      onTap: onTap,           // 'A' to Search!
+      onSecondaryTap: onFill, // 'X' to Fill Query!
+      gamepadHints: [
+        GamepadHint(buttonLabel: 'A', actionLabel: 'Search', buttonColor: Colors.greenAccent.shade400),
+        GamepadHint(buttonLabel: 'X', actionLabel: 'Fill Query', buttonColor: Colors.blueAccent.shade400),
+        if (shouldShowKeyboard)
+          GamepadHint(buttonLabel: 'LT', actionLabel: 'Keyboard', buttonColor: Colors.grey.shade400),
+      ],
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.65)
+              : theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.search_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        suggestion,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: nativeFont,
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 16.0,
+                        ),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.search_rounded,
-                          color: isBodyHighlighted ? highlightColor : iconColor,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            widget.suggestion,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontFamily: nativeFont,
-                              color: textColor,
-                              fontSize: 16.0,
-                              fontWeight: isBodyHighlighted
-                                  ? FontWeight.w500
-                                  : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),
-          ),
-          Container(width: 1.0, height: 24.0, color: dividerColor),
-          Focus(
-            focusNode: _buttonNode,
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent) {
-                if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
-                    widget.isFirst) {
-                  widget.onFocusSearch();
-                  return KeyEventResult.handled;
-                }
-                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  _bodyNode.requestFocus();
-                  return KeyEventResult.handled;
-                }
-                if (event.logicalKey == LogicalKeyboardKey.select ||
-                    event.logicalKey == LogicalKeyboardKey.enter ||
-                    event.logicalKey == LogicalKeyboardKey.numpadEnter ||
-                    event.logicalKey == LogicalKeyboardKey.space) {
-                  widget.onFill();
-                  return KeyEventResult.handled;
-                }
-              }
-              return KeyEventResult.ignored;
-            },
-            child: MouseRegion(
-              onEnter: (_) => setState(() => _isButtonHovered = true),
-              onExit: (_) => setState(() => _isButtonHovered = false),
-              child: GestureDetector(
-                onTap: widget.onFill,
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isButtonHighlighted
-                        ? buttonHighlightBg
-                        : Colors.transparent,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(11),
-                      bottomRight: Radius.circular(11),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.north_west_rounded,
-                    color: isButtonHighlighted
-                        ? highlightColor
-                        : buttonIconColor,
-                    size: 20,
-                  ),
-                ),
+            Container(width: 1.0, height: 24.0, color: theme.dividerColor.withValues(alpha: 0.2)),
+            // 🎯 THE TRICK: Hide this from the D-Pad, but keep it clickable for mouse/touch!
+            ExcludeFocus(
+              child: IconButton(
+                icon: const Icon(Icons.north_west_rounded, size: 20),
+                color: theme.colorScheme.onSurfaceVariant,
+                onPressed: onFill,
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
 }
+

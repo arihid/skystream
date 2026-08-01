@@ -14,6 +14,8 @@ import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../../../shared/widgets/loading_dialog.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/core/services/notification_service.dart';
+import '../../../../core/widgets/focusable_wrapper.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class ContinueWatchingCard extends ConsumerStatefulWidget {
   final HistoryItem historyItem;

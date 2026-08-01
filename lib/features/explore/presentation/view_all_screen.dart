@@ -10,6 +10,8 @@ import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/utils/image_utils.dart';
 import 'controllers/view_all_controller.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/widgets/focusable_wrapper.dart';
 
 enum ViewAllCategory {
   popularMovies,
@@ -121,6 +123,8 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
 
     // Calculate aspect ratio dynamically
     final isDesktop = context.isDesktop;
+    final isBigPicture = context.isTabletOrLarger; 
+    
     final maxExtent = isDesktop
         ? (_isPortrait ? 240.0 : 340.0)
         : (_isPortrait ? 150.0 : 220.0);
@@ -140,67 +144,86 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
           widget.title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        leading: IconButton(
+        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
-              Theme.of(context).scaffoldBackgroundColor,
-            ],
-            stops: const [0.0, 0.3],
-          ),
-        ),
-        child: GridView.builder(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: maxExtent,
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount:
-              state.items.length + (state.isLoading ? crossAxisCount : 0),
-          itemBuilder: (context, index) {
-            if (index >= state.items.length) {
-              return ShimmerPlaceholder(borderRadius: 12);
-            }
+      body: Column(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ],
+                  stops: const [0.0, 0.3],
+                ),
+              ),
+              child: GridView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: maxExtent,
+                  childAspectRatio: childAspectRatio,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount:
+                    state.items.length + (state.isLoading ? crossAxisCount : 0),
+                itemBuilder: (context, index) {
+                  if (index >= state.items.length) {
+                    return ShimmerPlaceholder(borderRadius: 12);
+                  }
 
-            final item = state.items[index];
-            final imageUrl = item.posterImageUrl;
-            final itemTitle = item.title;
-            final uniqueTag =
-                'view_all_${widget.category.name}_${item.id}_$index';
+                  final item = state.items[index];
+                  final imageUrl = item.posterImageUrl;
+                  final itemTitle = item.title;
+                  final uniqueTag =
+                      'view_all_${widget.category.name}_${item.id}_$index';
 
-            return MultimediaCard(
-              imageUrl: imageUrl,
-              title: itemTitle,
-              heroTag: uniqueTag,
-              isPortrait: _isPortrait,
-              onTap: () {
-                if (widget.onTap != null) {
-                  widget.onTap!(item);
-                } else {
-                  TmdbDetailsRoute(
-                    movieId: item.id,
-                    mediaType: item.tmdbMediaType,
-                    heroTag: uniqueTag,
-                    placeholderPoster: imageUrl,
-                  ).push<void>(context);
-                }
-              },
-            );
-          },
-        ),
+                  final handleTap = () {
+                    if (widget.onTap != null) {
+                      widget.onTap!(item);
+                    } else {
+                      TmdbDetailsRoute(
+                        movieId: item.id,
+                        mediaType: item.tmdbMediaType,
+                        heroTag: uniqueTag,
+                        placeholderPoster: imageUrl,
+                      ).push<void>(context);
+                    }
+                  };
+
+                  return FocusableWrapper(
+                    onTap: handleTap,
+                    gamepadHints: [
+                      GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
+                      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                    ],
+                    child: ExcludeFocus(
+                      child: MultimediaCard(
+                        imageUrl: imageUrl,
+                        title: itemTitle,
+                        heroTag: uniqueTag,
+                        isPortrait: _isPortrait,
+                        onTap: handleTap,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          if (isBigPicture)
+            const GamepadHintsOverlay(), 
+        ],
       ),
     );
 

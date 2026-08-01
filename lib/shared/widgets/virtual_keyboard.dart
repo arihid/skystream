@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gamepads/gamepads.dart';
 import '../../core/widgets/focusable_wrapper.dart';
-import '../../core/input/gamepad_actions.dart'; 
 
 class VirtualKeyboard extends ConsumerStatefulWidget {
   final String query;
@@ -22,7 +23,9 @@ class VirtualKeyboard extends ConsumerStatefulWidget {
 class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
   bool _isUppercase = false;
   bool _isSymbols = false;
+  bool _isKeyboardFocused = false;
   
+  StreamSubscription<GamepadEvent>? _gamepadSubscription;
   final FocusNode _initialFocusNode = FocusNode();
 
   @override
@@ -33,10 +36,33 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
         _initialFocusNode.requestFocus();
       }
     });
+
+    // 🎯 THE FIX: Raw physical hook bypasses Intent collisions entirely!
+    _gamepadSubscription = Gamepads.events.listen((event) {
+      if (!mounted || !_isKeyboardFocused) return;
+
+      // Only trigger on button press down (1.0), ignore release (0.0) or analog movement
+      if (event.type == KeyType.button && event.value == 1.0) {
+        final key = event.key.toLowerCase();
+        
+        if (key == 'x' || key.contains('button 2')) {
+          _backspace();
+        } else if (key == 'y' || key.contains('button 3')) {
+          _space();
+        } else if (key == 'select' || key == 'view' || key == 'back' || key == 'minus' || key.contains('button 6') || key.contains('button 8') || key.contains('button_select')) {
+          _clear();
+        } else if (key.contains('l1') || key.contains('lb') || key.contains('button 4') || key.contains('left_shoulder') || key.contains('leftshoulder')) {
+          _toggleShift();
+        } else if (key.contains('r1') || key.contains('rb') || key.contains('button 5') || key.contains('right_shoulder') || key.contains('rightshoulder')) {
+          widget.onSearch();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _gamepadSubscription?.cancel();
     _initialFocusNode.dispose();
     super.dispose();
   }
@@ -80,16 +106,13 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
     final topRow = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     final activeGrid = _isSymbols ? symbols : letters;
 
-    return Actions(
-      actions: <Type, Action<Intent>>{
-        AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(onInvoke: (_) { _backspace(); return null; }),
-        AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(onInvoke: (_) { _space(); return null; }),
-        AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(onInvoke: (_) { _toggleShift(); return null; }),
-        AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(onInvoke: (_) { widget.onSearch(); return null; }),
-        AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) { _clear(); return null; }),
-      },
-      child: FocusTraversalGroup(
-        policy: WidgetOrderTraversalPolicy(),
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: Focus(
+        // 🎯 THE TRACKER: Tells the Gamepad stream if it's allowed to execute
+        skipTraversal: true,
+        canRequestFocus: false,
+        onFocusChange: (hasFocus) => _isKeyboardFocused = hasFocus,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           decoration: BoxDecoration(
@@ -143,30 +166,27 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
     );
   }
 
-  // 🎯 FIXED: Removed individual gamepadHints from here to prevent the UI from spamming updates!
   Widget _buildKey(String label, {bool isInitialFocus = false}) {
     final displayLabel = _isUppercase && !_isSymbols ? label.toUpperCase() : label;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: FocusableWrapper(
+        focusNode: isInitialFocus ? _initialFocusNode : null,
         onTap: () => _addChar(displayLabel),
-        child: Focus(
-          focusNode: isInitialFocus ? _initialFocusNode : null,
-          child: Container(
-            width: 44, height: 48, alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
-            ),
-            child: Text(displayLabel, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+        useScaleEffect: true,
+        child: Container(
+          width: 44, height: 48, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
           ),
+          child: Text(displayLabel, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
         ),
       ),
     );
   }
 
-  // 🎯 FIXED: Removed individual gamepadHints from here to prevent the UI from spamming updates!
   Widget _buildActionKey(
     String label, {
     required double width, 
@@ -184,6 +204,7 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: FocusableWrapper(
         onTap: onTap,
+        useScaleEffect: true,
         child: Container(
           width: width, height: 48,
           decoration: BoxDecoration(

@@ -19,6 +19,7 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../../core/widgets/focusable_wrapper.dart';
 import 'dart:async';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -326,21 +327,144 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
+  Widget _buildWidescreenHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isAnime = ref.watch(exploreModeProvider);
+
+    return Container(
+      height: LayoutConstants.dashboardHeaderHeight,
+      padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.dashboardContentPadding),
+      child: Row(
+        children: [
+          Expanded(
+            child: FocusableWrapper(
+              focusNode: _firstActionFocusNode,
+              useScaleEffect: false,
+              onTap: () {
+                unawaited(
+                  showSearch<void>(
+                    context: context,
+                    delegate: ExploreSearchDelegate(),
+                    useRootNavigator: false,
+                    maintainState: true,
+                  ),
+                );
+              },
+              child: Container(
+                height: 38,
+                constraints: const BoxConstraints(maxWidth: 500),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${l10n.search}...',
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+            onTap: () {
+              ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
+            },
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isAnime 
+                    ? theme.colorScheme.primary 
+                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isAnime ? Icons.arrow_back_rounded : Icons.animation_rounded,
+                    size: 18,
+                    color: isAnime 
+                        ? theme.colorScheme.onPrimary 
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isAnime ? 'Go Back' : 'Explore Anime',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isAnime 
+                          ? theme.colorScheme.onPrimary 
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              unawaited(
+                showDialog<void>(
+                  context: context,
+                  builder: (context) => const UnifiedFilterDialog(),
+                ),
+              );
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              ),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final filters = ref.watch(exploreFilterProvider);
+                  final hasActiveFilter = filters.selectedGenre != null ||
+                      filters.selectedYear != null ||
+                      filters.minRating != null;
+
+                  return Icon(
+                    Icons.tune,
+                    color: hasActiveFilter
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    size: 18,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWidescreenBody(BuildContext context) {
     final isAnime = ref.watch(exploreModeProvider);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: ExploreHeaderBar(
-            searchFocusNode: _firstActionFocusNode,
-            onPrevious: _carouselController != null
-                ? () => _carouselController!.previousPage()
-                : null,
-            onNext: _carouselController != null
-                ? () => _carouselController!.nextPage()
-                : null,
-          ),
+          child: _buildWidescreenHeader(context),
         ),
         Expanded(
           child: _withGradientEdgeHint(
@@ -432,8 +556,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       ],
     );
   }
-
-
 
   List<Widget> _buildContentSlivers(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

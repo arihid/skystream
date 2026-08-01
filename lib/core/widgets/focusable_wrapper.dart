@@ -14,6 +14,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
   final FocusNode? focusNode;
   final bool useScaleEffect;
   final List<GamepadHint>? gamepadHints;
+  final BorderRadiusGeometry? borderRadius;
 
   const FocusableWrapper({
     super.key,
@@ -25,6 +26,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
     this.focusNode,
     this.useScaleEffect = true,
     this.gamepadHints,
+    this.borderRadius,
   });
 
   @override
@@ -50,7 +52,6 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: Actions(
-        // 🎯 THE FIX: Catch the Intents fired by the Gamepad!
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
@@ -109,7 +110,7 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutCubic,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
                       border: Border.all(
                         color: isFocused ? Theme.of(context).colorScheme.primary : Colors.transparent,
                         width: 3,

@@ -66,6 +66,8 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                     return ExcludeFocus(
                       excluding: true,
                       child: FocusableWrapper(
+                        useScaleEffect: false,
+                        borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
                         onTap: widget.onTapFakeInput,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -184,6 +186,7 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
           const SizedBox(width: 12),
 
           FocusableWrapper(
+            borderRadius: BorderRadius.circular(18),
             onTap: () => _popupKey.currentState?.showButtonMenu(),
             child: PopupMenuButton<SearchFilter>(
               key: _popupKey,
