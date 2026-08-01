@@ -25,6 +25,15 @@ class ExtensionManager extends _$ExtensionManager {
   // Shared script read futures — one per plugin package. Sub-providers that
   // share the same JS file reuse the same Future so the file is read only once.
   final Map<String, Future<String?>> _pluginScriptFutures = {};
+  final Map<String, List<PluginSubProvider>> _dynamicProvidersMap = {};
+
+  List<PluginSubProvider> getProvidersForPlugin(ExtensionPlugin plugin) {
+    final dynamicList = _dynamicProvidersMap[plugin.packageName];
+    if (dynamicList != null && dynamicList.isNotEmpty) {
+      return dynamicList;
+    }
+    return plugin.providers ?? const [];
+  }
 
   @override
   List<SkyStreamProvider> build() {
@@ -210,8 +219,8 @@ class ExtensionManager extends _$ExtensionManager {
     final storage = ref.read(extensionRepositoryProvider);
     return storage.getExtensionData(
           '$packageName:_provider_enabled_$providerId',
-        ) !=
-        'false';
+        ) ==
+        'true';
   }
 
   /// Registers shell providers for a plugin. JS is NOT evaluated here — it is
@@ -318,7 +327,9 @@ class ExtensionManager extends _$ExtensionManager {
         // call — the same cost the first sub-provider would incur anyway.
         final dynamicProviders = await bootstrap.getProviders();
 
-        if (dynamicProviders.isEmpty) {
+        if (dynamicProviders.isNotEmpty) {
+          _dynamicProvidersMap[plugin.packageName] = dynamicProviders;
+        } else {
           if (kDebugMode) {
             debugPrint(
               "ExtensionManager: getProviders() returned empty list for ${plugin.packageName}",

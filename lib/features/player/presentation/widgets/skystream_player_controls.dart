@@ -1283,9 +1283,15 @@ class SkyStreamPlayerControlsState
                 // 8 s of pause; hides on resume or dialog open.
                 PlayerMetadataScrim(
                   key: _metadataScrimKey,
-                  item: ref.read(playerControllerProvider.notifier).multimediaItem,
-                  episode: ref.read(playerControllerProvider.notifier).currentEpisode,
-                  isSeries: ref.read(playerControllerProvider.notifier).isSeries,
+                  item: ref
+                      .read(playerControllerProvider.notifier)
+                      .multimediaItem,
+                  episode: ref
+                      .read(playerControllerProvider.notifier)
+                      .currentEpisode,
+                  isSeries: ref
+                      .read(playerControllerProvider.notifier)
+                      .isSeries,
                   isPaused: !_isPlaying,
                   isDialogOpen: _panelOpen,
                   controlsVisible: _isVisible,
@@ -1412,6 +1418,10 @@ class SkyStreamPlayerControlsState
         ),
     ];
 
+    final playerSettings =
+        ref.watch(playerSettingsProvider).asData?.value ??
+        const PlayerSettings();
+
     // Right-side icon-only buttons (same style as resize/fullscreen). Sources,
     // Audio and Subtitles all open the same side panel, each landing on its own
     // tab; the panel applies every choice instantly.
@@ -1434,7 +1444,7 @@ class SkyStreamPlayerControlsState
         onPressed: () => openSourcesPanel(2),
         isTv: _isTv,
       ),
-      if (supportsPlaybackSpeed)
+      if (supportsPlaybackSpeed && playerSettings.showPlaybackSpeed)
         PlayerIconButton(
           icon: Icons.speed,
           tooltip:
@@ -1464,27 +1474,30 @@ class SkyStreamPlayerControlsState
           isTv: _isTv,
           highlight: _showTorrentInfo,
         ),
-      if (isTouch && (Platform.isAndroid || (Platform.isIOS && !_isIpad)))
+      if (isTouch &&
+          (Platform.isAndroid || (Platform.isIOS && !_isIpad)) &&
+          playerSettings.showRotate)
         PlayerIconButton(
           icon: Icons.screen_rotation,
           tooltip: l10n.rotate,
           onPressed: _toggleOrientation,
           isTv: _isTv,
         ),
-      if (isSeries)
+      if (isSeries && playerSettings.showEpisodes)
         PlayerIconButton(
           icon: Icons.playlist_play_rounded,
           tooltip: l10n.episodes,
           onPressed: openEpisodesPanel,
           isTv: _isTv,
         ),
-      PlayerIconButton(
-        icon: Icons.aspect_ratio_rounded,
-        tooltip: l10n.resize,
-        onPressed: cycleResize,
-        isTv: _isTv,
-      ),
-      if (Platform.isAndroid && !_isTv)
+      if (playerSettings.showResize)
+        PlayerIconButton(
+          icon: Icons.aspect_ratio_rounded,
+          tooltip: l10n.resize,
+          onPressed: cycleResize,
+          isTv: _isTv,
+        ),
+      if (Platform.isAndroid && !_isTv && playerSettings.showPip)
         PlayerIconButton(
           icon: Icons.picture_in_picture_alt_rounded,
           tooltip: l10n.pip,

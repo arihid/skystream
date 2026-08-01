@@ -1503,8 +1503,11 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_alt_off_rounded,
-                    color: Colors.amber, size: 18),
+                const Icon(
+                  Icons.filter_alt_off_rounded,
+                  color: Colors.amber,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1540,7 +1543,9 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? HotstarPlayerStyle.accent
@@ -1601,7 +1606,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
     );
   }
 }
-
 
 class _PendingSourceTracksMessage extends StatelessWidget {
   const _PendingSourceTracksMessage();
@@ -1820,6 +1824,7 @@ class _HotstarOptionRow extends StatefulWidget {
   final String? metadata;
   final bool selected;
   final VoidCallback onTap;
+
   /// Optional quality badge shown as a small pill on the right (e.g. "1080p").
   final String? badge;
 
@@ -1930,29 +1935,32 @@ class _HotstarOptionRowState extends State<_HotstarOptionRow> {
                     ),
                   ),
                 ),
-                if (widget.badge != null) ...
-                  [
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: HotstarPlayerStyle.panelElevated,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                            color: HotstarPlayerStyle.divider, width: 0.8),
-                      ),
-                      child: Text(
-                        widget.badge!,
-                        style: TextStyle(
-                          color: HotstarPlayerStyle.secondaryText,
-                          fontSize: isCompact ? 10 : 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                        ),
+                if (widget.badge != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: HotstarPlayerStyle.panelElevated,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: HotstarPlayerStyle.divider,
+                        width: 0.8,
                       ),
                     ),
-                  ],
+                    child: Text(
+                      widget.badge!,
+                      style: TextStyle(
+                        color: HotstarPlayerStyle.secondaryText,
+                        fontSize: isCompact ? 10 : 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

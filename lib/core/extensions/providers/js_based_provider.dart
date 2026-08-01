@@ -604,34 +604,47 @@ class JsBasedProvider extends SkyStreamProvider {
                 if (mainUrl.isNotEmpty) {
                   try {
                     final baseUri = Uri.parse(mainUrl);
-                    final jarCookies = await _jsEngine.getCookiesForUri(baseUri);
+                    final jarCookies = await _jsEngine.getCookiesForUri(
+                      baseUri,
+                    );
                     if (jarCookies.isNotEmpty) {
-                      final cookieHeader = jarCookies.map((c) => '${c.name}=${c.value}').join('; ');
+                      final cookieHeader = jarCookies
+                          .map((c) => '${c.name}=${c.value}')
+                          .join('; ');
                       sticky ??= <String, String>{};
                       String? existingKey;
                       sticky.forEach((k, v) {
                         if (k.toLowerCase() == 'cookie') existingKey = k;
                       });
-                      final existingCookie = existingKey != null ? sticky[existingKey] : null;
+                      final existingCookie = existingKey != null
+                          ? sticky[existingKey]
+                          : null;
                       if (existingCookie != null && existingCookie.isNotEmpty) {
                         final Map<String, String> merged = {};
                         for (final pair in existingCookie.split(';')) {
                           final parts = pair.split('=');
                           if (parts.length >= 2) {
-                            merged[parts[0].trim()] = parts.sublist(1).join('=').trim();
+                            merged[parts[0].trim()] = parts
+                                .sublist(1)
+                                .join('=')
+                                .trim();
                           }
                         }
                         for (final c in jarCookies) {
                           merged[c.name] = c.value;
                         }
-                        sticky[existingKey!] = merged.entries.map((e) => '${e.key}=${e.value}').join('; ');
+                        sticky[existingKey!] = merged.entries
+                            .map((e) => '${e.key}=${e.value}')
+                            .join('; ');
                       } else {
                         sticky['Cookie'] = cookieHeader;
                       }
                     }
                   } catch (e) {
                     if (kDebugMode) {
-                      debugPrint("Failed to copy cookies from JS engine jar to proxy headers: $e");
+                      debugPrint(
+                        "Failed to copy cookies from JS engine jar to proxy headers: $e",
+                      );
                     }
                   }
                 }
@@ -663,34 +676,47 @@ class JsBasedProvider extends SkyStreamProvider {
                 if (mainUrl.isNotEmpty) {
                   try {
                     final baseUri = Uri.parse(mainUrl);
-                    final jarCookies = await _jsEngine.getCookiesForUri(baseUri);
+                    final jarCookies = await _jsEngine.getCookiesForUri(
+                      baseUri,
+                    );
                     if (jarCookies.isNotEmpty) {
-                      final cookieHeader = jarCookies.map((c) => '${c.name}=${c.value}').join('; ');
+                      final cookieHeader = jarCookies
+                          .map((c) => '${c.name}=${c.value}')
+                          .join('; ');
                       sticky ??= <String, String>{};
                       String? existingKey;
                       sticky.forEach((k, v) {
                         if (k.toLowerCase() == 'cookie') existingKey = k;
                       });
-                      final existingCookie = existingKey != null ? sticky[existingKey] : null;
+                      final existingCookie = existingKey != null
+                          ? sticky[existingKey]
+                          : null;
                       if (existingCookie != null && existingCookie.isNotEmpty) {
                         final Map<String, String> merged = {};
                         for (final pair in existingCookie.split(';')) {
                           final parts = pair.split('=');
                           if (parts.length >= 2) {
-                            merged[parts[0].trim()] = parts.sublist(1).join('=').trim();
+                            merged[parts[0].trim()] = parts
+                                .sublist(1)
+                                .join('=')
+                                .trim();
                           }
                         }
                         for (final c in jarCookies) {
                           merged[c.name] = c.value;
                         }
-                        sticky[existingKey!] = merged.entries.map((e) => '${e.key}=${e.value}').join('; ');
+                        sticky[existingKey!] = merged.entries
+                            .map((e) => '${e.key}=${e.value}')
+                            .join('; ');
                       } else {
                         sticky['Cookie'] = cookieHeader;
                       }
                     }
                   } catch (e) {
                     if (kDebugMode) {
-                      debugPrint("Failed to copy cookies from JS engine jar to proxy headers: $e");
+                      debugPrint(
+                        "Failed to copy cookies from JS engine jar to proxy headers: $e",
+                      );
                     }
                   }
                 }

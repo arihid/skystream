@@ -96,7 +96,9 @@ class JsEngineService {
       _cookieJar = PersistCookieJar();
     }
     _cookieJarReady = true;
-    final hasCfInterceptor = _dio.interceptors.any((i) => i is CfOnlyCookieInterceptor);
+    final hasCfInterceptor = _dio.interceptors.any(
+      (i) => i is CfOnlyCookieInterceptor,
+    );
     if (!hasCfInterceptor) {
       _dio.interceptors.add(CfOnlyCookieInterceptor(_cookieJar));
     }
@@ -419,10 +421,8 @@ class JsEngineService {
       );
 
       final responseHeaders = response.headers.map.map<String, dynamic>(
-        (k, v) => MapEntry(
-          k,
-          k.toLowerCase() == 'set-cookie' ? v : v.join(','),
-        ),
+        (k, v) =>
+            MapEntry(k, k.toLowerCase() == 'set-cookie' ? v : v.join(',')),
       );
       final responseBody = response.data.toString();
 
@@ -491,23 +491,29 @@ class JsEngineService {
       if (webCookies.isEmpty) return;
       final uri = Uri.parse('https://$host/');
       final ioCookies = webCookies
-          .where((c) =>
-              c.name == 'cf_clearance' ||
-              c.name == '__cf_bm' ||
-              c.name.toString().startsWith('__cf'))
+          .where(
+            (c) =>
+                c.name == 'cf_clearance' ||
+                c.name == '__cf_bm' ||
+                c.name.toString().startsWith('__cf'),
+          )
           .map((c) {
-        final cookie = io.Cookie(c.name.toString(), (c.value as String?) ?? '');
-        cookie.domain = c.domain ?? host;
-        cookie.path = c.path ?? '/';
-        cookie.httpOnly = c.isHttpOnly ?? false;
-        cookie.secure = c.isSecure ?? false;
-        if (c.expiresDate != null) {
-          cookie.expires = DateTime.fromMillisecondsSinceEpoch(
-            c.expiresDate!.toInt(),
-          );
-        }
-        return cookie;
-      }).toList();
+            final cookie = io.Cookie(
+              c.name.toString(),
+              (c.value as String?) ?? '',
+            );
+            cookie.domain = c.domain ?? host;
+            cookie.path = c.path ?? '/';
+            cookie.httpOnly = c.isHttpOnly ?? false;
+            cookie.secure = c.isSecure ?? false;
+            if (c.expiresDate != null) {
+              cookie.expires = DateTime.fromMillisecondsSinceEpoch(
+                c.expiresDate!.toInt(),
+              );
+            }
+            return cookie;
+          })
+          .toList();
       if (_cookieJarReady) await _cookieJar.saveFromResponse(uri, ioCookies);
       if (kDebugMode) {
         debugPrint(
@@ -706,18 +712,24 @@ class CfOnlyCookieInterceptor extends Interceptor {
   CfOnlyCookieInterceptor(this.jar);
 
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final uri = Uri.parse(options.uri.toString());
     List<io.Cookie> cookies = [];
     try {
       cookies = await jar.loadForRequest(uri);
     } catch (_) {}
 
-    final cfCookies = cookies.where((c) =>
-      c.name == 'cf_clearance' ||
-      c.name == '__cf_bm' ||
-      c.name.startsWith('__cf')
-    ).toList();
+    final cfCookies = cookies
+        .where(
+          (c) =>
+              c.name == 'cf_clearance' ||
+              c.name == '__cf_bm' ||
+              c.name.startsWith('__cf'),
+        )
+        .toList();
 
     String? manualCookie;
     options.headers.forEach((key, value) {
@@ -727,7 +739,9 @@ class CfOnlyCookieInterceptor extends Interceptor {
     });
 
     if (cfCookies.isNotEmpty) {
-      final cfCookieStr = cfCookies.map((c) => '${c.name}=${c.value}').join('; ');
+      final cfCookieStr = cfCookies
+          .map((c) => '${c.name}=${c.value}')
+          .join('; ');
       if (manualCookie != null && manualCookie!.isNotEmpty) {
         final Map<String, String> merged = {};
         for (final pair in cfCookieStr.split(';')) {
@@ -742,7 +756,9 @@ class CfOnlyCookieInterceptor extends Interceptor {
             merged[parts[0].trim()] = parts.sublist(1).join('=').trim();
           }
         }
-        final finalCookieStr = merged.entries.map((e) => '${e.key}=${e.value}').join('; ');
+        final finalCookieStr = merged.entries
+            .map((e) => '${e.key}=${e.value}')
+            .join('; ');
         options.headers['Cookie'] = finalCookieStr;
       } else {
         options.headers['Cookie'] = cfCookieStr;
@@ -755,7 +771,10 @@ class CfOnlyCookieInterceptor extends Interceptor {
   }
 
   @override
-  Future<void> onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) async {
+  Future<void> onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) async {
     final rawCookies = response.headers['set-cookie'];
     if (rawCookies != null && rawCookies.isNotEmpty) {
       final uri = Uri.parse(response.realUri.toString());

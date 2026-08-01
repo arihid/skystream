@@ -37,6 +37,14 @@ class SettingsRepository {
     return _storageService.getDefaultHomeScreen();
   }
 
+  Future<void> setTitlePosition(String position) async {
+    await _storageService.setTitlePosition(position);
+  }
+
+  String getTitlePosition() {
+    return _storageService.getTitlePosition();
+  }
+
   Future<void> setDevLoadAssets(bool enabled) async {
     await _storageService.setDevLoadAssets(enabled);
   }
@@ -129,4 +137,10 @@ class SettingsRepository {
   Future<void> deleteAllData() async {
     await _storageService.deleteAllData();
   }
+
+  Future<int> computeImageVideoCacheBytes() =>
+      _storageService.computeImageVideoCacheBytes();
+
+  Future<void> clearImageVideoCache() =>
+      _storageService.clearImageVideoCache();
 }

@@ -585,5 +585,21 @@
   "viewLogs": "查看日志",
   "viewLogsSubtitle": "查看应用程序活动和错误",
   "goToExtensions": "前往扩展",
-  "noPluginsMessage": "安装扩展以浏览和流式传输内容。"
+  "noPluginsMessage": "安装扩展以浏览和流式传输内容。",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

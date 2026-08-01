@@ -2289,6 +2289,7 @@ class PlayerController extends Notifier<PlayerState> {
         );
       }
       state = state.copyWith(useExoPlayer: true, isSeekable: false);
+      _scheduleAutoSubtitleSelection();
       return;
     }
 
@@ -2353,6 +2354,7 @@ class PlayerController extends Notifier<PlayerState> {
 
     await _player.open(Media(mediaKitUrl, httpHeaders: headers));
     state = state.copyWith(useExoPlayer: false, isSeekable: true);
+    _scheduleAutoSubtitleSelection();
   }
 
   Future<void> seekTo(Duration position, {bool fast = false}) async {
@@ -2546,17 +2548,7 @@ class PlayerController extends Notifier<PlayerState> {
               _player.state.track.subtitle.id == 'external:${subtitle.url}',
         ),
       ),
-      ..._player.state.tracks.subtitle.map(
-        (track) => PlayerTrackOption(
-          id: track.id,
-          label: _formatTrackLabel(
-            language: track.language,
-            title: track.title,
-            fallbackId: track.id,
-          ),
-          selected: track == _player.state.track.subtitle,
-        ),
-      ),
+      ..._buildEmbeddedSubtitleOptions(),
     ];
 
     return PlayerTrackSelectionSnapshot(
@@ -2564,6 +2556,39 @@ class PlayerController extends Notifier<PlayerState> {
       subtitleTracks: subtitleTracks,
       subtitlesOffSelected: _player.state.track.subtitle == SubtitleTrack.no(),
     );
+  }
+
+  List<PlayerTrackOption> _buildEmbeddedSubtitleOptions() {
+    final tracks = _player.state.tracks.subtitle;
+    final options = <PlayerTrackOption>[];
+    final seenIds = <String>{};
+    for (final track in tracks) {
+      final language = (track.language ?? '').toString().trim().toLowerCase();
+      final id = language.isNotEmpty
+          ? 'embedded:$language'
+          : 'embedded:${track.id}';
+      if (!seenIds.add(id)) continue;
+      options.add(
+        PlayerTrackOption(
+          id: id,
+          label: _subtitleTrackLabel(track),
+          selected: track == _player.state.track.subtitle,
+        ),
+      );
+    }
+    return options;
+  }
+
+  String _subtitleTrackLabel(dynamic track) {
+    final title = (track.title ?? '').toString().trim();
+    final language = (track.language ?? '').toString().trim();
+    if (title.isNotEmpty && language.isNotEmpty) {
+      return '$title (${language.toLowerCase()})';
+    }
+    if (title.isNotEmpty) return title;
+    if (language.isNotEmpty) return language.toUpperCase();
+    final id = (track.id ?? '').toString().trim();
+    return id.isNotEmpty ? id : 'Unknown';
   }
 
   Future<void> selectAudioTrack(String id) async {
@@ -2617,14 +2642,65 @@ class PlayerController extends Notifier<PlayerState> {
       return;
     }
 
-    final embeddedId = id.startsWith('embedded:')
+    final embeddedKey = id.startsWith('embedded:')
         ? id.substring('embedded:'.length)
         : id;
-    final track = _player.state.tracks.subtitle.firstWhereOrNull(
-      (t) => t.id == embeddedId,
-    );
+    final track = _findEmbeddedSubtitleTrack(embeddedKey);
     if (track != null) {
       await _player.setSubtitleTrack(track);
+    }
+  }
+
+  SubtitleTrack? _findEmbeddedSubtitleTrack(String key) {
+    final tracks = _player.state.tracks.subtitle;
+    if (tracks.isEmpty) return null;
+    final byId = tracks.firstWhereOrNull((t) => t.id == key);
+    if (byId != null) return byId;
+    final lowerKey = key.toLowerCase();
+    return tracks.firstWhereOrNull((t) {
+      final lang = (t.language ?? '').toLowerCase();
+      final title = (t.title ?? '').toLowerCase();
+      return lang == lowerKey || title == lowerKey || title.contains(lowerKey);
+    });
+  }
+
+  void _scheduleAutoSubtitleSelection() {
+    if (state.useExoPlayer) {
+      Future.delayed(const Duration(milliseconds: 800), () {
+        unawaited(_autoSelectFirstSubtitleIfNeeded());
+      });
+      return;
+    }
+    StreamSubscription<dynamic>? sub;
+    sub = _player.stream.track.listen((_) {
+      sub?.cancel();
+      unawaited(_autoSelectFirstSubtitleIfNeeded());
+    });
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      sub?.cancel();
+      unawaited(_autoSelectFirstSubtitleIfNeeded());
+    });
+  }
+
+  Future<void> _autoSelectFirstSubtitleIfNeeded() async {
+    final currentId = state.useExoPlayer
+        ? _videoViewController?.overrideSubtitle.value
+        : _player.state.track.subtitle.id;
+    final hasSelection =
+        currentId != null && currentId != 'no' && currentId != 'auto';
+    if (hasSelection) return;
+
+    final external = state.externalSubtitles;
+    if (external.isNotEmpty) {
+      await selectSubtitleTrack('external:${external.first.url}');
+      return;
+    }
+
+    if (!state.useExoPlayer) {
+      final embedded = _player.state.tracks.subtitle;
+      if (embedded.isNotEmpty) {
+        await selectSubtitleTrack(embedded.first.id);
+      }
     }
   }
 

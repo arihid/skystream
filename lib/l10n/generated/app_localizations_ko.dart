@@ -57,6 +57,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get defaultHomeScreen => '기본 홈 화면';
 
   @override
+  String get titlePosition => 'Title Position';
+
+  @override
+  String get titlePositionBelowPoster => 'Below Poster';
+
+  @override
+  String get titlePositionInsidePoster => 'Inside Poster';
+
+  @override
   String get player => '플레이어';
 
   @override
@@ -1221,4 +1230,48 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => '앱 활동 및 오류 보기';
+
+  @override
+  String get clearCache => 'Clear image and video cache';
+
+  @override
+  String get clearCacheSubtitle =>
+      'Frees up storage used by cached images and videos';
+
+  @override
+  String get clearCacheDialogTitle => 'Clear cache?';
+
+  @override
+  String get clearCacheDialogContent =>
+      'This will delete cached images and video files. Your settings, history, and extensions will not be affected.';
+
+  @override
+  String get clearCacheNow => 'Clear Cache';
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get calculating => 'Calculating…';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
 }

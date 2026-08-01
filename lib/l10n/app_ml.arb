@@ -585,5 +585,21 @@
   "viewLogs": "ലോഗുകൾ കാണുക",
   "viewLogsSubtitle": "ആപ്ലിക്കേഷൻ പ്രവർത്തനങ്ങളും പിശകുകളും കാണുക",
   "goToExtensions": "എക്സ്റ്റൻഷനുകളിലേക്ക് പോകുക",
-  "noPluginsMessage": "ഉള്ളടക്കം ബ്രൗസ് ചെയ്യുന്നതിനും സ്ട്രീം ചെയ്യുന്നതിനും എക്സ്റ്റൻഷനുകൾ ഇൻസ്റ്റാൾ ചെയ്യുക."
+  "noPluginsMessage": "ഉള്ളടക്കം ബ്രൗസ് ചെയ്യുന്നതിനും സ്ട്രീം ചെയ്യുന്നതിനും എക്സ്റ്റൻഷനുകൾ ഇൻസ്റ്റാൾ ചെയ്യുക.",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

@@ -585,5 +585,21 @@
   "viewLogs": "로그 보기",
   "viewLogsSubtitle": "앱 활동 및 오류 보기",
   "goToExtensions": "확장 프로그램으로 이동",
-  "noPluginsMessage": "콘텐츠를 탐색하고 스트리밍하려면 확장 프로그램을 설치하세요."
+  "noPluginsMessage": "콘텐츠를 탐색하고 스트리밍하려면 확장 프로그램을 설치하세요.",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

@@ -57,6 +57,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get defaultHomeScreen => 'डिफ़ॉल्ट होम स्क्रीन';
 
   @override
+  String get titlePosition => 'Title Position';
+
+  @override
+  String get titlePositionBelowPoster => 'Below Poster';
+
+  @override
+  String get titlePositionInsidePoster => 'Inside Poster';
+
+  @override
   String get player => 'प्लेयर';
 
   @override
@@ -1244,4 +1253,48 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get viewLogsSubtitle => 'एप्लिकेशन गतिविधि और त्रुटियां देखें';
+
+  @override
+  String get clearCache => 'Clear image and video cache';
+
+  @override
+  String get clearCacheSubtitle =>
+      'Frees up storage used by cached images and videos';
+
+  @override
+  String get clearCacheDialogTitle => 'Clear cache?';
+
+  @override
+  String get clearCacheDialogContent =>
+      'This will delete cached images and video files. Your settings, history, and extensions will not be affected.';
+
+  @override
+  String get clearCacheNow => 'Clear Cache';
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get calculating => 'Calculating…';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
 }

@@ -14,6 +14,7 @@ import '../../../../core/utils/stream_quality_sorter.dart';
 import '../general_settings_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+import '../cache_provider.dart';
 
 /// Returns a localized label for a player gesture.
 String getGestureLabel(PlayerGesture gesture, AppLocalizations l10n) {
@@ -94,6 +95,63 @@ void showDefaultHomeScreenDialog(
                   ref
                       .read(generalSettingsProvider.notifier)
                       .setDefaultHomeScreen(opt['route']!);
+                  Navigator.pop<void>(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Returns a localized label for a title position.
+String getTitlePositionLabel(String position, AppLocalizations l10n) {
+  switch (position) {
+    case 'inside':
+      return l10n.titlePositionInsidePoster;
+    case 'below':
+    default:
+      return l10n.titlePositionBelowPoster;
+  }
+}
+
+/// Shows a dialog to pick the title position on poster cards.
+void showTitlePositionDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String current,
+) {
+  final l10n = AppLocalizations.of(context)!;
+  final options = <Map<String, String>>[
+    {'label': l10n.titlePositionBelowPoster, 'value': 'below'},
+    {'label': l10n.titlePositionInsidePoster, 'value': 'inside'},
+  ];
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.titlePosition),
+      content: RadioGroup<String>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(generalSettingsProvider.notifier).setTitlePosition(val);
+          Navigator.pop<void>(context);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((opt) {
+              return ListTile(
+                title: Text(opt['label']!),
+                leading: Radio<String>(value: opt['value']!),
+                onTap: () {
+                  ref
+                      .read(generalSettingsProvider.notifier)
+                      .setTitlePosition(opt['value']!);
                   Navigator.pop<void>(context);
                 },
               );
@@ -770,6 +828,47 @@ void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
+/// Shows a dialog to clear the image & video cache.
+void showClearCacheDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final callerContext = context;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.clearCacheDialogTitle),
+      content: Text(l10n.clearCacheDialogContent),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop<void>(dialogContext),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop<void>(dialogContext);
+            await ref.read(settingsRepositoryProvider).clearImageVideoCache();
+            ref.invalidate(cacheSizeProvider);
+            if (callerContext.mounted) {
+              ScaffoldMessenger.of(callerContext).showSnackBar(
+                SnackBar(content: Text(l10n.cacheCleared)),
+              );
+            }
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          child: Text(l10n.clearCacheNow),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Shows a dialog to pick the application language.
 void showLanguageDialog(
   BuildContext context,
@@ -1069,11 +1168,12 @@ void showQualityFilterModeDialog(
   required QualityFilterMode current,
   required Future<void> Function(QualityFilterMode) onChanged,
 }) {
-  const _options = [
+  const options = [
     (
       mode: QualityFilterMode.any,
       label: 'Show all (sort only)',
-      subtitle: 'Sources are sorted by your quality preference but none are hidden.',
+      subtitle:
+          'Sources are sorted by your quality preference but none are hidden.',
     ),
     (
       mode: QualityFilterMode.atOrAbove,
@@ -1110,7 +1210,7 @@ void showQualityFilterModeDialog(
               },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: _options.map((opt) {
+                children: options.map((opt) {
                   return ListTile(
                     title: Text(opt.label),
                     subtitle: Text(opt.subtitle),
@@ -1150,6 +1250,77 @@ void showQualityFilterModeDialog(
           ],
         ),
       ),
+    ),
+  );
+}
+
+/// Shows a dialog to toggle the visibility of individual player control
+/// buttons. Changes apply live via the player settings notifier.
+void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final notifier = ref.read(playerSettingsProvider.notifier);
+  final settings =
+      ref.read(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+
+  final metadata = [
+    (icon: Icons.picture_in_picture_alt_rounded, label: l10n.showPip),
+    (icon: Icons.aspect_ratio_rounded, label: l10n.showResize),
+    (icon: Icons.screen_rotation_rounded, label: l10n.showRotate),
+    (icon: Icons.speed_rounded, label: l10n.showPlaybackSpeed),
+    (icon: Icons.playlist_play_rounded, label: l10n.showEpisodes),
+  ];
+  final setters = [
+    notifier.setShowPip,
+    notifier.setShowResize,
+    notifier.setShowRotate,
+    notifier.setShowPlaybackSpeed,
+    notifier.setShowEpisodes,
+  ];
+  final values = [
+    settings.showPip,
+    settings.showResize,
+    settings.showRotate,
+    settings.showPlaybackSpeed,
+    settings.showEpisodes,
+  ];
+
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          surfaceTintColor: Colors.transparent,
+          title: Text(l10n.playerControls),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < metadata.length; i++)
+                  SwitchListTile(
+                    secondary: Icon(metadata[i].icon),
+                    title: Text(metadata[i].label),
+                    value: values[i],
+                    onChanged: (val) {
+                      setters[i](val);
+                      setState(() => values[i] = val);
+                    },
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop<void>(ctx),
+              child: Text(
+                l10n.close,
+                style: TextStyle(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     ),
   );
 }

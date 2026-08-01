@@ -8,12 +8,14 @@ class GeneralSettings {
   final String defaultHomeScreen;
   final bool githubProxyEnabled;
   final bool alwaysOnTop;
+  final String titlePosition;
 
   const GeneralSettings({
     this.watchHistoryEnabled = true,
     this.defaultHomeScreen = '/home',
     this.githubProxyEnabled = false,
     this.alwaysOnTop = false,
+    this.titlePosition = 'below',
   });
 
   GeneralSettings copyWith({
@@ -21,12 +23,14 @@ class GeneralSettings {
     String? defaultHomeScreen,
     bool? githubProxyEnabled,
     bool? alwaysOnTop,
+    String? titlePosition,
   }) {
     return GeneralSettings(
       watchHistoryEnabled: watchHistoryEnabled ?? this.watchHistoryEnabled,
       defaultHomeScreen: defaultHomeScreen ?? this.defaultHomeScreen,
       githubProxyEnabled: githubProxyEnabled ?? this.githubProxyEnabled,
       alwaysOnTop: alwaysOnTop ?? this.alwaysOnTop,
+      titlePosition: titlePosition ?? this.titlePosition,
     );
   }
 }
@@ -41,6 +45,7 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
       defaultHomeScreen: repository.getDefaultHomeScreen(),
       githubProxyEnabled: repository.isGithubProxyEnabled(),
       alwaysOnTop: repository.isAlwaysOnTop(),
+      titlePosition: repository.getTitlePosition(),
     );
   }
 
@@ -66,5 +71,11 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
     final repository = ref.read(settingsRepositoryProvider);
     await repository.setAlwaysOnTop(enabled);
     state = state.copyWith(alwaysOnTop: enabled);
+  }
+
+  Future<void> setTitlePosition(String position) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setTitlePosition(position);
+    state = state.copyWith(titlePosition: position);
   }
 }

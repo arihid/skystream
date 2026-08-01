@@ -137,7 +137,10 @@ class PlayerMetadataScrimState extends State<PlayerMetadataScrim>
         if (_isVisible) {
           _hideScrim();
         }
-        _slideController.animateTo(1.0, curve: Curves.easeOut); // slide down (off)
+        _slideController.animateTo(
+          1.0,
+          curve: Curves.easeOut,
+        ); // slide down (off)
       } else {
         // Controls just became hidden:
         // Reschedule the pause timer (will show scrim after 8s).
@@ -248,8 +251,10 @@ class PlayerMetadataScrimState extends State<PlayerMetadataScrim>
     final item = widget.item!;
     final screenWidth = MediaQuery.sizeOf(context).width;
     // Fixed width: ~40% of screen on desktop, ~45% on TV, clamped.
-    final panelWidth = (screenWidth * (widget.isTv ? 0.45 : 0.40))
-        .clamp(320.0, 600.0);
+    final panelWidth = (screenWidth * (widget.isTv ? 0.45 : 0.40)).clamp(
+      320.0,
+      600.0,
+    );
 
     return Positioned(
       left: 0,

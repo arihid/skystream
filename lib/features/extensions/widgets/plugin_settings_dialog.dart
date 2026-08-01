@@ -31,13 +31,17 @@ class _PluginSettingsDialogState extends ConsumerState<PluginSettingsDialog> {
     final saved = settings.getCustomBaseUrl(widget.plugin.packageName);
     _selectedDomain = saved ?? (domains.isNotEmpty ? domains.first.url : '');
 
+    final activeProviders = ref
+        .read(extensionManagerProvider.notifier)
+        .getProvidersForPlugin(widget.plugin);
+
     _providerEnabled = {
-      for (final sub in widget.plugin.providers ?? <PluginSubProvider>[])
+      for (final sub in activeProviders)
         sub.id:
             storage.getExtensionData(
               '${widget.plugin.packageName}:_provider_enabled_${sub.id}',
-            ) !=
-            'false',
+            ) ==
+            'true',
     };
   }
 
@@ -66,7 +70,7 @@ class _PluginSettingsDialogState extends ConsumerState<PluginSettingsDialog> {
         .read(extensionRepositoryProvider)
         .setExtensionData(
           '${widget.plugin.packageName}:_provider_enabled_$providerId',
-          enabled ? null : 'false',
+          enabled ? 'true' : 'false',
         );
     await ref
         .read(extensionManagerProvider.notifier)
@@ -78,7 +82,9 @@ class _PluginSettingsDialogState extends ConsumerState<PluginSettingsDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final domains = widget.plugin.domains ?? [];
-    final providers = widget.plugin.providers ?? <PluginSubProvider>[];
+    final providers = ref
+        .watch(extensionManagerProvider.notifier)
+        .getProvidersForPlugin(widget.plugin);
 
     return Dialog(
       child: ConstrainedBox(

@@ -585,5 +585,21 @@
   "viewLogs": "ਲੌਗ ਦੇਖੋ",
   "viewLogsSubtitle": "ਐਪਲੀਕੇਸ਼ਨ ਗਤੀਵਿਧੀ ਅਤੇ ਗਲਤੀਆਂ ਦੇਖੋ",
   "goToExtensions": "ਐਕਸਟੈਂਸ਼ਨਾਂ 'ਤੇ ਜਾਓ",
-  "noPluginsMessage": "ਸਮੱਗਰੀ ਨੂੰ ਬ੍ਰਾਊਜ਼ ਕਰਨ ਅਤੇ ਸਟ੍ਰੀਮ ਕਰਨ ਲਈ ਐਕਸਟੈਂਸ਼ਨਾਂ ਸਥਾਪਿਤ ਕਰੋ।"
+  "noPluginsMessage": "ਸਮੱਗਰੀ ਨੂੰ ਬ੍ਰਾਊਜ਼ ਕਰਨ ਅਤੇ ਸਟ੍ਰੀਮ ਕਰਨ ਲਈ ਐਕਸਟੈਂਸ਼ਨਾਂ ਸਥਾਪਿਤ ਕਰੋ।",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

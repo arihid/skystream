@@ -104,7 +104,7 @@ class DetailsActionButtons extends HookConsumerWidget {
     final playFocusNode = useFocusNode();
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isMobile = context.isMobile;
-    
+
     final isWifiFuture = useMemoized(() => isOnWifi());
     final isWifiSnapshot = useFuture(isWifiFuture);
     final onWifi = isWifiSnapshot.data ?? true;
@@ -197,7 +197,9 @@ class DetailsActionButtons extends HookConsumerWidget {
     // Dynamic quality preference selector button
     final settingsAsync = ref.watch(playerSettingsProvider);
     final settings = settingsAsync.asData?.value ?? const PlayerSettings();
-    final currentPreference = onWifi ? settings.wifiQuality : settings.mobileQuality;
+    final currentPreference = onWifi
+        ? settings.wifiQuality
+        : settings.mobileQuality;
     final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
 
     final qualityBtn = PopupMenuButton<QualityPreference>(
@@ -445,8 +447,6 @@ class DetailsActionButtons extends HookConsumerWidget {
         actionRow,
       ],
     );
-
-
   }
 }
 

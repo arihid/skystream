@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/extensions/models/extension_plugin.dart';
 import '../../../../core/extensions/models/extension_repository.dart';
+import '../../../../core/extensions/extension_manager.dart';
 import '../../../../core/extensions/providers.dart';
 import '../../../core/storage/settings_repository.dart';
 
@@ -402,11 +403,6 @@ class ExtensionsController extends _$ExtensionsController {
   Future<void> removeRepository(String url) async {
     try {
       final currentRepos = List<ExtensionRepository>.from(state.repositories);
-      final repoToRemove = currentRepos.firstWhere(
-        (r) => r.url == url,
-        orElse: () => throw Exception("Repo not found"),
-      );
-
       currentRepos.removeWhere((r) => r.url == url);
 
       final currentAvailable = Map<String, List<ExtensionPlugin>>.from(
@@ -471,29 +467,40 @@ class ExtensionsController extends _$ExtensionsController {
         savedFile = await repositoryService.downloadPlugin(plugin.sourceUrl);
 
         if (savedFile != null) {
-          await storageService.installPlugin(
+          final installedPlugin = await storageService.installPlugin(
             savedFile.path,
             plugin.repositoryId,
           );
+          final targetPlugin = installedPlugin ?? plugin;
+
+          // Await ExtensionManager loading dynamic/static providers BEFORE stopping the spinner!
+          try {
+            await ref
+                .read(extensionManagerProvider.notifier)
+                .reloadPlugin(targetPlugin);
+          } catch (e) {
+            if (kDebugMode)
+              debugPrint("Error initializing plugin providers: $e");
+          }
 
           // Clear this plugin from availableUpdates
           final newUpdates = Map<String, ExtensionPlugin>.from(
             state.availableUpdates,
-          )..remove(plugin.packageName);
+          )..remove(targetPlugin.packageName);
 
           final currentInstalling = Set<String>.from(state.installingPlugins)
-            ..remove(plugin.packageName);
+            ..remove(targetPlugin.packageName);
 
           final newInstalled = List<ExtensionPlugin>.from(
             state.installedPlugins,
           );
           final existingIndex = newInstalled.indexWhere(
-            (p) => p.packageName == plugin.packageName,
+            (p) => p.packageName == targetPlugin.packageName,
           );
           if (existingIndex >= 0) {
-            newInstalled[existingIndex] = plugin;
+            newInstalled[existingIndex] = targetPlugin;
           } else {
-            newInstalled.add(plugin);
+            newInstalled.add(targetPlugin);
           }
 
           state = ExtensionsSuccess(

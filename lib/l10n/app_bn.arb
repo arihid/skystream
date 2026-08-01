@@ -585,5 +585,21 @@
   "viewLogs": "লগ দেখুন",
   "viewLogsSubtitle": "অ্যাপ্লিকেশন কার্যকলাপ এবং ত্রুটি দেখুন",
   "goToExtensions": "এক্সটেনশনে যান",
-  "noPluginsMessage": "কন্টেন্ট ব্রাউজ এবং স্ট্রিম করতে এক্সটেনশন ইনস্টল করুন।"
+  "noPluginsMessage": "কন্টেন্ট ব্রাউজ এবং স্ট্রিম করতে এক্সটেনশন ইনস্টল করুন।",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

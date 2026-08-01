@@ -167,6 +167,16 @@ class StorageService {
         as String;
   }
 
+  Future<void> setTitlePosition(String position) async {
+    await _settingsBox.put('title_position', position);
+  }
+
+  String getTitlePosition() {
+    return (_settingsBox.get('title_position', defaultValue: 'below')
+            as String?) ??
+        'below';
+  }
+
   Future<void> setDevLoadAssets(bool enabled) async {
     await _settingsBox.put('dev_load_assets', enabled);
   }
@@ -261,8 +271,7 @@ class StorageService {
   }
 
   bool isAlwaysOnTop() {
-    return (_settingsBox.get('always_on_top', defaultValue: false)
-            as bool?) ??
+    return (_settingsBox.get('always_on_top', defaultValue: false) as bool?) ??
         false;
   }
 
@@ -667,6 +676,44 @@ class StorageService {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('Error deleting data: $e');
+    }
+  }
+
+  Future<int> computeImageVideoCacheBytes() async {
+    if (kIsWeb) return 0;
+    var total = 0;
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await for (final entity
+            in tempDir.list(recursive: true, followLinks: false)) {
+          if (entity is File) {
+            try {
+              total += await entity.length();
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error computing cache size: $e');
+    }
+    return total;
+  }
+
+  Future<void> clearImageVideoCache() async {
+    if (kIsWeb) return;
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error clearing image cache: $e');
+    }
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error clearing temp dir: $e');
     }
   }
 }

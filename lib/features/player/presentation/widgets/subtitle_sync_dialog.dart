@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,6 +97,14 @@ List<SubtitleCue> parseSubtitle(String content) {
             }
             if (textLine.contains('-->')) {
               i--; // Rewind to process timestamp
+              break;
+            }
+            // Check if this line is the next cue's ID (number followed by timestamp)
+            final isNextCueId =
+                int.tryParse(textLine) != null &&
+                (i + 1 < lines.length && lines[i + 1].trim().contains('-->'));
+            if (isNextCueId) {
+              i--; // Rewind to process the index line in outer loop (where it gets skipped)
               break;
             }
             // Remove HTML/VTT formatting tags
@@ -402,11 +411,16 @@ class _SubtitleSyncDialogState extends ConsumerState<SubtitleSyncDialog> {
       String content = '';
       if (subtitleUrl.startsWith('http://') ||
           subtitleUrl.startsWith('https://')) {
-        final response = await Dio().get<String>(
+        final response = await Dio().get<List<int>>(
           subtitleUrl,
-          options: Options(responseType: ResponseType.plain),
+          options: Options(responseType: ResponseType.bytes),
         );
-        content = response.data ?? '';
+        final bytes = response.data ?? [];
+        try {
+          content = utf8.decode(bytes);
+        } catch (_) {
+          content = latin1.decode(bytes);
+        }
       } else {
         String filePath = subtitleUrl;
         if (filePath.startsWith('file://')) {
@@ -414,7 +428,12 @@ class _SubtitleSyncDialogState extends ConsumerState<SubtitleSyncDialog> {
         }
         final file = File(filePath);
         if (await file.exists()) {
-          content = await file.readAsString();
+          final bytes = await file.readAsBytes();
+          try {
+            content = utf8.decode(bytes);
+          } catch (_) {
+            content = latin1.decode(bytes);
+          }
         } else {
           throw Exception("File not found at path: $filePath");
         }

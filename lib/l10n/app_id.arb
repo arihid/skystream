@@ -16,6 +16,9 @@
   "appTheme": "Tema Aplikasi",
   "recordWatchHistory": "Rekam Riwayat Tontonan",
   "defaultHomeScreen": "Layar Utama Default",
+  "titlePosition": "Posisi Judul",
+  "titlePositionBelowPoster": "Di Bawah Poster",
+  "titlePositionInsidePoster": "Di Dalam Poster",
   "player": "Pemutar",
   "defaultPlayer": "Pemutar Default",
   "leftGesture": "Gestur Kiri",
@@ -585,5 +588,21 @@
   "viewLogs": "Lihat log",
   "viewLogsSubtitle": "Lihat aktivitas aplikasi & kesalahan",
   "goToExtensions": "Buka Ekstensi",
-  "noPluginsMessage": "Instal ekstensi untuk menelusuri dan mengalirkan konten."
+  "noPluginsMessage": "Instal ekstensi untuk menelusuri dan mengalirkan konten.",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

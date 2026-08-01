@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/utils/layout_constants.dart';
@@ -18,6 +19,7 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../../core/network/doh_service.dart';
 import '../../../core/router/app_router.dart';
+import 'cache_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -129,6 +131,19 @@ class SettingsScreen extends ConsumerWidget {
                     context,
                     ref,
                     generalSettings.defaultHomeScreen,
+                  ),
+                ),
+                SettingsTile(
+                  icon: Icons.title_rounded,
+                  title: l10n.titlePosition,
+                  subtitle: getTitlePositionLabel(
+                    generalSettings.titlePosition,
+                    l10n,
+                  ),
+                  onTap: () => showTitlePositionDialog(
+                    context,
+                    ref,
+                    generalSettings.titlePosition,
                   ),
                 ),
                 SettingsTile(
@@ -315,7 +330,6 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: _qualityFilterModeLabel(
                     playerSettings.qualityFilterMode,
                   ),
-                  isLast: true,
                   onTap: () => showQualityFilterModeDialog(
                     context,
                     ref,
@@ -324,6 +338,13 @@ class SettingsScreen extends ConsumerWidget {
                         .read(playerSettingsProvider.notifier)
                         .setQualityFilterMode,
                   ),
+                ),
+                SettingsTile(
+                  icon: Icons.tune_rounded,
+                  title: l10n.playerControls,
+                  subtitle: l10n.playerControlsSubtitle,
+                  isLast: true,
+                  onTap: () => showPlayerControlsDialog(context, ref),
                 ),
               ],
             ),
@@ -429,6 +450,20 @@ class SettingsScreen extends ConsumerWidget {
             SettingsGroup(
               title: l10n.appData,
               children: [
+                if (!kIsWeb)
+                  SettingsTile(
+                    icon: Icons.cleaning_services_rounded,
+                    title: l10n.clearCache,
+                    subtitle: ref
+                        .watch(cacheSizeProvider)
+                        .when(
+                          data: (bytes) =>
+                              '${l10n.clearCacheSubtitle} • ${_formatBytes(bytes)}',
+                          loading: () => l10n.calculating,
+                          error: (_, _) => l10n.clearCacheSubtitle,
+                        ),
+                    onTap: () => showClearCacheDialog(context, ref),
+                  ),
                 SettingsTile(
                   icon: Icons.restore_rounded,
                   title: l10n.resetDataKeepExtensions,
@@ -514,4 +549,18 @@ String _qualityFilterModeLabel(QualityFilterMode mode) {
     case QualityFilterMode.atOrBelow:
       return 'Hide sources above preference';
   }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var size = bytes.toDouble();
+  var unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  final value =
+      unitIndex == 0 ? size.toStringAsFixed(0) : size.toStringAsFixed(1);
+  return '$value ${units[unitIndex]}';
 }

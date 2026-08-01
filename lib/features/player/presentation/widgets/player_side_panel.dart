@@ -607,8 +607,11 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_alt_off_rounded,
-                    color: Colors.amber, size: 16),
+                const Icon(
+                  Icons.filter_alt_off_rounded,
+                  color: Colors.amber,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -642,7 +645,9 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? HotstarPlayerStyle.accent
@@ -1717,12 +1722,16 @@ class _PanelOptionRowState extends State<_PanelOptionRow> {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: HotstarPlayerStyle.panelElevated,
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(
-                            color: HotstarPlayerStyle.divider, width: 0.8),
+                          color: HotstarPlayerStyle.divider,
+                          width: 0.8,
+                        ),
                       ),
                       child: Text(
                         widget.badge!,

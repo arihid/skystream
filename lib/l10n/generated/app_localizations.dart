@@ -271,6 +271,24 @@ abstract class AppLocalizations {
   /// **'Default Home Screen'**
   String get defaultHomeScreen;
 
+  /// No description provided for @titlePosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Title Position'**
+  String get titlePosition;
+
+  /// No description provided for @titlePositionBelowPoster.
+  ///
+  /// In en, this message translates to:
+  /// **'Below Poster'**
+  String get titlePositionBelowPoster;
+
+  /// No description provided for @titlePositionInsidePoster.
+  ///
+  /// In en, this message translates to:
+  /// **'Inside Poster'**
+  String get titlePositionInsidePoster;
+
   /// No description provided for @player.
   ///
   /// In en, this message translates to:
@@ -2430,6 +2448,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View application activity & errors'**
   String get viewLogsSubtitle;
+
+  /// No description provided for @clearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear image and video cache'**
+  String get clearCache;
+
+  /// No description provided for @clearCacheSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Frees up storage used by cached images and videos'**
+  String get clearCacheSubtitle;
+
+  /// No description provided for @clearCacheDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cache?'**
+  String get clearCacheDialogTitle;
+
+  /// No description provided for @clearCacheDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This will delete cached images and video files. Your settings, history, and extensions will not be affected.'**
+  String get clearCacheDialogContent;
+
+  /// No description provided for @clearCacheNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Cache'**
+  String get clearCacheNow;
+
+  /// No description provided for @cacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared'**
+  String get cacheCleared;
+
+  /// No description provided for @calculating.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating…'**
+  String get calculating;
+
+  /// No description provided for @playerControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Player Controls'**
+  String get playerControls;
+
+  /// No description provided for @playerControlsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show or hide player control buttons'**
+  String get playerControlsSubtitle;
+
+  /// No description provided for @showPip.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture-in-Picture button'**
+  String get showPip;
+
+  /// No description provided for @showResize.
+  ///
+  /// In en, this message translates to:
+  /// **'Resize button'**
+  String get showResize;
+
+  /// No description provided for @showRotate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate button'**
+  String get showRotate;
+
+  /// No description provided for @showPlaybackSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback speed button'**
+  String get showPlaybackSpeed;
+
+  /// No description provided for @showEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes button'**
+  String get showEpisodes;
 }
 
 class _AppLocalizationsDelegate

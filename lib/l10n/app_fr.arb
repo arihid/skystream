@@ -585,5 +585,21 @@
   "viewLogs": "Voir les journaux",
   "viewLogsSubtitle": "Afficher l'activité et les erreurs de l'application",
   "goToExtensions": "Aller aux extensions",
-  "noPluginsMessage": "Installez des extensions pour parcourir et diffuser du contenu."
+  "noPluginsMessage": "Installez des extensions pour parcourir et diffuser du contenu.",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

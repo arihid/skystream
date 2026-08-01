@@ -585,5 +585,21 @@
   "viewLogs": "লগ চাওক",
   "viewLogsSubtitle": "এপ্লিকেচনৰ কাৰ্যকলাপ আৰু ত্ৰুটি চাওক",
   "goToExtensions": "এক্সটেনচনলৈ যাওক",
-  "noPluginsMessage": "বিষয়বস্তু ব্ৰাউজ আৰু ষ্ট্ৰিম কৰিবলৈ এক্সটেনচন ইনষ্টল কৰক।"
+  "noPluginsMessage": "বিষয়বস্তু ব্ৰাউজ আৰু ষ্ট্ৰিম কৰিবলৈ এক্সটেনচন ইনষ্টল কৰক।",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }

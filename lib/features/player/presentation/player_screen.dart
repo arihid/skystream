@@ -19,7 +19,7 @@ import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import '../../../../features/settings/presentation/player_settings_provider.dart';
 import 'widgets/skystream_player_controls.dart';
-import 'widgets/skystream_subtitle_view.dart';
+import 'widgets/hotstar_player_style.dart';
 import 'player_controller.dart';
 import 'player_gesture_handler.dart';
 
@@ -665,41 +665,57 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                             (s) => s.useExoPlayer,
                           ),
                         );
-
-                        final subTrack = _player.state.track.subtitle;
-                        final isExternalMediaKit =
-                            subTrack != SubtitleTrack.no() &&
-                            (subTrack.id.startsWith('external:') ||
-                                subTrack.id.startsWith('http://') ||
-                                subTrack.id.startsWith('https://') ||
-                                subTrack.id.startsWith('file://'));
-
-                        final exoSubId =
-                            _videoViewController.overrideSubtitle.value;
-                        final isExternalExo =
-                            useExoPlayer &&
-                            exoSubId != null &&
-                            (exoSubId.startsWith('external:') ||
-                                exoSubId.startsWith('http://') ||
-                                exoSubId.startsWith('https://') ||
-                                exoSubId.startsWith('file://'));
-
-                        if (isExternalMediaKit || isExternalExo) {
-                          return SkyStreamSubtitleView(
-                            player: _player,
-                            videoViewController: _videoViewController,
-                            useExoPlayer: useExoPlayer,
-                            controlsVisible: controlsVisible,
-                          );
-                        }
-
                         if (useExoPlayer) {
                           return const SizedBox.shrink();
                         }
 
-                        return SkyStreamEmbeddedSubtitleView(
-                          player: _player,
-                          controlsVisible: controlsVisible,
+                        final subtitleSettings = ref
+                            .watch(playerSettingsProvider)
+                            .asData
+                            ?.value;
+
+                        return Positioned(
+                          bottom:
+                              (controlsVisible
+                                  ? HotstarPlayerStyle.bottomChromeHeight
+                                  : 20.0) +
+                              ((100 -
+                                      (subtitleSettings?.subtitlePosition ??
+                                          100.0)) *
+                                  (MediaQuery.sizeOf(context).height * 0.008)),
+                          left: 20,
+                          right: 20,
+                          child: SubtitleView(
+                            controller: _videoController,
+                            configuration: SubtitleViewConfiguration(
+                              style: TextStyle(
+                                fontSize:
+                                    subtitleSettings?.subtitleSize ?? 22.0,
+                                color: Color(
+                                  subtitleSettings?.subtitleColor ?? 0xFFFFFFFF,
+                                ),
+                                backgroundColor:
+                                    Color(
+                                      subtitleSettings
+                                              ?.subtitleBackgroundColor ??
+                                          0x00000000,
+                                    ).withValues(
+                                      alpha:
+                                          subtitleSettings
+                                              ?.subtitleBackgroundOpacity ??
+                                          0.0,
+                                    ),
+                                shadows: const [
+                                  Shadow(
+                                    offset: Offset(0, 1),
+                                    blurRadius: 2,
+                                    color: Colors.black,
+                                  ),
+                                ],
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
                         );
                       },
                     ),

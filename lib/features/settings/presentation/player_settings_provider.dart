@@ -20,9 +20,9 @@ enum QualityPreference {
 
 /// Controls how the quality preference threshold is applied when streams are loaded.
 enum QualityFilterMode {
-  any,        // Sort only — show everything (current behaviour)
-  atOrAbove,  // Hide sources strictly below the preferred quality tier
-  atOrBelow,  // Hide sources strictly above the preferred tier (data-saver mode)
+  any, // Sort only — show everything (current behaviour)
+  atOrAbove, // Hide sources strictly below the preferred quality tier
+  atOrBelow, // Hide sources strictly above the preferred tier (data-saver mode)
 }
 
 class PlayerSettings {
@@ -83,6 +83,15 @@ class PlayerSettings {
   /// at playback time (`maxPlaybackSpeed`).
   final double defaultPlaybackSpeed;
 
+  /// Toggles for individual player control-bar buttons. All default to
+  /// visible. Sources, Audio Tracks and Subtitles are intentionally not
+  /// toggleable because they are essential.
+  final bool showPip;
+  final bool showResize;
+  final bool showRotate;
+  final bool showPlaybackSpeed;
+  final bool showEpisodes;
+
   // Subtitle Accounts
   final String osUsername;
   final String osPassword;
@@ -129,6 +138,11 @@ class PlayerSettings {
     this.qualityFilterMode = QualityFilterMode.any,
     this.showRemainingTime = false,
     this.defaultPlaybackSpeed = 1.0,
+    this.showPip = true,
+    this.showResize = true,
+    this.showRotate = true,
+    this.showPlaybackSpeed = true,
+    this.showEpisodes = true,
     this.osUsername = '',
     this.osPassword = '',
     this.osApiKey = '',
@@ -176,6 +190,11 @@ class PlayerSettings {
     QualityFilterMode? qualityFilterMode,
     bool? showRemainingTime,
     double? defaultPlaybackSpeed,
+    bool? showPip,
+    bool? showResize,
+    bool? showRotate,
+    bool? showPlaybackSpeed,
+    bool? showEpisodes,
     String? osUsername,
     String? osPassword,
     String? osApiKey,
@@ -231,6 +250,11 @@ class PlayerSettings {
       qualityFilterMode: qualityFilterMode ?? this.qualityFilterMode,
       showRemainingTime: showRemainingTime ?? this.showRemainingTime,
       defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
+      showPip: showPip ?? this.showPip,
+      showResize: showResize ?? this.showResize,
+      showRotate: showRotate ?? this.showRotate,
+      showPlaybackSpeed: showPlaybackSpeed ?? this.showPlaybackSpeed,
+      showEpisodes: showEpisodes ?? this.showEpisodes,
       osUsername: osUsername ?? this.osUsername,
       osPassword: osPassword ?? this.osPassword,
       osApiKey: osApiKey ?? this.osApiKey,
@@ -422,6 +446,32 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
         0.5;
     final subAlignment = storage.getPlayerSetting<int>('player_sub_alignment');
 
+    final showPip = storage.getPlayerSetting<bool>(
+          'player_show_pip',
+          defaultValue: true,
+        ) ??
+        true;
+    final showResize = storage.getPlayerSetting<bool>(
+          'player_show_resize',
+          defaultValue: true,
+        ) ??
+        true;
+    final showRotate = storage.getPlayerSetting<bool>(
+          'player_show_rotate',
+          defaultValue: true,
+        ) ??
+        true;
+    final showPlaybackSpeed = storage.getPlayerSetting<bool>(
+          'player_show_playback_speed',
+          defaultValue: true,
+        ) ??
+        true;
+    final showEpisodes = storage.getPlayerSetting<bool>(
+          'player_show_episodes',
+          defaultValue: true,
+        ) ??
+        true;
+
     return PlayerSettings(
       leftGesture: _parse(l),
       rightGesture: _parse(r),
@@ -459,6 +509,11 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       qualityFilterMode: filterMode,
       showRemainingTime: showRemaining,
       defaultPlaybackSpeed: defaultSpeed,
+      showPip: showPip,
+      showResize: showResize,
+      showRotate: showRotate,
+      showPlaybackSpeed: showPlaybackSpeed,
+      showEpisodes: showEpisodes,
       osUsername: osUser,
       osPassword: osPass,
       osApiKey: osKey,
@@ -657,6 +712,31 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     state = AsyncData(state.requireValue.copyWith(hardwareDecoding: val));
   }
 
+  Future<void> setShowPip(bool val) async {
+    await _repository.setPlayerSetting('player_show_pip', val);
+    state = AsyncData(state.requireValue.copyWith(showPip: val));
+  }
+
+  Future<void> setShowResize(bool val) async {
+    await _repository.setPlayerSetting('player_show_resize', val);
+    state = AsyncData(state.requireValue.copyWith(showResize: val));
+  }
+
+  Future<void> setShowRotate(bool val) async {
+    await _repository.setPlayerSetting('player_show_rotate', val);
+    state = AsyncData(state.requireValue.copyWith(showRotate: val));
+  }
+
+  Future<void> setShowPlaybackSpeed(bool val) async {
+    await _repository.setPlayerSetting('player_show_playback_speed', val);
+    state = AsyncData(state.requireValue.copyWith(showPlaybackSpeed: val));
+  }
+
+  Future<void> setShowEpisodes(bool val) async {
+    await _repository.setPlayerSetting('player_show_episodes', val);
+    state = AsyncData(state.requireValue.copyWith(showEpisodes: val));
+  }
+
   Future<void> setSubtitleSettings(
     double size,
     int color,
@@ -739,10 +819,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   }
 
   Future<void> setQualityFilterMode(QualityFilterMode mode) async {
-    await _repository.setPlayerSetting(
-      'player_quality_filter_mode',
-      mode.name,
-    );
+    await _repository.setPlayerSetting('player_quality_filter_mode', mode.name);
     state = AsyncData(state.requireValue.copyWith(qualityFilterMode: mode));
   }
 

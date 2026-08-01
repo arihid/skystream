@@ -585,5 +585,21 @@
   "viewLogs": "Logs bekijken",
   "viewLogsSubtitle": "Bekijk applicatie-activiteit en fouten",
   "goToExtensions": "Ga naar extensies",
-  "noPluginsMessage": "Installeer extensies om inhoud te browsen en te streamen."
+  "noPluginsMessage": "Installeer extensies om inhoud te browsen en te streamen.",
+  "clearCache": "Clear image and video cache",
+  "clearCacheSubtitle": "Frees up storage used by cached images and videos",
+  "clearCacheDialogTitle": "Clear cache?",
+  "clearCacheDialogContent": "This will delete cached images and video files. Your settings, history, and extensions will not be affected.",
+  "clearCacheNow": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "calculating": "Calculating…",
+  "playerControls": "Player Controls",
+  "showPip": "Picture-in-Picture button",
+  "showResize": "Resize button",
+  "showRotate": "Rotate button",
+  "showPlaybackSpeed": "Playback speed button",
+  "showEpisodes": "Episodes button"
+,
+  "playerControlsSubtitle": "Show or hide player control buttons"
+
 }
