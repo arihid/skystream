@@ -9,6 +9,8 @@ class GeneralSettings {
   final bool githubProxyEnabled;
   final bool alwaysOnTop;
   final String titlePosition;
+  final bool isFullscreenEnabled;
+  final String? targetDisplayId;
 
   const GeneralSettings({
     this.watchHistoryEnabled = true,
@@ -16,6 +18,8 @@ class GeneralSettings {
     this.githubProxyEnabled = false,
     this.alwaysOnTop = false,
     this.titlePosition = 'below',
+    this.isFullscreenEnabled = false,
+    this.targetDisplayId,
   });
 
   GeneralSettings copyWith({
@@ -24,6 +28,8 @@ class GeneralSettings {
     bool? githubProxyEnabled,
     bool? alwaysOnTop,
     String? titlePosition,
+    bool? isFullscreenEnabled,
+    String? targetDisplayId,
   }) {
     return GeneralSettings(
       watchHistoryEnabled: watchHistoryEnabled ?? this.watchHistoryEnabled,
@@ -31,6 +37,8 @@ class GeneralSettings {
       githubProxyEnabled: githubProxyEnabled ?? this.githubProxyEnabled,
       alwaysOnTop: alwaysOnTop ?? this.alwaysOnTop,
       titlePosition: titlePosition ?? this.titlePosition,
+      isFullscreenEnabled: isFullscreenEnabled ?? this.isFullscreenEnabled,
+      targetDisplayId: targetDisplayId ?? this.targetDisplayId,
     );
   }
 }
@@ -46,6 +54,8 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
       githubProxyEnabled: repository.isGithubProxyEnabled(),
       alwaysOnTop: repository.isAlwaysOnTop(),
       titlePosition: repository.getTitlePosition(),
+      isFullscreenEnabled: false,
+      targetDisplayId: null,
     );
   }
 
@@ -78,4 +88,13 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
     await repository.setTitlePosition(position);
     state = state.copyWith(titlePosition: position);
   }
+  
+  Future<void> setFullscreenEnabled(bool enabled) async {
+    state = state.copyWith(isFullscreenEnabled: enabled);
+  }
+
+  Future<void> setTargetDisplayId(String? displayId) async {
+    state = state.copyWith(targetDisplayId: displayId);
+  }
+  
 }

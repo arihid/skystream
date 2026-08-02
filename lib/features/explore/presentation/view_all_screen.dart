@@ -188,27 +188,43 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                   final uniqueTag =
                       'view_all_${widget.category.name}_${item.id}_$index';
 
-            return MultimediaCard(
-              imageUrl: imageUrl,
-              title: itemTitle,
-              heroTag: uniqueTag,
-              isPortrait: _isPortrait,
-              onTap: () {
-                if (widget.onTap != null) {
-                  widget.onTap!(item);
-                } else {
-                  TmdbDetailsRoute(
-                    movieId: item.id,
-                    mediaType: item.tmdbMediaType,
-                    heroTag: uniqueTag,
-                    placeholderPoster: imageUrl,
-                    source: item.source,
-                  ).push<void>(context);
-                }
-              },
-            );
-          },
-        ),
+                  final handleTap = () {
+                    if (widget.onTap != null) {
+                      widget.onTap!(item);
+                    } else {
+                      TmdbDetailsRoute(
+                        movieId: item.id,
+                        mediaType: item.tmdbMediaType,
+                        heroTag: uniqueTag,
+                        placeholderPoster: imageUrl,
+                        source: item.source,
+                      ).push<void>(context);
+                    }
+                  };
+
+                  return FocusableWrapper(
+                    onTap: handleTap,
+                    gamepadHints: [
+                      GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
+                      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                    ],
+                    child: ExcludeFocus(
+                      child: MultimediaCard(
+                        imageUrl: imageUrl,
+                        title: itemTitle,
+                        heroTag: uniqueTag,
+                        isPortrait: _isPortrait,
+                        onTap: handleTap,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          if (isBigPicture)
+            const GamepadHintsOverlay(), 
+        ],
       ),
     );
 

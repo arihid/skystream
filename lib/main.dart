@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // For kReleaseMode
@@ -56,7 +57,7 @@ void main() async {
     const windowOptions = WindowOptions(
       center: true,
       skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.normal,
+      titleBarStyle: TitleBarStyle.hidden,
     );
 
     unawaited(
@@ -270,6 +271,13 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     }
   }
 
+    Future<void> _toggleFullscreen() async {
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) return;
+    final isFullScreen = await windowManager.isFullScreen();
+    await windowManager.setFullScreen(!isFullScreen);
+    await ref.read(generalSettingsProvider.notifier).setFullscreenEnabled(!isFullScreen);
+  }
+
   /// Builds a human-readable update toast message that lists plugin names.
   /// Shows up to 5 names; any remainder is shown as "-- N more".
   /// Examples:
@@ -389,7 +397,15 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
               }
             }
 
-            return result;
+            return GamepadShortcutManager(
+              child: Actions(
+                actions: AppActionBindings.getBindings(context),
+                child: FocusTraversalGroup(
+                  policy: WidgetOrderTraversalPolicy(), 
+                  child: result, 
+                ),
+              ),
+            );
           },
         );
 
@@ -403,7 +419,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
             }
             return KeyEventResult.ignored;
           },
-          child: DpadNavigator(child: materialApp),
+          child: materialApp,
         );
 
         if (Platform.isMacOS) {
