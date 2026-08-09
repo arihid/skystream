@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
@@ -158,17 +159,21 @@ class DetailsDesktopHero extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Logo or Title
-                      if (displayItem.logoUrl != null)
-                        CachedNetworkImage(
-                          imageUrl: displayItem.logoUrl!,
-                          height: 200,
-                          alignment: Alignment.centerLeft,
-                          fit: BoxFit.contain,
-                          placeholder: (_, _) => _buildTitle(textColor),
-                          errorWidget: (_, _, _) => _buildTitle(textColor),
-                        )
-                      else
-                        _buildTitle(textColor),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onLongPress: () => _copyAnimeTitle(context),
+                        child: displayItem.logoUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: displayItem.logoUrl!,
+                                height: 200,
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.contain,
+                                placeholder: (_, _) => _buildTitle(textColor),
+                                errorWidget: (_, _, _) =>
+                                    _buildTitle(textColor),
+                              )
+                            : _buildTitle(textColor),
+                      ),
 
                       const SizedBox(height: 16),
 
@@ -223,6 +228,25 @@ class DetailsDesktopHero extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _copyAnimeTitle(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: displayItem.title));
+    await HapticFeedback.selectionClick();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Title copied'),
+        duration: Duration(milliseconds: 1200),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 

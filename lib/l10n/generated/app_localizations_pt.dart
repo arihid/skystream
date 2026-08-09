@@ -24,6 +24,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get explore => 'Explorar';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'Biblioteca';
 
   @override
@@ -663,6 +669,23 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get installed => 'Instalada';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {

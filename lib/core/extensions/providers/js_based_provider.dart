@@ -84,6 +84,8 @@ Future<List<R>> _processInChunks<T, R>(
 }
 
 class JsBasedProvider extends SkyStreamProvider {
+  static const int _iifeWrapperVersion = 2;
+
   final JsEngineService _jsEngine;
   final String _scriptPath;
   String get scriptPath => _scriptPath;
@@ -187,7 +189,7 @@ class JsBasedProvider extends SkyStreamProvider {
       RegExp(r'[^a-zA-Z0-9_]'),
       '_',
     );
-    return '$dir$safeId.qbc';
+    return '$dir${safeId}_v$_iifeWrapperVersion.qbc';
   }
 
   // Wraps the raw plugin source in a namespaced IIFE with manifest + storage API.
@@ -222,6 +224,7 @@ class JsBasedProvider extends SkyStreamProvider {
                       load: (typeof load !== 'undefined') ? load : (typeof globalThis.load !== 'undefined' ? globalThis.load : undefined),
                       loadStreams: (typeof loadStreams !== 'undefined') ? loadStreams : (typeof globalThis.loadStreams !== 'undefined' ? globalThis.loadStreams : undefined),
                       getProviders: (typeof getProviders !== 'undefined') ? getProviders : (typeof globalThis.getProviders !== 'undefined' ? globalThis.getProviders : undefined),
+                      getSettings: (typeof getSettings !== 'undefined') ? getSettings : (typeof globalThis.getSettings !== 'undefined' ? globalThis.getSettings : undefined),
                   };
               })();
               globalThis['$_namespace'] = exports;
@@ -231,6 +234,7 @@ class JsBasedProvider extends SkyStreamProvider {
               if (globalThis.load) delete globalThis.load;
               if (globalThis.loadStreams) delete globalThis.loadStreams;
               if (globalThis.getProviders) delete globalThis.getProviders;
+              if (globalThis.getSettings) delete globalThis.getSettings;
           })();
           """;
   }
@@ -442,6 +446,45 @@ class JsBasedProvider extends SkyStreamProvider {
           );
         }
         return [];
+      }
+    });
+  }
+
+  /// Calls the optional JS `getSettings()` export.
+  ///
+  /// The plugin may return either a list directly or
+  /// `{ settings: [...] }`. Invalid definitions are ignored.
+  Future<List<PluginSettingDefinition>> getSettings() async {
+    await _ensureReady();
+    if (_error != null) return const [];
+
+    return _serializedInvoke(() async {
+      try {
+        final result = await _jsEngine.invokeAsync(_fn('getSettings'));
+        final dynamic rawSettings = result is Map && result['settings'] is List
+            ? result['settings']
+            : result;
+
+        if (rawSettings is! List) return const [];
+
+        return rawSettings
+            .take(100)
+            .whereType<Map<dynamic, dynamic>>()
+            .map(
+              (raw) => PluginSettingDefinition.fromJson(
+                Map<String, dynamic>.from(raw),
+              ),
+            )
+            .where((setting) => setting.key.isNotEmpty)
+            .toList(growable: false);
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint(
+            'JsBasedProvider: getSettings unavailable for '
+            '$_packageName: $error',
+          );
+        }
+        return const [];
       }
     });
   }

@@ -38,6 +38,53 @@ class AnimeLogoPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class TmdbLogoPainter extends CustomPainter {
+  final Color color;
+  final Color textColor;
+
+  TmdbLogoPainter({
+    required this.color,
+    this.textColor = Colors.black,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final w = size.width;
+    final h = size.height;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, h * 0.1, w, h * 0.8),
+      Radius.circular(w * 0.22),
+    );
+    canvas.drawRRect(rrect, paint);
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'TMDB',
+        style: TextStyle(
+          color: textColor,
+          fontSize: h * 0.36,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((w - textPainter.width) / 2, (h - textPainter.height) / 2),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class HoverBorderGradient extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;

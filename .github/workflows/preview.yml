@@ -394,8 +394,16 @@ jobs:
 
       - name: Install Linux Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libmpv-dev libasound2-dev libsecret-1-dev
+          # 1. Switch ports.ubuntu.com from HTTP (port 80 origin) to HTTPS (port 443 CDN) to prevent TCP resets
+          sudo sed -i 's|http://ports.ubuntu.com|https://ports.ubuntu.com|g' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          
+          # 2. Update package index and ensure failures halt execution instead of silently ignoring stale index errors
+          sudo apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=30
+          
+          # 3. Install required libraries with --no-install-recommends to avoid fetching 190+ bloated recommended packages (tilix, pocketsphinx, etc.)
+          sudo apt-get install -y --no-install-recommends \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libmpv-dev libasound2-dev libsecret-1-dev
           
       - name: Install Flutter Dependencies
         run: |

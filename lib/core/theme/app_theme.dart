@@ -23,6 +23,17 @@ class AppTheme {
   static const Color lightTextSecondary = Color(0xFF5C5C5C); // onSurfaceVariant
   static const Color lightCoral = Color(0xFFC63523); // Coral Accent
 
+  static SnackBarThemeData snackBarThemeFor(ColorScheme colorScheme) {
+    final isDark = colorScheme.brightness == Brightness.dark;
+    return SnackBarThemeData(
+      backgroundColor: isDark ? surface : colorScheme.surfaceContainerHigh,
+      contentTextStyle: TextStyle(
+        color: isDark ? onSurface : colorScheme.onSurface,
+      ),
+      actionTextColor: colorScheme.primary,
+    );
+  }
+
   static ThemeData createDarkTheme(ColorScheme? dynamicScheme) {
     var colorScheme =
         dynamicScheme ??
@@ -146,6 +157,10 @@ class AppTheme {
         showUnselectedLabels: false,
         landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
       ),
+
+      // Keep SnackBars visually consistent with the dark application instead
+      // of Material's default inverse (light) surface.
+      snackBarTheme: snackBarThemeFor(colorScheme),
 
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
@@ -363,11 +378,7 @@ class AppTheme {
       ),
 
       // SnackBar Theme
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: colorScheme.onSurface,
-        contentTextStyle: TextStyle(color: colorScheme.surface),
-        actionTextColor: colorScheme.primary,
-      ),
+      snackBarTheme: snackBarThemeFor(colorScheme),
 
       // Ripple / Splash / Highlights
       splashColor: colorScheme.primary.withValues(alpha: 0.1),

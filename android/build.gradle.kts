@@ -12,7 +12,7 @@ allprojects {
  * Centralized Project Settings
  * These versions are enforced across the app and all plugins.
  */
-extra["projectCompileSdk"] = 36
+extra["projectCompileSdk"] = 37
 extra["projectTargetSdk"] = 36
 val projectJvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
 
@@ -37,7 +37,7 @@ subprojects {
     val configureAction: (Project) -> Unit = { project ->
         if (project.hasProperty("android")) {
             project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
-                // Force API 36 to satisfy modern AndroidX dependencies (e.g. fragment 1.7.1)
+                // Force API 37 to satisfy permission_handler_android and modern AndroidX dependencies
                 compileSdkVersion(rootProject.extra["projectCompileSdk"] as Int)
                 defaultConfig {
                     @Suppress("DEPRECATION")

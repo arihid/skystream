@@ -77,10 +77,19 @@ class AppScaffold extends ConsumerWidget {
             }
           },
           child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            extendBody: true,
             body: navigationShell,
-            bottomNavigationBar: CustomBottomNavBar(
-              currentIndex: navigationShell.currentIndex,
-              onTap: (index) => _onItemTapped(index, context),
+            bottomNavigationBar: Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: CustomBottomNavBar.bottomInsetFor(context),
+              ),
+              child: CustomBottomNavBar(
+                currentIndex: navigationShell.currentIndex,
+                onTap: (index) => _onItemTapped(index, context),
+              ),
             ),
           ),
         );

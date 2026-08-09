@@ -23,7 +23,7 @@ class SecureTokenStorage {
 
   final StorageService _legacy;
   final FlutterSecureStorage _secure = const FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
   );
 
   Future<String?> read(String key) async {

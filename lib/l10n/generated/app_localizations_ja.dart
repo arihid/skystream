@@ -24,6 +24,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get explore => '探索';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'ライブラリ';
 
   @override
@@ -649,6 +655,23 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get installed => 'インストール済み';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {

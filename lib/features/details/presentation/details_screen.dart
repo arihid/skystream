@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 
@@ -36,6 +37,25 @@ class DetailsScreen extends ConsumerStatefulWidget {
 
 class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   bool _didTriggerAutoPlay = false;
+
+  Future<void> _copyAnimeTitle(BuildContext context, String title) async {
+    await Clipboard.setData(ClipboardData(text: title));
+    await HapticFeedback.selectionClick();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Title copied'),
+        duration: Duration(milliseconds: 1200),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -83,6 +103,11 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       detailsControllerProvider(widget.item.url).select((s) => s.isMovie),
     );
     final item = details ?? widget.item;
+    final selectedEpisodeCount = ref.watch(
+      detailsControllerProvider(
+        widget.item.url,
+      ).select((state) => state.selectedEpisodeKeys.length),
+    );
 
     final l10n = AppLocalizations.of(context)!;
 
@@ -97,11 +122,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         isBookmarked,
         libraryNotifier,
         l10n,
+        selectedEpisodeCount,
       );
     }
 
     // ── Mobile: SliverAppBar-based layout (unchanged) ──
     return Scaffold(
+      bottomNavigationBar: selectedEpisodeCount == 0
+          ? null
+          : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -241,6 +270,149 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
+  Widget _buildEpisodeSelectionBar(BuildContext context, int selectedCount) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final controller = ref.read(
+      detailsControllerProvider(widget.item.url).notifier,
+    );
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        child: Material(
+          elevation: 10,
+          shadowColor: Colors.black.withValues(alpha: 0.30),
+          color: colors.surfaceContainerHigh,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: colors.outlineVariant.withValues(alpha: 0.45),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            height: 112,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  Widget actionButton({
+                    required String label,
+                    required IconData icon,
+                    required VoidCallback onPressed,
+                    required bool outlined,
+                  }) {
+                    final style = outlined
+                        ? OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            visualDensity: VisualDensity.compact,
+                          )
+                        : FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            visualDensity: VisualDensity.compact,
+                          );
+
+                    if (outlined) {
+                      return OutlinedButton.icon(
+                        onPressed: onPressed,
+                        icon: Icon(icon, size: 21),
+                        label: Text(label),
+                        style: style,
+                      );
+                    }
+
+                    return FilledButton.icon(
+                      onPressed: onPressed,
+                      icon: Icon(icon, size: 21),
+                      label: Text(label),
+                      style: style,
+                    );
+                  }
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.checklist_rounded,
+                            color: colors.primary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '$selectedCount selected',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Cancel selection',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: controller.clearEpisodeSelection,
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: actionButton(
+                              label: 'Watched',
+                              icon: Icons.visibility_rounded,
+                              outlined: false,
+                              onPressed: () async {
+                                await controller.setSelectedEpisodesWatched(
+                                  widget.item.url,
+                                  true,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: actionButton(
+                              label: 'Unwatched',
+                              icon: Icons.visibility_off_rounded,
+                              outlined: true,
+                              onPressed: () async {
+                                await controller.setSelectedEpisodesWatched(
+                                  widget.item.url,
+                                  false,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'Select all episodes',
+                            onPressed: controller.selectAllEpisodes,
+                            icon: const Icon(Icons.select_all_rounded),
+                            style: IconButton.styleFrom(
+                              minimumSize: const Size(48, 48),
+                              maximumSize: const Size(48, 48),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────
   //  DESKTOP / TV  — Immersive hero layout
   // ─────────────────────────────────────────────────────────────────
@@ -254,11 +426,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     bool isBookmarked,
     dynamic libraryNotifier,
     AppLocalizations l10n,
+    int selectedEpisodeCount,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
+      bottomNavigationBar: selectedEpisodeCount == 0
+          ? null
+          : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -424,24 +600,32 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (item.logoUrl != null)
-                          CachedNetworkImage(
-                            imageUrl: item.logoUrl!,
-                            height: 50,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.centerLeft,
-                            errorWidget: (_, _, _) => Text(
-                              item.title,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          )
-                        else
-                          Text(
-                            item.title,
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onLongPress: () =>
+                              _copyAnimeTitle(context, item.title),
+                          child: item.logoUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: item.logoUrl!,
+                                  height: 50,
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.centerLeft,
+                                  errorWidget: (_, _, _) => Text(
+                                    item.title,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                )
+                              : Text(
+                                  item.title,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                        ),
                         const SizedBox(height: 8),
                         MetadataBar(
                           item: item,

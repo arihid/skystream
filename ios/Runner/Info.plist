@@ -68,6 +68,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.bbflight.background_downloader.task</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).download.*</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

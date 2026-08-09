@@ -24,6 +24,12 @@ class AppLocalizationsTa extends AppLocalizations {
   String get explore => 'ஆராய்க';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'நூலகம்';
 
   @override
@@ -672,6 +678,23 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get installed => 'நிறுவப்பட்டது';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {

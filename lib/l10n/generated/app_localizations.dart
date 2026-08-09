@@ -205,6 +205,18 @@ abstract class AppLocalizations {
   /// **'Explore'**
   String get explore;
 
+  /// No description provided for @exploreAnime.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Anime'**
+  String get exploreAnime;
+
+  /// No description provided for @exploreMovies.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Movies'**
+  String get exploreMovies;
+
   /// No description provided for @library.
   ///
   /// In en, this message translates to:
@@ -1416,6 +1428,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Installed'**
   String get installed;
+
+  /// No description provided for @repositories.
+  ///
+  /// In en, this message translates to:
+  /// **'Repositories'**
+  String get repositories;
+
+  /// No description provided for @noExtensionsInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'No Extensions Installed'**
+  String get noExtensionsInstalled;
+
+  /// No description provided for @browseRepositoriesToInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse the Repositories tab to discover and install extensions.'**
+  String get browseRepositoriesToInstall;
+
+  /// No description provided for @browseRepositories.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse Repositories'**
+  String get browseRepositories;
+
+  /// No description provided for @addRepoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a repository URL or shortcode to discover and install extension plugins.'**
+  String get addRepoDescription;
 
   /// No description provided for @updateTo.
   ///

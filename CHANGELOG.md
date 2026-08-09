@@ -1,25 +1,28 @@
-# Changelogs - v2.6.0
+# Changelogs - v2.7.6
 
-### ✨ *New Features*
+### ✨ *New Features & Enhancements*
 
-#### 📺 Media Player & Subtitles (PR #62 by @starlight5234 & PR #64 by @likhithkrishna1103-tech)
-- **Subtitle Styling & Customization** – Added subtitle appearance settings, custom shadows, and text scaling support.
-- **Custom Player Seek Bar** – Refactored the player progress bar into a custom seek bar component and tuned the seek step to 30 seconds.
-- **Netflix-Style Scrim** – Implemented a subtle player overlay scrim on TV/Desktop to improve readability of player controls and metadata.
-- **Dub Status Filtering** – Filter episodes by sub/dub status in the side panel, and added a visual dub badge to the episode rows.
+#### 🎬 Media Player & Subtitle Enhancements (PR #75 by @arranoust & PR #81 by @likhithkrishna1103)
+- **Player Control Toggles** – Added customizable visibility toggles for player control buttons in player settings.
+- **Cache Management** – Added dedicated setting to clear image and video cache.
+- **Hotstar-Style Subtitles** – Replaced custom subtitle view with configurable Hotstar-style subtitle rendering and improved subtitle parsing robustness.
 
-#### 🔗 Integrations & Tracking (PR #62 by @starlight5234)
-- **AniList Sync & Metadata** – Full integration for AniList tracking and TMDB metadata enrichment.
-- **Improved Continuing Watch** – Better watch progress updates and layout improvements for Continue Watching cards.
+#### 📱 iOS Experience & Download Management (PR #84 by @Fares669)
+- **iOS Live Activity & Background Downloads** – Integrated Live Activity for active downloads and iOS background task processing to ensure download tasks continue reliably when the app is backgrounded.
+- **Detailed Download Progress** – Real-time download percentage and transferred file size indicators with improved label positioning.
 
-#### 🖥️ Desktop & Window Experience (PR #64 by @likhithkrishna1103-tech)
-- **Desktop Window Optimization** – Configurable default window startup size and improved sidebar contrasts.
-- **Custom Titlebar & Always on Top** – Initial support for custom titlebars, always-on-top toggle, and OS window styling.
+#### 📑 Episode Selection & Watch History (PR #84 by @Fares669)
+- **Multi-Episode Selection & Watched States** – Easily select multiple episodes to batch-mark as watched or unwatched.
+- **Offline Watch History Sync** – Automatically sync playback of downloaded offline episodes with your episode watch history.
+- **Improved Action Bar** – Replaced episode selection SnackBar with a dedicated bottom action bar and compact buttons.
+- **Quick Copy Title** – Long press on any media title to quickly copy it to clipboard.
 
+#### ⚙️ Poster Customization & Extension Settings (PR #74 by @arranoust & PR #84 by @Fares669)
+- **Poster Title Positioning** – Added customizable title placement options (top, bottom, overlay) for multimedia poster cards.
+- **Redesigned Extension Settings** – New dedicated plugin settings screen supporting conditional and script-defined plugin parameters, dynamic loading, and improved runtime cache handling.
+- 
 ---
 
-### 🐞 *Bug Fixes*
-- 🛠️ Fixed vertical scroll jitter on recommendations carousel and resolved search screen scroll bugs.
-- 🛠️ Fixed AniList logo asset links, player padding issues, and Anilist enrichment failures.
-- 🛠️ Resolved Cloudflare cookie bypass and proxy header injection headers.
-
+### 🐞 *Bug Fixes & System Stability*
+- 🛠️ Fixed SnackBar contrast and theme colors across settings and download screens.
+- 🛠️ Fixed extension settings runtime cache handling and plugin provider initialization.

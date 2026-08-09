@@ -382,9 +382,12 @@ class StorageService {
     // Save main entry (keyed by series/movie URL)
     await _historyBox.put(_getKey(item.url), entry);
 
-    // If it's a series and we have an episode URL, save an episode-specific entry
-    if (item.contentType == MultimediaContentType.series &&
-        lastEpisodeUrl != null) {
+    // Save episode-specific progress for both series and anime.
+    final isSeries =
+        item.contentType == MultimediaContentType.series ||
+        item.contentType == MultimediaContentType.anime;
+
+    if (isSeries && lastEpisodeUrl != null) {
       final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
       await _historyBox.put(episodeKey, entry);
     }
@@ -685,8 +688,10 @@ class StorageService {
     try {
       final tempDir = await getTemporaryDirectory();
       if (await tempDir.exists()) {
-        await for (final entity
-            in tempDir.list(recursive: true, followLinks: false)) {
+        await for (final entity in tempDir.list(
+          recursive: true,
+          followLinks: false,
+        )) {
           if (entity is File) {
             try {
               total += await entity.length();

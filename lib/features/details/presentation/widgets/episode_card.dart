@@ -8,6 +8,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/storage/history_repository.dart';
+import 'package:skystream/core/storage/episode_watch_repository.dart';
 import 'package:skystream/core/services/download_service.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
@@ -57,16 +58,27 @@ class EpisodeCard extends HookConsumerWidget {
       episode: episode.episode,
     );
 
-    final double progress = epDur > 0 ? epPos / epDur : 0;
-    String? statusBadge;
+    ref.watch(episodeWatchRevisionProvider);
+    final episodeWatchRepo = ref.watch(episodeWatchRepositoryProvider);
 
-    if (progress > 0.02) {
-      statusBadge = progress > 0.98
-          ? l10n.watched.toUpperCase()
-          : l10n.watching.toUpperCase();
+    final double progress = epDur > 0 ? (epPos / epDur).clamp(0.0, 1.0) : 0.0;
+    final explicitWatchState = episodeWatchRepo.getExplicitState(
+      parentItem.url,
+      episode,
+    );
+    final isWatched = episodeWatchRepo.isWatched(parentItem.url, episode);
+    final displayedProgress = isWatched ? 1.0 : progress;
+
+    String? statusBadge;
+    if (isWatched) {
+      statusBadge = l10n.watched.toUpperCase();
+    } else if (progress > 0.02) {
+      statusBadge = l10n.watching.toUpperCase();
     }
 
-    if (historyItem != null && statusBadge == null) {
+    if (historyItem != null &&
+        statusBadge == null &&
+        explicitWatchState != false) {
       final hSeason = historyItem.season ?? 1;
       final hEpisode = historyItem.episode ?? 1;
       final eSeason = episode.season;
@@ -81,6 +93,9 @@ class EpisodeCard extends HookConsumerWidget {
     final isDownloading = activeDownloads.contains(episode.url);
     final detailsState = ref.watch(detailsControllerProvider(parentItem.url));
     final details = detailsState.item;
+    final selectionKey = episodeSelectionKey(episode);
+    final isSelectionMode = detailsState.selectedEpisodeKeys.isNotEmpty;
+    final isSelected = detailsState.selectedEpisodeKeys.contains(selectionKey);
 
     final progressMap = ref.watch(downloadProgressProvider);
     final downloadProgressData = progressMap[episode.url];
@@ -105,7 +120,15 @@ class EpisodeCard extends HookConsumerWidget {
     final isFocused = useState(false);
     final downloadFocusNode = useFocusNode(debugLabel: 'ep_download');
     final bodyFocusNode = useFocusNode(debugLabel: 'ep_body');
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final normalCardColor = theme.colorScheme.surfaceContainerLow;
+    final watchedCardColor = Color.alphaBlend(
+      Colors.black.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.30 : 0.14,
+      ),
+      normalCardColor,
+    );
 
     void triggerDownload() {
       if (downloadedFile != null) {
@@ -126,6 +149,30 @@ class EpisodeCard extends HookConsumerWidget {
             .read(downloadLauncherProvider)
             .launch(context, parentItem, episodeUrl: episode.url);
       }
+    }
+
+    void updateSelection() {
+      HapticFeedback.selectionClick();
+
+      ref
+          .read(detailsControllerProvider(parentItem.url).notifier)
+          .toggleEpisodeSelection(episode);
+    }
+
+    void handleEpisodeTap() {
+      final selectionActive = ref
+          .read(detailsControllerProvider(parentItem.url))
+          .selectedEpisodeKeys
+          .isNotEmpty;
+
+      if (selectionActive) {
+        updateSelection();
+        return;
+      }
+
+      ref
+          .read(detailsControllerProvider(parentItem.url).notifier)
+          .handlePlayPress(context, parentItem, specificEpisode: episode);
     }
 
     final selectKeyDown = useRef(false);
@@ -181,19 +228,13 @@ class EpisodeCard extends HookConsumerWidget {
             } else if (event is KeyRepeatEvent) {
               if (selectKeyDown.value && !longPressTriggered.value) {
                 longPressTriggered.value = true;
-                triggerDownload();
+                updateSelection();
               }
               return KeyEventResult.handled;
             } else if (event is KeyUpEvent) {
               if (selectKeyDown.value && !longPressTriggered.value) {
-                // Short press → play the episode.
-                ref
-                    .read(detailsControllerProvider(parentItem.url).notifier)
-                    .handlePlayPress(
-                      context,
-                      parentItem,
-                      specificEpisode: episode,
-                    );
+                // Short press plays normally, or toggles when selecting.
+                handleEpisodeTap();
               }
               selectKeyDown.value = false;
               longPressTriggered.value = false;
@@ -204,29 +245,30 @@ class EpisodeCard extends HookConsumerWidget {
           return KeyEventResult.ignored;
         },
         child: InkWell(
-          // Touch/mouse tap still plays the episode directly.
-          onTap: () => ref
-              .read(detailsControllerProvider(parentItem.url).notifier)
-              .handlePlayPress(context, parentItem, specificEpisode: episode),
-          onLongPress: triggerDownload,
+          onTap: handleEpisodeTap,
+          onLongPress: updateSelection,
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             width: width,
             decoration: BoxDecoration(
-              color: isFocused.value
+              color: isSelected
+                  ? primary.withValues(alpha: 0.24)
+                  : isFocused.value
                   ? primary.withValues(alpha: 0.18)
-                  : Theme.of(context).colorScheme.surfaceContainerLow,
+                  : isWatched
+                  ? watchedCardColor
+                  : normalCardColor,
               borderRadius: BorderRadius.circular(12.0),
               border: Border.all(
-                color: isFocused.value
+                color: isSelected || isFocused.value
                     ? primary
                     : Theme.of(context).dividerColor.withValues(
                         alpha: Theme.of(context).brightness == Brightness.dark
                             ? 0.1
                             : 0.5,
                       ),
-                width: isFocused.value ? 2 : 1,
+                width: isSelected || isFocused.value ? 2 : 1,
               ),
             ),
             clipBehavior: Clip.antiAlias,
@@ -238,14 +280,25 @@ class EpisodeCard extends HookConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildThumbnail(context, progress, statusBadge),
+                    _buildThumbnail(
+                      context,
+                      displayedProgress,
+                      statusBadge,
+                      isWatched: isWatched,
+                      isSelectionMode: isSelectionMode,
+                      isSelected: isSelected,
+                    ),
                     const SizedBox(width: LayoutConstants.spacingMd),
                     Expanded(
                       child: Text(
                         "${episode.episode}. ${episode.name.toUpperCase()}",
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: isWatched
+                              ? theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.65,
+                                )
+                              : theme.colorScheme.onSurface,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -256,17 +309,28 @@ class EpisodeCard extends HookConsumerWidget {
                     // onKeyEvent can force focus here from the body. Left from
                     // the icon returns focus to the body via this widget's own
                     // onKeyEvent.
-                    _buildActionButtons(
-                      context,
-                      ref,
-                      downloadedFile,
-                      isDownloading,
-                      downloadProgress,
-                      downloadProgressData,
-                      details,
-                      downloadFocusNode,
-                      bodyFocusNode,
-                    ),
+                    if (isSelectionMode)
+                      Icon(
+                        isSelected
+                            ? Icons.check_circle_rounded
+                            : Icons.radio_button_unchecked_rounded,
+                        color: isSelected
+                            ? primary
+                            : theme.colorScheme.onSurfaceVariant,
+                        size: 30,
+                      )
+                    else
+                      _buildActionButtons(
+                        context,
+                        ref,
+                        downloadedFile,
+                        isDownloading,
+                        downloadProgress,
+                        downloadProgressData,
+                        details,
+                        downloadFocusNode,
+                        bodyFocusNode,
+                      ),
                   ],
                 ),
                 if (episode.description != null &&
@@ -418,8 +482,11 @@ class EpisodeCard extends HookConsumerWidget {
   Widget _buildThumbnail(
     BuildContext context,
     double progress,
-    String? statusBadge,
-  ) {
+    String? statusBadge, {
+    required bool isWatched,
+    required bool isSelectionMode,
+    required bool isSelected,
+  }) {
     return Stack(
       children: [
         ClipRRect(
@@ -447,6 +514,17 @@ class EpisodeCard extends HookConsumerWidget {
             ),
           ),
         ),
+        if (isWatched)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.28),
+                ),
+              ),
+            ),
+          ),
         if (progress > 0)
           Positioned(
             left: 0,
@@ -492,8 +570,12 @@ class EpisodeCard extends HookConsumerWidget {
                 color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.play_arrow_rounded,
+              child: Icon(
+                isSelectionMode
+                    ? isSelected
+                          ? Icons.check_rounded
+                          : Icons.add_rounded
+                    : Icons.play_arrow_rounded,
                 color: Colors.white,
                 size: 24,
               ),

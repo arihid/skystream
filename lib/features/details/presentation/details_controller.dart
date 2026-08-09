@@ -9,6 +9,8 @@ import '../../../core/extensions/base_provider.dart';
 import '../../../core/extensions/extension_manager.dart';
 import '../../../../core/storage/library_repository.dart';
 import '../../../../core/storage/history_repository.dart';
+import 'package:skystream/core/storage/episode_watch_repository.dart';
+import 'package:skystream/core/storage/storage_service.dart';
 import '../../library/presentation/library_provider.dart';
 import '../../library/presentation/history_provider.dart';
 import 'playback_launcher.dart';
@@ -18,6 +20,15 @@ import 'downloaded_file_provider.dart';
 import '../../tracking/data/simkl_service.dart';
 
 part 'details_controller.g.dart';
+
+String episodeSelectionKey(Episode episode) {
+  return [
+    episode.season,
+    episode.episode,
+    episode.dubStatus.name,
+    episode.url,
+  ].join('|');
+}
 
 class DetailsState {
   final AsyncValue<MultimediaItem?> details;
@@ -30,6 +41,7 @@ class DetailsState {
   final bool isAscending;
   final int selectedRangeIndex;
   final DubStatus selectedDubStatus;
+  final Set<String> selectedEpisodeKeys;
 
   const DetailsState({
     this.details = const AsyncLoading(),
@@ -42,6 +54,7 @@ class DetailsState {
     this.isAscending = true,
     this.selectedRangeIndex = 0,
     this.selectedDubStatus = DubStatus.none,
+    this.selectedEpisodeKeys = const <String>{},
   });
 
   DetailsState copyWith({
@@ -55,6 +68,7 @@ class DetailsState {
     bool? isAscending,
     int? selectedRangeIndex,
     DubStatus? selectedDubStatus,
+    Set<String>? selectedEpisodeKeys,
   }) {
     return DetailsState(
       details: details ?? this.details,
@@ -67,6 +81,7 @@ class DetailsState {
       isAscending: isAscending ?? this.isAscending,
       selectedRangeIndex: selectedRangeIndex ?? this.selectedRangeIndex,
       selectedDubStatus: selectedDubStatus ?? this.selectedDubStatus,
+      selectedEpisodeKeys: selectedEpisodeKeys ?? this.selectedEpisodeKeys,
     );
   }
 }
@@ -113,7 +128,24 @@ class DetailsController extends _$DetailsController {
         _processEpisodes(details.episodes, details, isInitial: false);
       }
     });
-    return const DetailsState();
+
+    ref.listen(episodeWatchRevisionProvider, (prev, next) {
+      final details = state.details.asData?.value;
+      if (details != null) {
+        _processEpisodes(details.episodes, details, isInitial: false);
+      }
+    });
+
+    final savedAscending =
+        ref
+            .read(storageServiceProvider)
+            .getPlayerSetting<bool>(
+              'episode_sort_ascending',
+              defaultValue: true,
+            ) ??
+        true;
+
+    return DetailsState(isAscending: savedAscending);
   }
 
   void init(MultimediaItem initialItem) {
@@ -129,7 +161,87 @@ class DetailsController extends _$DetailsController {
   }
 
   void toggleSort() {
-    state = state.copyWith(isAscending: !state.isAscending);
+    final nextAscending = !state.isAscending;
+    state = state.copyWith(isAscending: nextAscending);
+
+    unawaited(
+      ref
+          .read(storageServiceProvider)
+          .setPlayerSetting('episode_sort_ascending', nextAscending),
+    );
+  }
+
+  bool isEpisodeSelected(Episode episode) {
+    return state.selectedEpisodeKeys.contains(episodeSelectionKey(episode));
+  }
+
+  void toggleEpisodeSelection(Episode episode) {
+    final next = Set<String>.from(state.selectedEpisodeKeys);
+    final key = episodeSelectionKey(episode);
+
+    if (!next.add(key)) {
+      next.remove(key);
+    }
+
+    state = state.copyWith(selectedEpisodeKeys: next);
+  }
+
+  void selectAllEpisodes() {
+    final allEpisodeKeys = state.seasonMap.values
+        .expand((episodes) => episodes)
+        .map(episodeSelectionKey)
+        .toSet();
+
+    if (allEpisodeKeys.isEmpty) {
+      return;
+    }
+
+    state = state.copyWith(selectedEpisodeKeys: allEpisodeKeys);
+  }
+
+  void clearEpisodeSelection() {
+    if (state.selectedEpisodeKeys.isEmpty) {
+      return;
+    }
+
+    state = state.copyWith(selectedEpisodeKeys: const <String>{});
+  }
+
+  Future<void> setSelectedEpisodesWatched(String mainUrl, bool watched) async {
+    if (state.selectedEpisodeKeys.isEmpty) {
+      return;
+    }
+
+    final selectedKeys = Set<String>.from(state.selectedEpisodeKeys);
+
+    final selectedEpisodes = state.seasonMap.values
+        .expand((episodes) => episodes)
+        .where((episode) => selectedKeys.contains(episodeSelectionKey(episode)))
+        .toList(growable: false);
+
+    if (selectedEpisodes.isEmpty) {
+      clearEpisodeSelection();
+      return;
+    }
+
+    await ref
+        .read(episodeWatchRepositoryProvider)
+        .setManyWatched(mainUrl, selectedEpisodes, watched);
+
+    if (!ref.mounted) {
+      return;
+    }
+
+    state = state.copyWith(selectedEpisodeKeys: const <String>{});
+
+    final currentDetails = state.details.asData?.value;
+    if (currentDetails != null) {
+      _processEpisodes(
+        currentDetails.episodes,
+        currentDetails,
+        isInitial: false,
+      );
+    }
   }
 
   void setRangeIndex(int index) {
@@ -377,6 +489,7 @@ class DetailsController extends _$DetailsController {
     Episode? targetEpisode;
 
     final historyRepo = ref.read(historyRepositoryProvider);
+    final episodeWatchRepo = ref.read(episodeWatchRepositoryProvider);
 
     final allEpisodes = episodes;
     final lastEpisodeUrl = historyRepo.getLastEpisodeUrl(contextItem.url);
@@ -401,21 +514,7 @@ class DetailsController extends _$DetailsController {
 
       if (lastIndex != -1) {
         final matchedEp = allEpisodes[lastIndex];
-        final pos = historyRepo.getEpisodePosition(
-          matchedEp.url,
-          mainUrl: contextItem.url,
-          season: matchedEp.season,
-          episode: matchedEp.episode,
-        );
-        final dur = historyRepo.getEpisodeDuration(
-          matchedEp.url,
-          mainUrl: contextItem.url,
-          season: matchedEp.season,
-          episode: matchedEp.episode,
-        );
-        final progress = dur > 0 ? pos / dur : 0;
-
-        if (progress >= 0.85) {
+        if (episodeWatchRepo.isWatched(contextItem.url, matchedEp)) {
           if (lastIndex + 1 < allEpisodes.length) {
             targetEpisode = allEpisodes[lastIndex + 1];
           } else {
@@ -427,7 +526,11 @@ class DetailsController extends _$DetailsController {
       }
     }
 
-    targetEpisode ??= allEpisodes.first;
+    targetEpisode ??= allEpisodes.firstWhereOrNull(
+      (episode) => !episodeWatchRepo.isWatched(contextItem.url, episode),
+    );
+
+    targetEpisode ??= allEpisodes.last;
 
     if (isInitial && targetEpisode.season > 0) {
       selectedSeason = targetEpisode.season;

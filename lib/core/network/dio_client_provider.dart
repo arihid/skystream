@@ -27,6 +27,7 @@ Dio dioClient(Ref ref) {
   dio.httpClientAdapter = IOHttpClientAdapter(
     createHttpClient: () {
       final client = HttpClient();
+      client.idleTimeout = const Duration(minutes: 5);
       client.maxConnectionsPerHost = 10;
       client
           .connectionFactory = (Uri uri, String? proxyHost, int? proxyPort) async {

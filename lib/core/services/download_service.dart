@@ -15,6 +15,8 @@ import '../domain/entity/multimedia_item.dart';
 import '../router/app_router.dart';
 import '../storage/storage_service.dart';
 import '../network/dio_client_provider.dart';
+import '../utils/file_size_formatter.dart';
+import 'download_continued_processing_service.dart';
 
 part 'download_service.g.dart';
 
@@ -48,18 +50,12 @@ class DownloadProgressData {
   String get downloadedSizeString {
     if (totalSize <= 0) return "Calculating...";
     if (progress <= 0) return "0 MB";
-    final double downloaded = (totalSize * progress) / (1024 * 1024);
-    if (downloaded > 1024) {
-      return "${(downloaded / 1024).toStringAsFixed(2)} GB";
-    }
-    return "${downloaded.toStringAsFixed(2)} MB";
+    return formatFileSize(totalSize * progress);
   }
 
   String get totalSizeString {
     if (totalSize <= 0) return "Unknown";
-    final double total = totalSize / (1024 * 1024);
-    if (total > 1024) return "${(total / 1024).toStringAsFixed(2)} GB";
-    return "${total.toStringAsFixed(2)} MB";
+    return formatFileSize(totalSize);
   }
 
   String get speedString {
@@ -121,16 +117,22 @@ class DownloadService {
   final Ref _ref;
   final Dio _dio;
   final Set<String> _cancellingUrls = {};
+  late final DownloadContinuedProcessingService _continuedProcessing;
   final _updatesController = StreamController<TaskUpdate>.broadcast();
   StreamSubscription<TaskUpdate>? _updatesSubscription;
   bool _isInitialized = false;
 
-  DownloadService(this._ref) : _dio = _ref.read(dioClientProvider);
+  DownloadService(this._ref) : _dio = _ref.read(dioClientProvider) {
+    _continuedProcessing = DownloadContinuedProcessingService(
+      onSystemCancel: _cancelFromSystemUI,
+    );
+  }
 
   Stream<TaskUpdate> get updates => _updatesController.stream;
 
   void dispose() {
     _updatesSubscription?.cancel();
+    unawaited(_continuedProcessing.dispose());
     _updatesController.close();
     // Do NOT cancel _fdSubscription — it matches FileDownloader()'s singleton
     // lifetime and cannot be re-subscribed after cancellation.
@@ -239,6 +241,14 @@ class DownloadService {
               .read(downloadProgressProvider.notifier)
               .update(trackingUrl, progressData);
 
+          unawaited(
+            _continuedProcessing.update(
+              taskId: update.task.taskId,
+              progress: progressData.progress,
+              totalBytes: progressData.totalSize,
+            ),
+          );
+
         case TaskStatusUpdate():
           if (kDebugMode) {
             debugPrint(
@@ -266,6 +276,49 @@ class DownloadService {
                   ),
                 );
           }
+
+          switch (update.status) {
+            case TaskStatus.complete:
+              unawaited(
+                _continuedProcessing.finish(
+                  taskId: update.task.taskId,
+                  success: true,
+                  status: 'completed',
+                ),
+              );
+            case TaskStatus.failed:
+              unawaited(
+                _continuedProcessing.finish(
+                  taskId: update.task.taskId,
+                  success: false,
+                  status: 'failed',
+                ),
+              );
+            case TaskStatus.canceled:
+              unawaited(
+                _continuedProcessing.finish(
+                  taskId: update.task.taskId,
+                  success: false,
+                  status: 'canceled',
+                ),
+              );
+            case TaskStatus.paused:
+              unawaited(_continuedProcessing.stop(taskId: update.task.taskId));
+            case TaskStatus.running:
+            case TaskStatus.enqueued:
+              if (current != null) {
+                unawaited(
+                  _continuedProcessing.update(
+                    taskId: update.task.taskId,
+                    progress: current.progress,
+                    totalBytes: current.totalSize,
+                  ),
+                );
+              }
+            default:
+              break;
+          }
+
           _handleStatusUpdate(update, trackingUrl);
       }
     });
@@ -342,12 +395,34 @@ class DownloadService {
     }
   }
 
-  Future<void> cancelDownload(String taskId, String trackingUrl) async {
+  Future<void> _cancelFromSystemUI(String taskId) async {
+    final task = await FileDownloader().taskForId(taskId);
+    if (task == null) {
+      await FileDownloader().cancelTasksWithIds([taskId]);
+      return;
+    }
+
+    final trackingUrl = task.metaData.isNotEmpty ? task.metaData : task.url;
+    await cancelDownload(taskId, trackingUrl, notifyContinuedProcessing: false);
+  }
+
+  Future<void> cancelDownload(
+    String taskId,
+    String trackingUrl, {
+    bool notifyContinuedProcessing = true,
+  }) async {
     _cancellingUrls.add(trackingUrl);
     try {
       await FileDownloader().cancelTasksWithIds([taskId]);
       _ref.read(activeDownloadsProvider.notifier).remove(trackingUrl);
       _ref.read(downloadProgressProvider.notifier).remove(trackingUrl);
+      if (notifyContinuedProcessing) {
+        await _continuedProcessing.finish(
+          taskId: taskId,
+          success: false,
+          status: 'canceled',
+        );
+      }
 
       // Proactive cleanup
       await FileDownloader().database.deleteRecordWithId(taskId);
@@ -364,13 +439,25 @@ class DownloadService {
     final task = await FileDownloader().taskForId(taskId);
     if (task is DownloadTask) {
       await FileDownloader().pause(task);
+      await _continuedProcessing.stop(taskId: taskId);
     }
   }
 
   Future<void> resumeDownload(String taskId) async {
     final task = await FileDownloader().taskForId(taskId);
     if (task is DownloadTask) {
+      final records = await FileDownloader().database.allRecords();
+      final record = records.firstWhereOrNull(
+        (candidate) => candidate.task.taskId == taskId,
+      );
+
       await FileDownloader().resume(task);
+      await _continuedProcessing.start(
+        taskId: taskId,
+        displayName: task.displayName,
+        progress: record?.progress ?? 0.0,
+        totalBytes: record?.expectedFileSize ?? -1,
+      );
     }
   }
 
@@ -498,6 +585,12 @@ class DownloadService {
       }
 
       _ref.read(activeDownloadsProvider.notifier).add(trackingUrl ?? url);
+      await _continuedProcessing.start(
+        taskId: existingRecord.task.taskId,
+        displayName: filename,
+        progress: existingRecord.progress,
+        totalBytes: existingRecord.expectedFileSize,
+      );
       return true;
     }
 
@@ -561,6 +654,10 @@ class DownloadService {
       await _ref
           .read(storageServiceProvider)
           .saveDownloadMetadata(task.taskId, item, episode: episode);
+      await _continuedProcessing.start(
+        taskId: task.taskId,
+        displayName: filename,
+      );
     }
     return success;
   }

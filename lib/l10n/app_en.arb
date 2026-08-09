@@ -5,6 +5,8 @@
   "home": "Home",
   "search": "Search",
   "explore": "Explore",
+  "exploreAnime": "Explore Anime",
+  "exploreMovies": "Explore Movies",
   "library": "Library",
   "settings": "Settings",
   "extensions": "Extensions",
@@ -276,6 +278,11 @@
   "repoUrlOrShortcode": "Repository URL or Shortcode",
   "assetPlugin": "Asset Plugin",
   "installed": "Installed",
+  "repositories": "Repositories",
+  "noExtensionsInstalled": "No Extensions Installed",
+  "browseRepositoriesToInstall": "Browse the Repositories tab to discover and install extensions.",
+  "browseRepositories": "Browse Repositories",
+  "addRepoDescription": "Add a repository URL or shortcode to discover and install extension plugins.",
   "updateTo": "Update to {version}",
   "@updateTo": {
     "placeholders": {

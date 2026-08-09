@@ -36,17 +36,19 @@ class PlaybackLauncher {
     String url, {
     required MultimediaItem baseItem,
     MultimediaItem? detailedItem,
+    Episode? episode,
   }) async {
     final settings = await _ref.read(playerSettingsProvider.future);
     if (!context.mounted) return;
 
     // Smart Intercept: Check if this item/episode is downloaded
     final itemToCheck = detailedItem ?? baseItem;
-    final episode = itemToCheck.episodes?.firstWhereOrNull((e) => e.url == url);
+    final resolvedEpisode =
+        episode ?? itemToCheck.episodes?.firstWhereOrNull((e) => e.url == url);
     final downloadService = _ref.read(downloadServiceProvider);
     final localFile = await downloadService.getDownloadedFile(
       itemToCheck,
-      episode: episode,
+      episode: resolvedEpisode,
     );
     if (!context.mounted) return;
 
@@ -75,7 +77,7 @@ class PlaybackLauncher {
         $extra: PlayerRouteExtra(
           item: detailedItem ?? baseItem,
           videoUrl: finalUrl,
-          episode: episode,
+          episode: resolvedEpisode,
         ),
       ).push<void>(context);
     }

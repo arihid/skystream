@@ -24,6 +24,12 @@ class AppLocalizationsLv extends AppLocalizations {
   String get explore => 'Izpētīt';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'Bibliotēka';
 
   @override
@@ -667,6 +673,23 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get installed => 'Instalēts';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {

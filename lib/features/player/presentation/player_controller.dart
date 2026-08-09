@@ -22,6 +22,7 @@ import '../../../../core/extensions/extension_manager.dart';
 import '../../../../core/extensions/providers.dart';
 import '../../../../core/models/torrent_status.dart';
 import '../../../../core/storage/history_repository.dart';
+import '../../../../core/storage/episode_watch_repository.dart';
 import '../../library/presentation/history_provider.dart';
 import '../../tracking/data/sync_manager.dart';
 import '../../tracking/domain/sync_progress_item.dart';
@@ -3537,8 +3538,19 @@ class PlayerController extends Notifier<PlayerState> {
       }
 
       // 2. Mark Watched (remote & local completion logic)
-      if (progressPercent >= 85) {
+      if (progressPercent >= 90) {
         if (!_hasMarkedWatched) {
+          if (isSeries && currentEpisode != null) {
+            unawaited(
+              ref
+                  .read(episodeWatchRepositoryProvider)
+                  .setWatched(_item.url, currentEpisode, true)
+                  .catchError((Object error) {
+                    talker.error('Failed to save local watched state', error);
+                  }),
+            );
+          }
+
           unawaited(
             syncManager
                 .markWatched(_item, currentEpisode)

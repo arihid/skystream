@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
@@ -9,6 +8,7 @@ import 'anilist_explore_screen.dart';
 import 'view_all_screen.dart';
 import 'widgets/explore_carousel.dart';
 import 'widgets/explore_header_bar.dart';
+import 'widgets/hover_border_gradient.dart';
 import 'widgets/media_horizontal_list.dart';
 import 'widgets/unified_filter_dialog.dart';
 import '../data/explore_filter_provider.dart';
@@ -49,7 +49,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   final ValueNotifier<bool> _isScrolledNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<double> _appBarOpacityNotifier = ValueNotifier<double>(0);
   final ValueNotifier<bool> _showBottomFade = ValueNotifier(false);
-  final ValueNotifier<bool> _isFabExtended = ValueNotifier<bool>(true);
   final FocusNode _firstActionFocusNode = FocusNode();
 
   /// Carousel controller exposed by ExploreCarousel via [onControllerReady].
@@ -94,16 +93,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     if (isScrolled != _isScrolledNotifier.value) {
       _isScrolledNotifier.value = isScrolled;
     }
-
-    if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.reverse &&
-        _isFabExtended.value) {
-      _isFabExtended.value = false;
-    } else if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.forward &&
-        !_isFabExtended.value) {
-      _isFabExtended.value = true;
-    }
   }
 
   @override
@@ -113,7 +102,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     _isScrolledNotifier.dispose();
     _appBarOpacityNotifier.dispose();
     _showBottomFade.dispose();
-    _isFabExtended.dispose();
     _firstActionFocusNode.dispose();
     super.dispose();
   }
@@ -179,6 +167,58 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
             centerTitle: false,
             actions: [
+              // Explore Mode Toggle (Movies <-> Anime)
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: CardsWrapper(
+                  onTap: () {
+                    final isAnime = ref.read(exploreModeProvider);
+                    ref
+                        .read(exploreModeProvider.notifier)
+                        .setAnimeMode(!isAnime);
+                  },
+                  borderRadius: BorderRadius.circular(50),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isAnime = ref.watch(exploreModeProvider);
+                      final l10n = AppLocalizations.of(context)!;
+                      return Tooltip(
+                        message: isAnime
+                            ? l10n.exploreMovies
+                            : l10n.exploreAnime,
+                        child: CircleAvatar(
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.1),
+                          radius: 18,
+                          child: isAnime
+                              ? Icon(
+                                  Icons.movie,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                  size: 18,
+                                )
+                              : SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CustomPaint(
+                                    painter: AnimeLogoPainter(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
               Padding(
                 padding: const EdgeInsets.only(
                   right: LayoutConstants.spacingMd,
@@ -262,65 +302,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                         setState(() => _carouselController = c),
                   )
                 : _buildScrollView(context),
-          ),
-          floatingActionButton: ValueListenableBuilder<bool>(
-            valueListenable: _isFabExtended,
-            builder: (context, isFabExtended, _) {
-              final isAnime = ref.watch(exploreModeProvider);
-              return Material(
-                elevation: 4,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context).colorScheme.surfaceDim
-                    : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    ref
-                        .read(exploreModeProvider.notifier)
-                        .setAnimeMode(!isAnime);
-                  },
-                  child: Container(
-                    height: 56,
-                    constraints: const BoxConstraints(minWidth: 56),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isFabExtended ? 16 : 0,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isAnime ? Icons.arrow_back : Icons.explore,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          child: SizedBox(
-                            width: isFabExtended ? null : 0,
-                            child: isFabExtended
-                                ? Padding(
-                                    padding: const EdgeInsets.only(left: 12),
-                                    child: Text(
-                                      isAnime ? 'Go Back' : 'Explore Anime',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         );
       },
@@ -549,12 +530,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             sliver: sliver,
           );
         }),
-        const SliverSafeArea(
-          top: false,
-          left: true,
-          right: true,
-          sliver: SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ),
       ],
     );
   }
@@ -685,6 +660,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           l10n.lastVideosTVShows,
           ViewAllCategory.airingTodayTV,
         ),
+      ),
+      const SliverPadding(
+        padding: EdgeInsets.only(bottom: 100),
       ),
     ];
   }

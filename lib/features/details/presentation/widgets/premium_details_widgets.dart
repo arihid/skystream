@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
-import 'package:intl/intl.dart';
 import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/shared/widgets/shimmer_placeholder.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -213,16 +214,112 @@ class MetadataBar extends ConsumerWidget {
   }
 }
 
-class NextAiringWidget extends StatelessWidget {
+class NextAiringWidget extends StatefulWidget {
   final NextAiring nextAiring;
-  const NextAiringWidget({super.key, required this.nextAiring});
+
+  const NextAiringWidget({
+    super.key,
+    required this.nextAiring,
+  });
+
+  @override
+  State<NextAiringWidget> createState() => _NextAiringWidgetState();
+}
+
+class _NextAiringWidgetState extends State<NextAiringWidget> {
+  Timer? _timer;
+  late Duration _remaining;
+
+  DateTime get _airingDate => DateTime.fromMillisecondsSinceEpoch(
+    widget.nextAiring.unixTime * 1000,
+    isUtc: true,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _startCountdown();
+  }
+
+  @override
+  void didUpdateWidget(covariant NextAiringWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.nextAiring.unixTime != widget.nextAiring.unixTime) {
+      _startCountdown();
+    }
+  }
+
+  Duration _calculateRemaining() {
+    final difference = _airingDate.difference(DateTime.now().toUtc());
+
+    if (difference.isNegative) {
+      return Duration.zero;
+    }
+
+    return difference;
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    _remaining = _calculateRemaining();
+
+    if (_remaining == Duration.zero) {
+      return;
+    }
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final remaining = _calculateRemaining();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _remaining = remaining;
+      });
+
+      if (remaining == Duration.zero) {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  String _formatCountdown(Duration duration) {
+    final days = duration.inDays;
+    final hours = duration.inHours.remainder(24).toString().padLeft(2, '0');
+    final minutes = duration.inMinutes
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
+    final seconds = duration.inSeconds
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
+
+    if (days > 0) {
+      return '$days days  $hours:$minutes:$seconds';
+    }
+
+    return '$hours:$minutes:$seconds';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final date = DateTime.fromMillisecondsSinceEpoch(
-      nextAiring.unixTime * 1000,
-    );
-    final formattedDate = DateFormat('MMM dd, yyyy (hh:mm a)').format(date);
+    final season = widget.nextAiring.season;
+    final episodeDescription = season == null
+        ? 'Episode ${widget.nextAiring.episode}'
+        : 'Episode ${widget.nextAiring.episode} of Season $season';
+
+    final countdownText = _remaining == Duration.zero
+        ? 'Airing now'
+        : _formatCountdown(_remaining);
 
     return Container(
       width: double.infinity,
@@ -242,30 +339,28 @@ class NextAiringWidget extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.upcoming_rounded,
+                Icons.timer_outlined,
                 size: 20,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                "Next episode airing",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  '$episodeDescription in',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            "Episode ${nextAiring.episode} of Season ${nextAiring.season} will air on:",
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          Text(
-            formattedDate,
+            countdownText,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 18,
             ),
           ),
         ],

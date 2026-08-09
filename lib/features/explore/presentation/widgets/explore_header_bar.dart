@@ -82,37 +82,59 @@ class ExploreHeaderBar extends ConsumerWidget {
 
           const SizedBox(width: 16),
 
-          HoverBorderGradient(
+          CardsWrapper(
+            scaleFactor: 1.01,
             onTap: () {
               final isAnime = ref.read(exploreModeProvider);
               ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
             },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CustomPaint(
-                    painter: AnimeLogoPainter(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  ref.watch(exploreModeProvider) ? 'Go Back' : 'Anime',
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+            child: HoverBorderGradient(
+              onTap: () {
+                final isAnime = ref.read(exploreModeProvider);
+                ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
+              },
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final isAnime = ref.watch(exploreModeProvider);
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isAnime)
+                        Icon(
+                          Icons.movie,
+                          size: 14,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                        )
+                      else
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CustomPaint(
+                            painter: AnimeLogoPainter(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isAnime ? l10n.exploreMovies : l10n.exploreAnime,
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
 

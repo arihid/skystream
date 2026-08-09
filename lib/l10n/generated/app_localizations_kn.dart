@@ -24,6 +24,12 @@ class AppLocalizationsKn extends AppLocalizations {
   String get explore => 'ಅನ್ವೇಷಿಸಿ';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'ಸಂಗ್ರಹ';
 
   @override
@@ -673,6 +679,23 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get installed => 'ಇನ್‌ಸ್ಟಾಲ್ ಆಗಿದೆ';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {

@@ -825,7 +825,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     skipTraversal: true,
                     child: ListView.builder(
                       padding: const EdgeInsets.only(
-                        bottom: LayoutConstants.spacingMd,
+                        bottom: 100,
                       ),
                       itemCount: state.results.length,
                       itemBuilder: (context, index) {

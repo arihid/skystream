@@ -24,6 +24,12 @@ class AppLocalizationsCs extends AppLocalizations {
   String get explore => 'Prozkoumat';
 
   @override
+  String get exploreAnime => 'Explore Anime';
+
+  @override
+  String get exploreMovies => 'Explore Movies';
+
+  @override
   String get library => 'Knihovna';
 
   @override
@@ -661,6 +667,23 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get installed => 'Nainstalováno';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
 
   @override
   String updateTo(String version) {
