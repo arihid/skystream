@@ -12,6 +12,8 @@ class GamepadDirectionalIntent extends Intent {
 }
 class AppLeftBumperIntent extends Intent { const AppLeftBumperIntent(); }
 class AppRightBumperIntent extends Intent { const AppRightBumperIntent(); }
+class AppLeftTriggerIntent extends Intent { const AppLeftTriggerIntent(); }
+class AppRightTriggerIntent extends Intent { const AppRightTriggerIntent(); }
 class AppSelectButtonIntent extends Intent { const AppSelectButtonIntent(); }
 
 class AppActionBindings {
@@ -76,6 +78,8 @@ class AppActionBindings {
       
       AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(onInvoke: (_) => null),
       AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(onInvoke: (_) => null),
+      AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(onInvoke: (_) => null),
+      AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(onInvoke: (_) => null),
       
       AppMenuIntent: CallbackAction<AppMenuIntent>(
         onInvoke: (_) {
