@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,10 +18,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/providers/device_info_provider.dart';
-import '../../../../features/settings/presentation/player_settings_provider.dart';
-import '../../../../features/settings/presentation/general_settings_provider.dart';
 import '../../../../core/input/gamepad_actions.dart';
 import '../../../../core/input/gamepad_intents.dart';
+import '../../../../features/settings/presentation/player_settings_provider.dart';
+import '../../../../features/settings/presentation/general_settings_provider.dart';
 import 'widgets/skystream_player_controls.dart';
 import 'widgets/hotstar_player_style.dart';
 import 'player_controller.dart';
@@ -59,23 +60,19 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen>
     with WidgetsBindingObserver {
   late final Player _player;
-  late final VideoController _videoController; // media_kit renderer
-  late final vv.VideoController
-  _videoViewController; // video_view (ExoPlayer/AVPlayer)
+  late final VideoController _videoController; 
+  late final vv.VideoController _videoViewController; 
 
   final ValueNotifier<BoxFit> _videoFit = ValueNotifier(BoxFit.contain);
   final ValueNotifier<bool> _controlsVisible = ValueNotifier(false);
 
   final GlobalKey<SkyStreamPlayerControlsState> _controlsKeyFinal = GlobalKey();
-  final FocusNode _rootFocusNode = FocusNode(debugLabel: 'player_root');
 
+  final FocusNode _rootFocusNode = FocusNode(debugLabel: 'player_root');
   DateTime? _lastBackAt;
 
   bool _isTv = false;
   bool _isTablet = false;
-  bool _isDesktop = false;
-  bool get _isBigPicture => _isTv || _isDesktop;
-
   bool _wasPlayingBeforeBackground = false;
   bool _spaceHeldForSpeed = false;
   double? _speedBeforeSpaceHold;
@@ -93,17 +90,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     final deviceProfile = ref.read(deviceProfileProvider).asData?.value;
     _isTv = deviceProfile?.isTv ?? false;
     _isTablet = deviceProfile?.isTablet ?? false;
-    _isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
     WakelockPlus.enable();
 
-    // Initialize player with larger buffer for torrent streaming
     _player = Player(
       configuration: const PlayerConfiguration(
-        bufferSize: 128 * 1024 * 1024, // 128MB
+        bufferSize: 128 * 1024 * 1024, 
       ),
     );
 
@@ -111,7 +106,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       final native = _player.platform as NativePlayer;
       native.setProperty('network-timeout', '120');
       native.setProperty('force-seekable', 'yes');
-      native.setProperty('demuxer-lavf-probesize', '33554432'); // 32MB
+      native.setProperty('demuxer-lavf-probesize', '33554432');
       native.setProperty('demuxer-lavf-analyzeduration', '30');
       if (kDebugMode) {
         native.setProperty('msg-level', 'hls=v,lavf=v,ffmpeg/demuxer=v');
@@ -119,7 +114,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       native.setProperty('sub-visibility', 'no');
     }
     _videoController = VideoController(_player);
-
     _videoViewController = vv.VideoController(autoPlay: true);
 
     _settingsSub = ref.listenManual<AsyncValue<PlayerSettings>>(
@@ -251,8 +245,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
-    
-    // Global media shortcuts
+
     if (event.logicalKey == LogicalKeyboardKey.keyM) {
       _controlsKeyFinal.currentState?.toggleMute();
       _controlsKeyFinal.currentState?.onUserInteraction();
@@ -271,15 +264,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       }
       return KeyEventResult.handled;
     }
-
-    // Spacebar mapping for desktop users
-    if (event.logicalKey == LogicalKeyboardKey.space) {
-      if (rootHasFocus) {
+    
+    if (rootHasFocus && (event.logicalKey == LogicalKeyboardKey.space || event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
+      if (!_controlsVisible.value) {
          _controlsKeyFinal.currentState?.showControls();
       } else {
          _controlsKeyFinal.currentState?.togglePlayPause();
+         _controlsKeyFinal.currentState?.onUserInteraction();
       }
-      _controlsKeyFinal.currentState?.onUserInteraction();
       return KeyEventResult.handled;
     }
 
@@ -288,8 +280,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   bool _consumeBack() {
     final now = DateTime.now();
-    if (_lastBackAt != null &&
-        now.difference(_lastBackAt!) < const Duration(milliseconds: 200)) {
+    if (_lastBackAt != null && now.difference(_lastBackAt!) < const Duration(milliseconds: 200)) {
       return true;
     }
     if (_controlsKeyFinal.currentState?.isFullscreen == true) {
@@ -303,11 +294,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       _controlsKeyFinal.currentState?.closeActivePanel();
       return true;
     }
-    if (_isBigPicture && _controlsVisible.value) {
-      final isPlaying =
-          ref.read(playerControllerProvider.select((s) => s.useExoPlayer))
-          ? _videoViewController.playbackState.value ==
-                vv.VideoControllerPlaybackState.playing
+    if (_controlsVisible.value) {
+      final isPlaying = ref.read(playerControllerProvider.select((s) => s.useExoPlayer))
+          ? _videoViewController.playbackState.value == vv.VideoControllerPlaybackState.playing
           : _player.state.playing;
       if (isPlaying) {
         _lastBackAt = now;
@@ -338,12 +327,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final errorMessage = ref.watch(
-      playerControllerProvider.select((s) => s.errorMessage),
-    );
-    final isLoading = ref.watch(
-      playerControllerProvider.select((s) => s.isLoading),
-    );
+    final errorMessage = ref.watch(playerControllerProvider.select((s) => s.errorMessage));
+    final isLoading = ref.watch(playerControllerProvider.select((s) => s.isLoading));
 
     if (errorMessage != null) {
       return Scaffold(
@@ -356,43 +341,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 56,
-                      ),
+                      const Icon(Icons.error_outline, color: Colors.red, size: 56),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.playbackError,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text(AppLocalizations.of(context)!.playbackError, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Text(
-                        errorMessage,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        textAlign: TextAlign.center,
-                      ),
+                      Text(errorMessage, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        autofocus: true,
-                        onPressed: _handleBack,
-                        icon: const Icon(Icons.arrow_back),
-                        label: Text(AppLocalizations.of(context)!.goBack),
+                        autofocus: true, onPressed: _handleBack,
+                        icon: const Icon(Icons.arrow_back), label: Text(AppLocalizations.of(context)!.goBack),
                       ),
                     ],
                   ),
                 ),
               ),
               Positioned(
-                top: 8,
-                left: 8,
+                top: 8, left: 8,
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  tooltip: AppLocalizations.of(context)!.goBack,
-                  onPressed: _handleBack,
+                  icon: const Icon(Icons.arrow_back), tooltip: AppLocalizations.of(context)!.goBack, onPressed: _handleBack,
                 ),
               ),
             ],
@@ -413,54 +379,41 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
+              // --- 🎮 D-PAD TRAVERSAL ---
+              DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
+                onInvoke: (intent) {
+                  if (!controlsVisible) {
+                    _controlsKeyFinal.currentState?.showControls();
+                    return null;
+                  }
+                  FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
+                  return null;
+                }
+              ),
               GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
                 onInvoke: (intent) {
                   if (!controlsVisible) {
                     _controlsKeyFinal.currentState?.showControls();
                     return null;
                   }
+                  FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
+                  return null;
+                }
+              ),
 
-                  // Steam Big Picture Traversal Rule
-                  if (intent.direction == TraversalDirection.left || intent.direction == TraversalDirection.right) {
-                    FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
-                    return null;
-                  }
+              // --- 🎮 'A' BUTTON (SAFE ACTIVATION) ---
+              ActivateIntent: _RootActivateAction(this),
+              AppSelectButtonIntent: _RootSelectAction(this),
 
-                  // Steam Big Picture Hide Rule (if up/down fails to find a prompt)
-                  final moved = FocusManager.instance.primaryFocus?.focusInDirection(intent.direction) ?? false;
-                  if (!moved) {
-                    _controlsKeyFinal.currentState?.hideControls();
-                  }
-                  
-                  return null;
-                }
-              ),
-              AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
-                onInvoke: (_) {
-                  _controlsKeyFinal.currentState?.triggerSeek(true);
-                  return null;
-                }
-              ),
-              AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
-                onInvoke: (_) {
-                  _controlsKeyFinal.currentState?.triggerSeek(false);
-                  return null;
-                }
-              ),
-              AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
-                onInvoke: (_) {
-                  _controlsKeyFinal.currentState?.triggerSeek(true);
-                  return null;
-                }
-              ),
-              AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
-                onInvoke: (_) {
-                  _controlsKeyFinal.currentState?.triggerSeek(false);
-                  return null;
-                }
-              ),
+              // --- 🎮 Y & X (GLOBAL OVERLAYS) ---
               AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
                 onInvoke: (_) {
+                  final isModalOpen = ModalRoute.of(context)?.isCurrent != true;
+                  if (isModalOpen) return null; 
+
+                  final handled = _controlsKeyFinal.currentState?.triggerActiveOverlay() ?? false;
+                  if (handled) return null;
+
                   if (controlsVisible) {
                     _controlsKeyFinal.currentState?.hideControls();
                   } else {
@@ -469,15 +422,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                   return null;
                 }
               ),
-              ActivateIntent: CallbackAction<ActivateIntent>(
-                onInvoke: (intent) {
-                  if (!controlsVisible) {
-                    _controlsKeyFinal.currentState?.showControls();
-                    return null;
-                  }
-                  // Let the framework press the currently focused button!
-                  return Actions.invoke(context, intent); 
+              AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+                onInvoke: (_) {
+                  final isModalOpen = ModalRoute.of(context)?.isCurrent != true;
+                  if (isModalOpen) return null; 
+
+                  _controlsKeyFinal.currentState?.triggerSecondaryOverlayAction();
+                  return null;
                 }
+              ),
+
+              // --- 🎮 TRIGGERS / BUMPERS ---
+              GamepadSeekForwardIntent: CallbackAction<GamepadSeekForwardIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
+              ),
+              GamepadSeekBackwardIntent: CallbackAction<GamepadSeekBackwardIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
+              ),
+              AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
+              ),
+              AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
+              ),
+              AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
+              ),
+              AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
+                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
               ),
             },
             child: Scaffold(
@@ -485,134 +457,75 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                 focusNode: _rootFocusNode,
                 autofocus: true,
                 onKeyEvent: _handleKey,
-                child: Shortcuts(
-                  shortcuts: const <ShortcutActivator, Intent>{
-                    SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
-                  },
-                  child: Stack(
-                    children: [
-                      RepaintBoundary(
-                        child: ValueListenableBuilder<BoxFit>(
-                          valueListenable: _videoFit,
-                          builder: (_, fit, child) => Center(
-                            child: Consumer(
-                              builder: (context, ref, _) {
-                                final useExoPlayer = ref.watch(
-                                  playerControllerProvider.select(
-                                    (s) => s.useExoPlayer,
-                                  ),
-                                );
-                                if (useExoPlayer) {
-                                  return vv.VideoView(
-                                    controller: _videoViewController,
-                                    videoFit: fit,
-                                  );
-                                }
-                                return Video(
-                                  controller: _videoController,
-                                  fit: fit,
-                                  subtitleViewConfiguration:
-                                      const SubtitleViewConfiguration(
-                                        visible: false,
-                                        style: TextStyle(
-                                          color: Colors.transparent,
-                                        ),
-                                      ),
-                                  controls: (state) => const SizedBox.shrink(),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final useExoPlayer = ref.watch(
-                            playerControllerProvider.select(
-                              (s) => s.useExoPlayer,
-                            ),
-                          );
-                          if (useExoPlayer) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final subtitleSettings = ref
-                              .watch(playerSettingsProvider)
-                              .asData
-                              ?.value;
-
-                          return Positioned(
-                            bottom:
-                                (controlsVisible
-                                    ? HotstarPlayerStyle.bottomChromeHeight
-                                    : 20.0) +
-                                ((100 -
-                                        (subtitleSettings?.subtitlePosition ??
-                                            100.0)) *
-                                    (MediaQuery.sizeOf(context).height * 0.008)),
-                            left: 20,
-                            right: 20,
-                            child: SubtitleView(
-                              controller: _videoController,
-                              configuration: SubtitleViewConfiguration(
-                                style: TextStyle(
-                                  fontSize:
-                                      subtitleSettings?.subtitleSize ?? 22.0,
-                                  color: Color(
-                                    subtitleSettings?.subtitleColor ?? 0xFFFFFFFF,
-                                  ),
-                                  backgroundColor:
-                                      Color(
-                                        subtitleSettings
-                                                ?.subtitleBackgroundColor ??
-                                            0x00000000,
-                                      ).withValues(
-                                        alpha:
-                                            subtitleSettings
-                                                ?.subtitleBackgroundOpacity ??
-                                            0.0,
-                                      ),
-                                  shadows: const [
-                                    Shadow(
-                                      offset: Offset(0, 1),
-                                      blurRadius: 2,
-                                      color: Colors.black,
-                                    ),
-                                  ],
-                                ),
-                                padding: EdgeInsets.zero,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                          child: SkyStreamPlayerControls(
-                            key: _controlsKeyFinal,
-                            isLoading: isLoading,
-                            player: _player,
-                            videoViewController: _videoViewController,
-                            title: widget.item.title,
-                            subtitle: ref
-                                .read(playerControllerProvider)
-                                .streamSubtitle,
-                            backdropUrl: widget.item.backdropImageUrl,
-                            logoUrl: widget.item.logoUrl,
-                            onResize: _updateResizeMode,
-                            onBackPointer: _handleBack,
-                            onRequestRootFocus: () =>
-                                _rootFocusNode.requestFocus(),
-                            onVisibilityChanged: (v) {
-                              if (mounted) {
-                                _controlsVisible.value = v;
+                child: Stack(
+                  children: [
+                    RepaintBoundary(
+                      child: ValueListenableBuilder<BoxFit>(
+                        valueListenable: _videoFit,
+                        builder: (_, fit, child) => Center(
+                          child: Consumer(
+                            builder: (context, ref, _) {
+                              final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
+                              if (useExoPlayer) {
+                                return vv.VideoView(controller: _videoViewController, videoFit: fit);
                               }
+                              return Video(
+                                controller: _videoController,
+                                fit: fit,
+                                subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false, style: TextStyle(color: Colors.transparent)),
+                                controls: (state) => const SizedBox.shrink(),
+                              );
                             },
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
+                        if (useExoPlayer) return const SizedBox.shrink();
+
+                        final subtitleSettings = ref.watch(playerSettingsProvider).asData?.value;
+
+                        return Positioned(
+                          bottom: (controlsVisible ? HotstarPlayerStyle.bottomChromeHeight : 20.0) + ((100 - (subtitleSettings?.subtitlePosition ?? 100.0)) * (MediaQuery.sizeOf(context).height * 0.008)),
+                          left: 20, right: 20,
+                          child: SubtitleView(
+                            controller: _videoController,
+                            configuration: SubtitleViewConfiguration(
+                              style: TextStyle(
+                                fontSize: subtitleSettings?.subtitleSize ?? 22.0,
+                                color: Color(subtitleSettings?.subtitleColor ?? 0xFFFFFFFF),
+                                backgroundColor: Color(subtitleSettings?.subtitleBackgroundColor ?? 0x00000000).withValues(alpha: subtitleSettings?.subtitleBackgroundOpacity ?? 0.0),
+                                shadows: const [Shadow(offset: Offset(0, 1), blurRadius: 2, color: Colors.black)],
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Positioned.fill(
+                      child: RepaintBoundary(
+                        child: SkyStreamPlayerControls(
+                          key: _controlsKeyFinal,
+                          isLoading: isLoading,
+                          player: _player,
+                          videoViewController: _videoViewController,
+                          title: widget.item.title,
+                          subtitle: ref.read(playerControllerProvider).streamSubtitle,
+                          backdropUrl: widget.item.backdropImageUrl,
+                          logoUrl: widget.item.logoUrl,
+                          onResize: _updateResizeMode,
+                          onBackPointer: _handleBack,
+                          onRequestRootFocus: () => _rootFocusNode.requestFocus(),
+                          onVisibilityChanged: (v) {
+                            if (mounted) _controlsVisible.value = v;
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -620,6 +533,50 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         );
       },
     );
+  }
+}
+
+// 🛡️ ACTION GUARDS: Only handle ActivateIntent if the root background is focused!
+// If the user is focused on a Side Panel element, these safely yield the signal so the side panel can be natively clicked.
+class _RootActivateAction extends Action<ActivateIntent> {
+  final _PlayerScreenState state;
+  _RootActivateAction(this.state);
+
+  @override
+  bool isEnabled(ActivateIntent intent) {
+    return FocusManager.instance.primaryFocus == state._rootFocusNode;
+  }
+
+  @override
+  Object? invoke(ActivateIntent intent) {
+    if (!state._controlsVisible.value) {
+      state._controlsKeyFinal.currentState?.showControls();
+    } else {
+      state._controlsKeyFinal.currentState?.togglePlayPause();
+      state._controlsKeyFinal.currentState?.onUserInteraction();
+    }
+    return null;
+  }
+}
+
+class _RootSelectAction extends Action<AppSelectButtonIntent> {
+  final _PlayerScreenState state;
+  _RootSelectAction(this.state);
+
+  @override
+  bool isEnabled(AppSelectButtonIntent intent) {
+    return FocusManager.instance.primaryFocus == state._rootFocusNode;
+  }
+
+  @override
+  Object? invoke(AppSelectButtonIntent intent) {
+    if (!state._controlsVisible.value) {
+      state._controlsKeyFinal.currentState?.showControls();
+    } else {
+      state._controlsKeyFinal.currentState?.togglePlayPause();
+      state._controlsKeyFinal.currentState?.onUserInteraction();
+    }
+    return null;
   }
 }
 
@@ -634,12 +591,10 @@ class SkyStreamEmbeddedSubtitleView extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SkyStreamEmbeddedSubtitleView> createState() =>
-      _SkyStreamEmbeddedSubtitleViewState();
+  ConsumerState<SkyStreamEmbeddedSubtitleView> createState() => _SkyStreamEmbeddedSubtitleViewState();
 }
 
-class _SkyStreamEmbeddedSubtitleViewState
-    extends ConsumerState<SkyStreamEmbeddedSubtitleView> {
+class _SkyStreamEmbeddedSubtitleViewState extends ConsumerState<SkyStreamEmbeddedSubtitleView> {
   bool _customFontLoaded = false;
 
   @override
@@ -667,11 +622,7 @@ class _SkyStreamEmbeddedSubtitleViewState
           final fontLoader = FontLoader('CustomSubtitleFont');
           fontLoader.addFont(Future.value(ByteData.sublistView(bytes)));
           await fontLoader.load();
-          if (mounted) {
-            setState(() {
-              _customFontLoaded = true;
-            });
-          }
+          if (mounted) setState(() => _customFontLoaded = true);
         }
       } catch (e) {
         debugPrint("Failed to load custom font: $e");
@@ -681,8 +632,7 @@ class _SkyStreamEmbeddedSubtitleViewState
 
   @override
   Widget build(BuildContext context) {
-    final settings =
-        ref.watch(playerSettingsProvider).value ?? const PlayerSettings();
+    final settings = ref.watch(playerSettingsProvider).value ?? const PlayerSettings();
 
     return StreamBuilder<List<String>>(
       stream: widget.player.stream.subtitle,
@@ -693,28 +643,14 @@ class _SkyStreamEmbeddedSubtitleViewState
 
         String? fontFamily;
         const List<String> builtInFonts = [
-          'Normal (system sans-serif)',
-          'Trebuchet MS',
-          'Netflix Sans',
-          'Google Sans',
-          'Open Sans',
-          'Futura',
-          'Consola',
-          'Gotham',
-          'Lucida Grande',
-          'STIX General',
-          'Times New Roman',
-          'Verdana',
-          'Ubuntu',
-          'Comic Sans',
-          'Poppins',
+          'Normal (system sans-serif)', 'Trebuchet MS', 'Netflix Sans', 'Google Sans', 'Open Sans',
+          'Futura', 'Consola', 'Gotham', 'Lucida Grande', 'STIX General', 'Times New Roman',
+          'Verdana', 'Ubuntu', 'Comic Sans', 'Poppins',
         ];
 
         if (settings.subTypefaceFilePath != null && _customFontLoaded) {
           fontFamily = 'CustomSubtitleFont';
-        } else if (settings.subTypeface != null &&
-            settings.subTypeface! >= 0 &&
-            settings.subTypeface! < builtInFonts.length) {
+        } else if (settings.subTypeface != null && settings.subTypeface! >= 0 && settings.subTypeface! < builtInFonts.length) {
           if (settings.subTypeface == 0) {
             fontFamily = null;
           } else {
@@ -732,156 +668,77 @@ class _SkyStreamEmbeddedSubtitleViewState
         );
 
         final textStyle = _getSubtitleTextStyle(fontFamily, baseStyle);
-
         final edgeColor = Color(settings.subEdgeColor);
 
         final alignmentCode = settings.subAlignment ?? 2;
         final alignment = switch (alignmentCode) {
-          1 => Alignment.bottomLeft,
-          3 => Alignment.bottomRight,
-          4 => Alignment.centerLeft,
-          5 => Alignment.center,
-          6 => Alignment.centerRight,
-          7 => Alignment.topLeft,
-          8 => Alignment.topCenter,
-          9 => Alignment.topRight,
-          _ => Alignment.bottomCenter,
+          1 => Alignment.bottomLeft, 3 => Alignment.bottomRight, 4 => Alignment.centerLeft,
+          5 => Alignment.center, 6 => Alignment.centerRight, 7 => Alignment.topLeft,
+          8 => Alignment.topCenter, 9 => Alignment.topRight, _ => Alignment.bottomCenter,
         };
 
         final crossAxisAlignment = switch (alignmentCode) {
-          1 || 4 || 7 => CrossAxisAlignment.start,
-          3 || 6 || 9 => CrossAxisAlignment.end,
-          _ => CrossAxisAlignment.center,
+          1 || 4 || 7 => CrossAxisAlignment.start, 3 || 6 || 9 => CrossAxisAlignment.end, _ => CrossAxisAlignment.center,
         };
 
         final textAlign = switch (alignmentCode) {
-          1 || 4 || 7 => TextAlign.left,
-          3 || 6 || 9 => TextAlign.right,
-          _ => TextAlign.center,
+          1 || 4 || 7 => TextAlign.left, 3 || 6 || 9 => TextAlign.right, _ => TextAlign.center,
         };
 
         Widget buildTextLine(String line) {
-          var cleanedLine = line
-              .replaceAll(RegExp(r'<[^>]*>'), '')
-              .replaceAll(RegExp(r'\{[^}]*\}'), '')
-              .trim();
-
-          if (settings.subUpperCase) {
-            cleanedLine = cleanedLine.toUpperCase();
-          }
-
+          var cleanedLine = line.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll(RegExp(r'\{[^}]*\}'), '').trim();
+          if (settings.subUpperCase) cleanedLine = cleanedLine.toUpperCase();
           if (cleanedLine.isEmpty) return const SizedBox.shrink();
 
           final List<Widget> children = [];
 
           if (settings.subEdgeType == 1) {
-            children.add(
-              Text(
-                cleanedLine,
-                style: textStyle.copyWith(
-                  color: null,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = settings.subEdgeSize ?? 2.0
-                    ..color = edgeColor,
-                ),
-                textAlign: textAlign,
-              ),
-            );
+            children.add(Text(
+              cleanedLine,
+              style: textStyle.copyWith(color: null, foreground: Paint()..style = PaintingStyle.stroke..strokeWidth = settings.subEdgeSize ?? 2.0..color = edgeColor),
+              textAlign: textAlign,
+            ));
           }
 
           List<Shadow>? shadows;
           if (settings.subEdgeType == 2) {
-            shadows = [
-              Shadow(
-                offset: const Offset(-1, -1),
-                color: edgeColor.withValues(alpha: 0.5),
-              ),
-              Shadow(
-                offset: const Offset(1, 1),
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
-            ];
+            shadows = [Shadow(offset: const Offset(-1, -1), color: edgeColor.withValues(alpha: 0.5)), Shadow(offset: const Offset(1, 1), color: Colors.white.withValues(alpha: 0.5))];
           } else if (settings.subEdgeType == 3) {
-            shadows = [
-              Shadow(
-                offset: const Offset(2, 2),
-                blurRadius: 2.0,
-                color: edgeColor,
-              ),
-            ];
+            shadows = [Shadow(offset: const Offset(2, 2), blurRadius: 2.0, color: edgeColor)];
           } else if (settings.subEdgeType == 4) {
-            shadows = [
-              Shadow(offset: const Offset(1, 1), color: edgeColor),
-              Shadow(
-                offset: const Offset(2, 2),
-                color: edgeColor.withValues(alpha: 0.5),
-              ),
-            ];
+            shadows = [Shadow(offset: const Offset(1, 1), color: edgeColor), Shadow(offset: const Offset(2, 2), color: edgeColor.withValues(alpha: 0.5))];
           }
 
-          children.add(
-            Text(
-              cleanedLine,
-              style: textStyle.copyWith(shadows: shadows),
-              textAlign: textAlign,
-            ),
-          );
+          children.add(Text(cleanedLine, style: textStyle.copyWith(shadows: shadows), textAlign: textAlign));
 
           Widget resultLine = Stack(children: children);
 
           final bgColor = Color(settings.subBackgroundColor);
           if (bgColor.a > 0 && settings.subBackgroundOpacity > 0) {
-            final paddingVal =
-                2.0 + (settings.subBackgroundRadius ?? 0.0) * 0.5;
+            final paddingVal = 2.0 + (settings.subBackgroundRadius ?? 0.0) * 0.5;
             resultLine = Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: paddingVal,
-                vertical: 2.0,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: paddingVal, vertical: 2.0),
               decoration: BoxDecoration(
                 color: bgColor.withValues(alpha: settings.subBackgroundOpacity),
-                borderRadius: settings.subBackgroundRadius != null
-                    ? BorderRadius.circular(settings.subBackgroundRadius!)
-                    : BorderRadius.zero,
+                borderRadius: settings.subBackgroundRadius != null ? BorderRadius.circular(settings.subBackgroundRadius!) : BorderRadius.zero,
               ),
               child: resultLine,
             );
           }
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.0),
-            child: resultLine,
-          );
+          return Padding(padding: const EdgeInsets.symmetric(vertical: 2.0), child: resultLine);
         }
 
         return Positioned.fill(
           child: SafeArea(
-            top: alignment.y < 0,
-            bottom: alignment.y > 0,
+            top: alignment.y < 0, bottom: alignment.y > 0,
             child: Padding(
-              padding: EdgeInsets.only(
-                left: 20.0,
-                right: 20.0,
-                top: 0.0,
-                bottom: alignment.y > 0
-                    ? (widget.controlsVisible ? 60.0 : 20.0)
-                    : 0.0,
-              ),
+              padding: EdgeInsets.only(left: 20.0, right: 20.0, top: 0.0, bottom: alignment.y > 0 ? (widget.controlsVisible ? 60.0 : 20.0) : 0.0),
               child: Align(
                 alignment: alignment,
                 child: Transform.translate(
-                  offset: Offset(
-                    0.0,
-                    alignment.y >= 0
-                        ? -settings.subElevation.toDouble()
-                        : settings.subElevation.toDouble(),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: crossAxisAlignment,
-                    children: lines.map(buildTextLine).toList(),
-                  ),
+                  offset: Offset(0.0, alignment.y >= 0 ? -settings.subElevation.toDouble() : settings.subElevation.toDouble()),
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: crossAxisAlignment, children: lines.map(buildTextLine).toList()),
                 ),
               ),
             ),
