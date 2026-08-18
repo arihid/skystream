@@ -45,6 +45,9 @@ class _PlayerOptionsResult {
   });
 }
 
+class _AdjustDownIntent extends Intent { const _AdjustDownIntent(); }
+class _AdjustUpIntent extends Intent { const _AdjustUpIntent(); }
+
 class PlayerBottomSheets {
   static Future<void> showSourceSelection({
     required BuildContext context,
@@ -373,7 +376,7 @@ class PlayerBottomSheets {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // VOLUME SELECTION DIALOG (BUMPERS + FIXED CHIP FOCUS)
+  // VOLUME SELECTION DIALOG
   // ───────────────────────────────────────────────────────────────────────────
   static Future<void> showVolumeSelection({
     required BuildContext context,
@@ -572,7 +575,7 @@ class PlayerBottomSheets {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // SPEED SELECTION DIALOG (BUMPERS + FIXED CHIP FOCUS)
+  // SPEED SELECTION DIALOG
   // ───────────────────────────────────────────────────────────────────────────
   static Future<void> showSpeedSelection({
     required BuildContext context,
@@ -699,6 +702,8 @@ class PlayerBottomSheets {
                                       value: selectedSpeed,
                                       min: 0.25,
                                       max: sliderMax,
+                                      step: 0.05,
+                                      divisions: sliderDivisions > 0 ? sliderDivisions : null,
                                       focusable: false,
                                       onChanged: setSpeed,
                                     ),
@@ -2141,57 +2146,81 @@ class _ModalPresetChipState extends State<_ModalPresetChip> {
   @override
   Widget build(BuildContext context) {
     final showHighlight = _isHovered || _isFocused;
-
-    return InkWell(
-      autofocus: widget.autofocus,
-      onFocusChange: (v) => setState(() => _isFocused = v),
-      onHover: (v) => setState(() => _isHovered = v),
-      onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: AnimatedScale(
-        scale: _isFocused ? 1.05 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: HotstarPlayerStyle.fastMotionDuration,
-          width: widget.isCompact ? 76 : 104,
-          padding: EdgeInsets.symmetric(vertical: widget.isCompact ? 10 : 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: widget.isSelected
-                ? HotstarPlayerStyle.accent.withValues(alpha: 0.22)
-                : (showHighlight
-                      ? Colors.white.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.06)),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: _isFocused
-                  ? HotstarPlayerStyle.accent
-                  : Colors.transparent,
-              width: 1.5,
-            ),
-            boxShadow: _isFocused
-                ? [
-                    BoxShadow(
-                      color: HotstarPlayerStyle.accent.withValues(
-                        alpha: 0.25,
-                      ),
-                      blurRadius: 8,
-                      spreadRadius: 1,
+    
+    return Semantics(
+      button: true,
+      label: widget.label,
+      selected: widget.isSelected,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) { widget.onTap(); return null; }),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) { widget.onTap(); return null; }),
+        },
+        child: Focus(
+          autofocus: widget.autofocus,
+          onFocusChange: (v) => setState(() => _isFocused = v),
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.select) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedScale(
+                scale: _isFocused ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: HotstarPlayerStyle.fastMotionDuration,
+                  width: widget.isCompact ? 76 : 104,
+                  padding: EdgeInsets.symmetric(vertical: widget.isCompact ? 10 : 14),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: widget.isSelected
+                        ? HotstarPlayerStyle.accent.withValues(alpha: 0.22)
+                        : (showHighlight
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.06)),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _isFocused
+                          ? HotstarPlayerStyle.accent
+                          : Colors.transparent,
+                      width: 1.5,
                     ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            widget.label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            style: TextStyle(
-              color: widget.isSelected
-                  ? HotstarPlayerStyle.primaryText
-                  : HotstarPlayerStyle.secondaryText,
-              fontSize: widget.isCompact ? 13 : 15,
-              fontWeight: FontWeight.w800,
+                    boxShadow: _isFocused
+                        ? [
+                            BoxShadow(
+                              color: HotstarPlayerStyle.accent.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: widget.isSelected
+                          ? HotstarPlayerStyle.primaryText
+                          : HotstarPlayerStyle.secondaryText,
+                      fontSize: widget.isCompact ? 13 : 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
