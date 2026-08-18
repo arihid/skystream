@@ -14,13 +14,8 @@ class NextEpisodeOverlay extends StatefulWidget {
   final double? nextEpisodeRating;
   final int? nextEpisodeNumber;
   final int? nextEpisodeSeason;
-
-  /// Episode runtime in seconds.
   final int? nextEpisodeRuntime;
-
-  /// Short synopsis / description of the next episode.
   final String? nextEpisodeDescription;
-
   final VoidCallback onPlayNext;
   final VoidCallback onDismiss;
   final bool isTv;
@@ -310,7 +305,6 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
             else
               const ThumbnailErrorPlaceholder(),
 
-            // Gradient fade overlay on the top of the thumbnail container
             Positioned(
               top: 0,
               left: 0,
@@ -568,6 +562,27 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
   }
 }
 
+Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
+  return Container(
+    width: isCompact ? 18 : 22,
+    height: isCompact ? 18 : 22,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      shape: BoxShape.circle,
+      border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: isCompact ? 10 : 12,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+  );
+}
+
 class _PlayNowButton extends StatefulWidget {
   final VoidCallback onPressed;
   final bool isTv;
@@ -657,7 +672,6 @@ class _PlayNowButtonState extends State<_PlayNowButton>
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Shine overlay
               Positioned.fill(
                 child: ClipRect(
                   child: LayoutBuilder(
@@ -691,7 +705,6 @@ class _PlayNowButtonState extends State<_PlayNowButton>
                   ),
                 ),
               ),
-              // Content (counter-skewed)
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -715,11 +728,14 @@ class _PlayNowButtonState extends State<_PlayNowButton>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: isCompact ? 18 : 20,
-                              ),
+                              if (widget.isTv)
+                                _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
+                              else
+                                Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: isCompact ? 18 : 20,
+                                ),
                               SizedBox(width: isCompact ? 6 : 8),
                               Text(
                                 widget.label.toUpperCase(),
@@ -844,7 +860,6 @@ class _CancelButtonState extends State<_CancelButton> {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Right edge vertical line
               Positioned(
                 top: 0,
                 right: 0,
@@ -857,7 +872,6 @@ class _CancelButtonState extends State<_CancelButton> {
                       : Colors.white.withValues(alpha: 0.1),
                 ),
               ),
-              // Gradient overlay (fades in on hover)
               Positioned.fill(
                 child: AnimatedOpacity(
                   opacity: _isActive ? 1.0 : 0.0,
@@ -877,7 +891,6 @@ class _CancelButtonState extends State<_CancelButton> {
                   ),
                 ),
               ),
-              // Content (counter-skewed)
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -901,15 +914,18 @@ class _CancelButtonState extends State<_CancelButton> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              AnimatedRotation(
-                                turns: _isActive ? 0.25 : 0.0,
-                                duration: const Duration(milliseconds: 300),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white,
-                                  size: isCompact ? 18 : 20,
+                              if (widget.isTv)
+                                _buildGamepadBadge('X', Colors.blueAccent.shade400, isCompact)
+                              else
+                                AnimatedRotation(
+                                  turns: _isActive ? 0.25 : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white,
+                                    size: isCompact ? 18 : 20,
+                                  ),
                                 ),
-                              ),
                               SizedBox(width: isCompact ? 6 : 8),
                               Text(
                                 widget.label.toUpperCase(),

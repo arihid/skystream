@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,10 +17,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/providers/device_info_provider.dart';
-import '../../../../core/input/gamepad_actions.dart';
-import '../../../../core/input/gamepad_intents.dart';
 import '../../../../features/settings/presentation/player_settings_provider.dart';
 import '../../../../features/settings/presentation/general_settings_provider.dart';
+import '../../../../core/input/gamepad_actions.dart';
+import '../../../../core/input/gamepad_intents.dart';
 import 'widgets/skystream_player_controls.dart';
 import 'widgets/hotstar_player_style.dart';
 import 'player_controller.dart';
@@ -60,8 +59,8 @@ class PlayerScreen extends ConsumerStatefulWidget {
 class _PlayerScreenState extends ConsumerState<PlayerScreen>
     with WidgetsBindingObserver {
   late final Player _player;
-  late final VideoController _videoController; 
-  late final vv.VideoController _videoViewController; 
+  late final VideoController _videoController;
+  late final vv.VideoController _videoViewController;
 
   final ValueNotifier<BoxFit> _videoFit = ValueNotifier(BoxFit.contain);
   final ValueNotifier<bool> _controlsVisible = ValueNotifier(false);
@@ -73,6 +72,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   bool _isTv = false;
   bool _isTablet = false;
+  bool get _isBigPicture => _isTv || Platform.isMacOS || Platform.isWindows || Platform.isLinux;
   bool _wasPlayingBeforeBackground = false;
   bool _spaceHeldForSpeed = false;
   double? _speedBeforeSpaceHold;
@@ -98,7 +98,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
     _player = Player(
       configuration: const PlayerConfiguration(
-        bufferSize: 128 * 1024 * 1024, 
+        bufferSize: 128 * 1024 * 1024, // 128MB
       ),
     );
 
@@ -113,6 +113,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       }
       native.setProperty('sub-visibility', 'no');
     }
+    
     _videoController = VideoController(_player);
     _videoViewController = vv.VideoController(autoPlay: true);
 
@@ -242,6 +243,48 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       return _consumeBack() ? KeyEventResult.handled : KeyEventResult.ignored;
     }
 
+    if (!_isTv && rootHasFocus && event.logicalKey == LogicalKeyboardKey.space) {
+      if (event is KeyDownEvent) {
+        _spaceHoldTimer ??= Timer(const Duration(milliseconds: 260), () {
+          if (!mounted || _spaceHeldForSpeed) return;
+          _spaceHeldForSpeed = true;
+          _speedBeforeSpaceHold = ref.read(playerControllerProvider).playbackSpeed;
+          unawaited(ref.read(playerControllerProvider.notifier).setPlaybackSpeed(2.0));
+          ref.read(playerGestureHandlerProvider.notifier).showToast("2.0x", Icons.fast_forward_rounded);
+        });
+        return KeyEventResult.handled;
+      }
+      if (event is KeyRepeatEvent) {
+        if (!_spaceHeldForSpeed) {
+          _spaceHoldTimer?.cancel();
+          _spaceHoldTimer = null;
+          _spaceHeldForSpeed = true;
+          _speedBeforeSpaceHold = ref.read(playerControllerProvider).playbackSpeed;
+          unawaited(ref.read(playerControllerProvider.notifier).setPlaybackSpeed(2.0));
+          ref.read(playerGestureHandlerProvider.notifier).showToast("2.0x", Icons.fast_forward_rounded);
+        }
+        return KeyEventResult.handled;
+      }
+      if (event is KeyUpEvent) {
+        _spaceHoldTimer?.cancel();
+        _spaceHoldTimer = null;
+        if (!_spaceHeldForSpeed) {
+          _controlsKeyFinal.currentState?.togglePlayPause();
+          _controlsKeyFinal.currentState?.onUserInteraction();
+          return KeyEventResult.handled;
+        }
+        final previousSpeed = _speedBeforeSpaceHold ?? 1.0;
+        _spaceHeldForSpeed = false;
+        _speedBeforeSpaceHold = null;
+        unawaited(ref.read(playerControllerProvider.notifier).setPlaybackSpeed(previousSpeed));
+        ref.read(playerGestureHandlerProvider.notifier).showToast(
+          "${previousSpeed.toStringAsFixed(1).replaceAll(RegExp(r'\.0$'), '')}x",
+          Icons.play_arrow_rounded,
+        );
+        return KeyEventResult.handled;
+      }
+    }
+
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
@@ -265,14 +308,20 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       return KeyEventResult.handled;
     }
     
-    if (rootHasFocus && (event.logicalKey == LogicalKeyboardKey.space || event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.select)) {
-      if (!_controlsVisible.value) {
-         _controlsKeyFinal.currentState?.showControls();
-      } else {
-         _controlsKeyFinal.currentState?.togglePlayPause();
+    // 🎯 KEYBOARD SUPPORT: Matches Gamepad 'A' exactly!
+    if (event.logicalKey == LogicalKeyboardKey.space || 
+        event.logicalKey == LogicalKeyboardKey.enter || 
+        event.logicalKey == LogicalKeyboardKey.select) {
+      if (rootHasFocus) {
+         if (!_controlsVisible.value) {
+           _controlsKeyFinal.currentState?.showControls();
+           _controlsKeyFinal.currentState?.togglePlayPause();
+         } else {
+           _controlsKeyFinal.currentState?.togglePlayPause();
+         }
          _controlsKeyFinal.currentState?.onUserInteraction();
+         return KeyEventResult.handled;
       }
-      return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
@@ -379,77 +428,103 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
-              // --- 🎮 D-PAD TRAVERSAL ---
-              DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
-                onInvoke: (intent) {
-                  if (!controlsVisible) {
-                    _controlsKeyFinal.currentState?.showControls();
-                    return null;
-                  }
-                  FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
-                  return null;
-                }
-              ),
               GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
                 onInvoke: (intent) {
                   if (!controlsVisible) {
                     _controlsKeyFinal.currentState?.showControls();
                     return null;
                   }
-                  FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
+
+                  if (intent.direction == TraversalDirection.left) {
+                    FocusManager.instance.primaryFocus?.previousFocus();
+                    return null;
+                  }
+                  if (intent.direction == TraversalDirection.right) {
+                    FocusManager.instance.primaryFocus?.nextFocus();
+                    return null;
+                  }
+
+                  final moved = FocusManager.instance.primaryFocus?.focusInDirection(intent.direction) ?? false;
+                  if (!moved) {
+                    _controlsKeyFinal.currentState?.hideControls();
+                  }
+                 
                   return null;
                 }
               ),
-
-              // --- 🎮 'A' BUTTON (SAFE ACTIVATION) ---
-              ActivateIntent: _RootActivateAction(this),
-              AppSelectButtonIntent: _RootSelectAction(this),
-
-              // --- 🎮 Y & X (GLOBAL OVERLAYS) ---
+              AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+                onInvoke: (_) {
+                  _controlsKeyFinal.currentState?.triggerSeek(true);
+                  return null;
+                }
+              ),
+              AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+                onInvoke: (_) {
+                  _controlsKeyFinal.currentState?.triggerSeek(false);
+                  return null;
+                }
+              ),
+              AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+                onInvoke: (_) {
+                  _controlsKeyFinal.currentState?.triggerSeek(true);
+                  return null;
+                }
+              ),
+              AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
+                onInvoke: (_) {
+                  _controlsKeyFinal.currentState?.triggerSeek(false);
+                  return null;
+                }
+              ),
               AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
                 onInvoke: (_) {
-                  final isModalOpen = ModalRoute.of(context)?.isCurrent != true;
-                  if (isModalOpen) return null; 
-
-                  final handled = _controlsKeyFinal.currentState?.triggerActiveOverlay() ?? false;
-                  if (handled) return null;
-
-                  if (controlsVisible) {
-                    _controlsKeyFinal.currentState?.hideControls();
-                  } else {
-                    _controlsKeyFinal.currentState?.showControls();
-                  }
+                  _controlsKeyFinal.currentState?.triggerActiveOverlay();
                   return null;
                 }
               ),
               AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
                 onInvoke: (_) {
-                  final isModalOpen = ModalRoute.of(context)?.isCurrent != true;
-                  if (isModalOpen) return null; 
-
                   _controlsKeyFinal.currentState?.triggerSecondaryOverlayAction();
                   return null;
                 }
               ),
+              AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+                onInvoke: (intent) {
+                  
+                  // 🎯 WAKE AND PAUSE: If the UI is hidden, pressing 'A' wakes the UI 
+                  // and pauses the video instantly!
+                  if (!controlsVisible) {
+                    _controlsKeyFinal.currentState?.showControls();
+                    _controlsKeyFinal.currentState?.togglePlayPause();
+                    return null;
+                  }
+                  
+                  final currentFocus = FocusManager.instance.primaryFocus;
 
-              // --- 🎮 TRIGGERS / BUMPERS ---
-              GamepadSeekForwardIntent: CallbackAction<GamepadSeekForwardIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
+                  // Normal play/pause if already awake and focused on the background
+                  if (currentFocus == _rootFocusNode) {
+                    _controlsKeyFinal.currentState?.togglePlayPause();
+                    _controlsKeyFinal.currentState?.onUserInteraction();
+                    return null;
+                  }
+                  
+                  return null;
+                }
               ),
-              GamepadSeekBackwardIntent: CallbackAction<GamepadSeekBackwardIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
-              ),
-              AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
-              ),
-              AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
-              ),
-              AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(true, 10); return null; }
-              ),
-              AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
-                onInvoke: (_) { _controlsKeyFinal.currentState?.triggerSeek(false, 10); return null; }
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (intent) {
+                  if (!controlsVisible) {
+                    _controlsKeyFinal.currentState?.showControls();
+                    _controlsKeyFinal.currentState?.togglePlayPause();
+                    return null;
+                  }
+                  if (FocusManager.instance.primaryFocus == _rootFocusNode) {
+                    _controlsKeyFinal.currentState?.togglePlayPause();
+                    _controlsKeyFinal.currentState?.onUserInteraction();
+                    return null;
+                  }
+                  return null;
+                }
               ),
             },
             child: Scaffold(
@@ -457,75 +532,80 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                 focusNode: _rootFocusNode,
                 autofocus: true,
                 onKeyEvent: _handleKey,
-                child: Stack(
-                  children: [
-                    RepaintBoundary(
-                      child: ValueListenableBuilder<BoxFit>(
-                        valueListenable: _videoFit,
-                        builder: (_, fit, child) => Center(
-                          child: Consumer(
-                            builder: (context, ref, _) {
-                              final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
-                              if (useExoPlayer) {
-                                return vv.VideoView(controller: _videoViewController, videoFit: fit);
-                              }
-                              return Video(
-                                controller: _videoController,
-                                fit: fit,
-                                subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false, style: TextStyle(color: Colors.transparent)),
-                                controls: (state) => const SizedBox.shrink(),
-                              );
+                child: Shortcuts(
+                  shortcuts: const <ShortcutActivator, Intent>{
+                    SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
+                  },
+                  child: Stack(
+                    children: [
+                      RepaintBoundary(
+                        child: ValueListenableBuilder<BoxFit>(
+                          valueListenable: _videoFit,
+                          builder: (_, fit, child) => Center(
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
+                                if (useExoPlayer) {
+                                  return vv.VideoView(controller: _videoViewController, videoFit: fit);
+                                }
+                                return Video(
+                                  controller: _videoController,
+                                  fit: fit,
+                                  subtitleViewConfiguration: const SubtitleViewConfiguration(visible: false, style: TextStyle(color: Colors.transparent)),
+                                  controls: (state) => const SizedBox.shrink(),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
+                          if (useExoPlayer) return const SizedBox.shrink();
+
+                          final subtitleSettings = ref.watch(playerSettingsProvider).asData?.value;
+
+                          return Positioned(
+                            bottom: (controlsVisible ? HotstarPlayerStyle.bottomChromeHeight : 20.0) + ((100 - (subtitleSettings?.subtitlePosition ?? 100.0)) * (MediaQuery.sizeOf(context).height * 0.008)),
+                            left: 20, right: 20,
+                            child: SubtitleView(
+                              controller: _videoController,
+                              configuration: SubtitleViewConfiguration(
+                                style: TextStyle(
+                                  fontSize: subtitleSettings?.subtitleSize ?? 22.0,
+                                  color: Color(subtitleSettings?.subtitleColor ?? 0xFFFFFFFF),
+                                  backgroundColor: Color(subtitleSettings?.subtitleBackgroundColor ?? 0x00000000).withValues(alpha: subtitleSettings?.subtitleBackgroundOpacity ?? 0.0),
+                                  shadows: const [Shadow(offset: Offset(0, 1), blurRadius: 2, color: Colors.black)],
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      Positioned.fill(
+                        child: RepaintBoundary(
+                          child: SkyStreamPlayerControls(
+                            key: _controlsKeyFinal,
+                            isLoading: isLoading,
+                            player: _player,
+                            videoViewController: _videoViewController,
+                            title: widget.item.title,
+                            subtitle: ref.read(playerControllerProvider).streamSubtitle,
+                            backdropUrl: widget.item.backdropImageUrl,
+                            logoUrl: widget.item.logoUrl,
+                            onResize: _updateResizeMode,
+                            onBackPointer: _handleBack,
+                            onRequestRootFocus: () => _rootFocusNode.requestFocus(),
+                            onVisibilityChanged: (v) {
+                              if (mounted) _controlsVisible.value = v;
                             },
                           ),
                         ),
                       ),
-                    ),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final useExoPlayer = ref.watch(playerControllerProvider.select((s) => s.useExoPlayer));
-                        if (useExoPlayer) return const SizedBox.shrink();
-
-                        final subtitleSettings = ref.watch(playerSettingsProvider).asData?.value;
-
-                        return Positioned(
-                          bottom: (controlsVisible ? HotstarPlayerStyle.bottomChromeHeight : 20.0) + ((100 - (subtitleSettings?.subtitlePosition ?? 100.0)) * (MediaQuery.sizeOf(context).height * 0.008)),
-                          left: 20, right: 20,
-                          child: SubtitleView(
-                            controller: _videoController,
-                            configuration: SubtitleViewConfiguration(
-                              style: TextStyle(
-                                fontSize: subtitleSettings?.subtitleSize ?? 22.0,
-                                color: Color(subtitleSettings?.subtitleColor ?? 0xFFFFFFFF),
-                                backgroundColor: Color(subtitleSettings?.subtitleBackgroundColor ?? 0x00000000).withValues(alpha: subtitleSettings?.subtitleBackgroundOpacity ?? 0.0),
-                                shadows: const [Shadow(offset: Offset(0, 1), blurRadius: 2, color: Colors.black)],
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Positioned.fill(
-                      child: RepaintBoundary(
-                        child: SkyStreamPlayerControls(
-                          key: _controlsKeyFinal,
-                          isLoading: isLoading,
-                          player: _player,
-                          videoViewController: _videoViewController,
-                          title: widget.item.title,
-                          subtitle: ref.read(playerControllerProvider).streamSubtitle,
-                          backdropUrl: widget.item.backdropImageUrl,
-                          logoUrl: widget.item.logoUrl,
-                          onResize: _updateResizeMode,
-                          onBackPointer: _handleBack,
-                          onRequestRootFocus: () => _rootFocusNode.requestFocus(),
-                          onVisibilityChanged: (v) {
-                            if (mounted) _controlsVisible.value = v;
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -533,50 +613,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
         );
       },
     );
-  }
-}
-
-// 🛡️ ACTION GUARDS: Only handle ActivateIntent if the root background is focused!
-// If the user is focused on a Side Panel element, these safely yield the signal so the side panel can be natively clicked.
-class _RootActivateAction extends Action<ActivateIntent> {
-  final _PlayerScreenState state;
-  _RootActivateAction(this.state);
-
-  @override
-  bool isEnabled(ActivateIntent intent) {
-    return FocusManager.instance.primaryFocus == state._rootFocusNode;
-  }
-
-  @override
-  Object? invoke(ActivateIntent intent) {
-    if (!state._controlsVisible.value) {
-      state._controlsKeyFinal.currentState?.showControls();
-    } else {
-      state._controlsKeyFinal.currentState?.togglePlayPause();
-      state._controlsKeyFinal.currentState?.onUserInteraction();
-    }
-    return null;
-  }
-}
-
-class _RootSelectAction extends Action<AppSelectButtonIntent> {
-  final _PlayerScreenState state;
-  _RootSelectAction(this.state);
-
-  @override
-  bool isEnabled(AppSelectButtonIntent intent) {
-    return FocusManager.instance.primaryFocus == state._rootFocusNode;
-  }
-
-  @override
-  Object? invoke(AppSelectButtonIntent intent) {
-    if (!state._controlsVisible.value) {
-      state._controlsKeyFinal.currentState?.showControls();
-    } else {
-      state._controlsKeyFinal.currentState?.togglePlayPause();
-      state._controlsKeyFinal.currentState?.onUserInteraction();
-    }
-    return null;
   }
 }
 

@@ -16,6 +16,10 @@ class AppLeftTriggerIntent extends Intent { const AppLeftTriggerIntent(); }
 class AppRightTriggerIntent extends Intent { const AppRightTriggerIntent(); }
 class AppSelectButtonIntent extends Intent { const AppSelectButtonIntent(); }
 
+class GamepadToggleUiIntent extends Intent { const GamepadToggleUiIntent(); }
+class GamepadSeekForwardIntent extends Intent { const GamepadSeekForwardIntent(); }
+class GamepadSeekBackwardIntent extends Intent { const GamepadSeekBackwardIntent(); }
+
 class AppActionBindings {
   static Map<Type, Action<Intent>> getBindings(BuildContext context) {
     return {
@@ -92,6 +96,9 @@ class AppActionBindings {
       AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(onInvoke: (_) => null),
       AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(onInvoke: (_) => null),
       AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) => null),
+      GamepadToggleUiIntent: CallbackAction<GamepadToggleUiIntent>(onInvoke: (_) => null),
+      GamepadSeekForwardIntent: CallbackAction<GamepadSeekForwardIntent>(onInvoke: (_) => null),
+      GamepadSeekBackwardIntent: CallbackAction<GamepadSeekBackwardIntent>(onInvoke: (_) => null),
     };
   }
 }

@@ -294,11 +294,14 @@ class _SkipPill extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.skip_next_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+                              if (isTv)
+                                _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
+                              else
+                                const Icon(
+                                  Icons.skip_next_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               SizedBox(width: isCompact ? 6 : 8),
                               Text(
                                 label,
@@ -324,4 +327,25 @@ class _SkipPill extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
+  return Container(
+    width: isCompact ? 18 : 22,
+    height: isCompact ? 18 : 22,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      shape: BoxShape.circle,
+      border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: isCompact ? 10 : 12,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+  );
 }

@@ -130,6 +130,27 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
     widget.onDismiss?.call();
   }
 
+  Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
+    return Container(
+      width: isCompact ? 18 : 22,
+      height: isCompact ? 18 : 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: isCompact ? 10 : 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -165,12 +186,6 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
           builder: (context) {
             final isFocused = Focus.of(context).hasFocus;
 
-            // Layout: DecoratedBox (border + shadow) → ClipRRect → Material
-            // (ink) → Row [ icon | labels | dismiss? ]
-            //
-            // The countdown fill is painted as a custom background on the
-            // Material using AnimatedBuilder, so there is NO Stack at all —
-            // just a single layered widget tree.
             return SizedBox(
               width: buttonWidth,
               height: buttonHeight,
@@ -198,9 +213,6 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                 ),
                 child: ClipRRect(
                   borderRadius: borderRadius,
-                  // AnimatedBuilder drives the fill width; the content Row
-                  // sits on top via foregroundDecoration on a second
-                  // DecoratedBox so there is still no Stack.
                   child: AnimatedBuilder(
                     animation: _controller,
                     builder: (context, child) => DecoratedBox(
@@ -229,11 +241,14 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
+                              if (widget.isTv)
+                                _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
+                              else
+                                const Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
                               SizedBox(width: isCompact ? 6 : 8),
                               Expanded(
                                 child: Column(
