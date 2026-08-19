@@ -350,7 +350,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: ExploreCarousel(
                     movies: data['Trending']!.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {
@@ -365,7 +368,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   child: ExploreCarousel(
                     movies: data.values.first.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {
@@ -374,8 +380,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ).push<void>(context);
                     },
                   ),
-                )
-              else if (!isWidescreen)
+                )else if (!isWidescreen)
                 // No carousel — add top padding so content below doesn't
                 // overlap with the transparent app bar (mobile only).
                 SliverPadding(

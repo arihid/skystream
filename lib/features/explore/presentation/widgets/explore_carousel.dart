@@ -70,24 +70,16 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   final HeroCarouselController _heroCarouselController =
       HeroCarouselController();
   final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
-  // Single anchor focus node so the carousel acts as ONE focus target on TV/
-  // keyboard. Otherwise each slide is independently focusable and pages cause
-  // focus to drop into the next row when slides unmount.
   final FocusNode _carouselFocusNode = FocusNode(debugLabel: 'carousel_anchor');
   bool _isFocusHighlighted = false;
-  // True while the carousel occupies any visible viewport. Drives autoPlay
-  // so the 5s slide loop pauses when the user scrolls past it — eliminates
-  // off-screen frame work and the resulting battery / raster drain.
   bool _isVisibleOnScreen = true;
 
-  // Crossfade + scale transition
   late final AnimationController _transitionController;
   late final Animation<double> _transitionAnimation;
   int _currentSlide = 0;
   int? _previousSlide;
   bool _isTransitioning = false;
 
-  // Progress bar fill — also serves as the auto-advance timer (5s).
   late final AnimationController _fillController;
 
   @override
@@ -125,9 +117,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     _heroCarouselController.onPreviousPage = _goToPreviousSlide;
 
     widget.scrollController?.addListener(_onParentScroll);
-    // Expose the internal controller to the parent so header arrows can
-    // drive carousel navigation. Deferred to post-frame to avoid calling
-    // setState on an ancestor while the widget tree is still building.
     if (widget.onControllerReady != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onControllerReady!(_heroCarouselController);
@@ -250,30 +239,38 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
               } else if (intent.direction == TraversalDirection.down) {
                 FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
               }
-              return null;
+              return Object(); 
             },
           ),
           _CarouselUpIntent: CallbackAction<_CarouselUpIntent>(
             onInvoke: (_) {
               widget.onNavigateUp?.call();
-              return null;
+              return Object();
             },
           ),
           _CarouselPrevIntent: CallbackAction<_CarouselPrevIntent>(
             onInvoke: (_) {
               _goToPreviousSlide();
-              return null;
+              return Object();
             },
           ),
           _CarouselNextIntent: CallbackAction<_CarouselNextIntent>(
             onInvoke: (_) {
               _goToNextSlide();
-              return null;
+              return Object();
             },
           ),
         },
-        onShowFocusHighlight: (show) =>
-            setState(() => _isFocusHighlighted = show),
+        onShowFocusHighlight: (show) {
+          setState(() => _isFocusHighlighted = show);
+          if (show && widget.scrollController != null && widget.scrollController!.hasClients) {
+             widget.scrollController!.animateTo(
+               0.0,
+               duration: const Duration(milliseconds: 300),
+               curve: Curves.easeOut,
+             );
+          }
+        },
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onHorizontalDragEnd: (details) {
