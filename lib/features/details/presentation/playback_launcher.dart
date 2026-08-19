@@ -277,20 +277,27 @@ class PlaybackLauncher {
                         : 'Source ${index + 1}';
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
-                    return ListTile(
-                      leading: const Icon(Icons.play_circle_outline),
-                      title: Text(label),
-                      subtitle: host.isNotEmpty ? Text(host) : null,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _launchStream(
-                          context,
-                          stream,
-                          item,
-                          episodeDataUrl,
-                          playerId,
-                        );
-                      },
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                      child: ListTile(
+                        autofocus: index == 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        leading: const Icon(Icons.play_circle_outline),
+                        title: Text(label),
+                        subtitle: host.isNotEmpty ? Text(host) : null,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _launchStream(
+                            context,
+                            stream,
+                            item,
+                            episodeDataUrl,
+                            playerId,
+                          );
+                        },
+                      ),
                     );
                   },
                 ),

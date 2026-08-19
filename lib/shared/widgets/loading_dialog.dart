@@ -16,10 +16,13 @@ class LoadingDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // Prevent dismissing by back button without using Cancel
+      canPop: false, // We block the default pop so we can execute our custom cancel logic first
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        // Optionally handle back button here if you want it to trigger onCancel
+        // GAMEPAD 'B' / HARDWARE BACK BUTTON FIX:
+        // Automatically trigger the cancel callback and close the dialog
+        onCancel();
+        Navigator.of(context).pop();
       },
       child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -41,6 +44,7 @@ class LoadingDialog extends StatelessWidget {
         actions: [
           CustomButton(
             isPrimary: false,
+            autofocus: true,
             onPressed: () {
               onCancel();
               Navigator.of(context).pop();
