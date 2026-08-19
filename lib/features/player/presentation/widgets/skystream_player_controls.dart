@@ -310,8 +310,6 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
     
     if (_touchHeldForSpeed) {
       final previousSpeed = _speedBeforeTouchHold ?? 1.0;
-      // We must avoid reading providers in dispose if possible, but if we must, 
-      // unawaited operations without state rebuilds are generally safe.
       unawaited(ref.read(playerControllerProvider.notifier).setPlaybackSpeed(previousSpeed));
     }
     
@@ -851,6 +849,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
 
     if (_isInPip || isSmallWindow) return const SizedBox.shrink();
 
+    // 🎯 TV QoL: Handles "Fetching source..." phase
     if (uiPhase.fullscreenBlocking) return _buildLoadingUI(phase: uiPhase, sourceAttempts: sourceAttempts);
 
     final chromeVisible = _isVisible && !_panelOpen;
@@ -1251,11 +1250,31 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
 
   Widget _buildLoadingUI({required PlaybackUiPhase phase, required List<SourceAttemptEntry> sourceAttempts}) {
     final canSkip = phase.kind != PlaybackUiPhaseKind.bootstrapping && phase.kind != PlaybackUiPhaseKind.fetchingSources && phase.kind != PlaybackUiPhaseKind.error;
-    return PlayerLoadingOverlay(
-      onDoubleTap: _handleDoubleTap, onBack: widget.onBackPointer ?? () => context.pop(), phase: phase, sourceAttempts: sourceAttempts,
-      backdropUrl: widget.backdropUrl, logoUrl: widget.logoUrl, isTv: _isBigPicture,
-      onSkip: canSkip ? () => ref.read(playerControllerProvider.notifier).skipLoadingOverlay() : null,
-      onGoLive: () => ref.read(playerControllerProvider.notifier).goLive(),
+    
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        DismissIntent: CallbackAction<DismissIntent>(
+          onInvoke: (_) {
+            if (widget.onBackPointer != null) {
+              widget.onBackPointer!();
+            } else {
+              context.pop();
+            }
+            return null;
+          }
+        ),
+      },
+      child: PlayerLoadingOverlay(
+        onDoubleTap: _handleDoubleTap, 
+        onBack: widget.onBackPointer ?? () => context.pop(), 
+        phase: phase, 
+        sourceAttempts: sourceAttempts,
+        backdropUrl: widget.backdropUrl, 
+        logoUrl: widget.logoUrl, 
+        isTv: _isBigPicture,
+        onSkip: canSkip ? () => ref.read(playerControllerProvider.notifier).skipLoadingOverlay() : null,
+        onGoLive: () => ref.read(playerControllerProvider.notifier).goLive(),
+      ),
     );
   }
 }

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 
 import '../player_controller.dart';
 import '../../../../shared/widgets/custom_widgets.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-class PlayerLoadingOverlay extends StatelessWidget {
+
+class PlayerLoadingOverlay extends StatefulWidget {
   final VoidCallback onDoubleTap;
   final VoidCallback onBack;
   final PlaybackUiPhase phase;
@@ -31,88 +34,187 @@ class PlayerLoadingOverlay extends StatelessWidget {
   });
 
   @override
+  State<PlayerLoadingOverlay> createState() => _PlayerLoadingOverlayState();
+}
+
+class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
+  late final FocusScopeNode _overlayScopeNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _overlayScopeNode = FocusScopeNode(debugLabel: 'LoadingOverlayScope');
+    _stealFocus();
+  }
+
+  @override
+  void didUpdateWidget(PlayerLoadingOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldHasActions = _hasActions(oldWidget);
+    final newHasActions = _hasActions(widget);
+    
+    if ((!oldHasActions && newHasActions) || (newHasActions && !_overlayScopeNode.hasFocus)) {
+      _stealFocus();
+    } else if (!newHasActions && oldHasActions) {
+      _stealFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _overlayScopeNode.dispose();
+    super.dispose();
+  }
+
+  bool _hasActions(PlayerLoadingOverlay w) {
+    return (w.onSkip != null) ||
+           (w.phase.showGoLive && w.onGoLive != null) ||
+           (w.phase.kind == PlaybackUiPhaseKind.error);
+  }
+
+  void _stealFocus() {
+    if (!widget.isTv) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // Force focus out of the PlayerScreen root and into this overlay's buttons
+      _overlayScopeNode.requestFocus();
+    });
+  }
+
+  Widget _buildMiniHint(BuildContext context, String btn, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: 0.5)),
+          ),
+          child: Text(
+            btn,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).shortestSide < 600;
+    final l10n = AppLocalizations.of(context)!;
+
     final content = _LoadingCard(
-      phase: phase,
-      sourceAttempts: sourceAttempts,
-      logoUrl: logoUrl,
-      onGoLive: onGoLive,
-      onSkip: onSkip,
-      onBack: onBack,
-      isTv: isTv,
+      phase: widget.phase,
+      sourceAttempts: widget.sourceAttempts,
+      logoUrl: widget.logoUrl,
+      onGoLive: widget.onGoLive,
+      onSkip: widget.onSkip,
+      onBack: widget.onBack,
+      isTv: widget.isTv,
     );
 
-    return GestureDetector(
-      onDoubleTap: onDoubleTap,
-      behavior: HitTestBehavior.translucent,
-      // ReadingOrderTraversalPolicy makes D-pad traverse all focusable widgets
-      // by their rendered screen position across all Positioned branches in the
-      // Stack â€” so the top-left back button is reachable from the action buttons.
-      child: FocusTraversalGroup(
-        policy: ReadingOrderTraversalPolicy(),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Stack(
-                children: [
-                  if (backdropUrl != null && (!isCompact || isTv))
-                    Positioned.fill(
-                      child: CachedNetworkImage(
-                        imageUrl: backdropUrl!,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                        placeholder: (_, _) => const SizedBox.shrink(),
-                        errorWidget: (_, _, _) => const SizedBox.shrink(),
+    return FocusScope(
+      node: _overlayScopeNode,
+      child: GestureDetector(
+        onDoubleTap: widget.onDoubleTap,
+        behavior: HitTestBehavior.translucent,
+        child: FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Stack(
+                  children: [
+                    if (widget.backdropUrl != null && (!isCompact || widget.isTv))
+                      Positioned.fill(
+                        child: CachedNetworkImage(
+                          imageUrl: widget.backdropUrl!,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                          placeholder: (_, _) => const SizedBox.shrink(),
+                          errorWidget: (_, _, _) => const SizedBox.shrink(),
+                        ),
                       ),
-                    ),
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.5),
-                            Colors.black.withValues(alpha: 0.5),
-                          ],
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.5),
+                              Colors.black.withValues(alpha: 0.5),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              top: MediaQuery.viewPaddingOf(context).top + 16,
-              left: 16,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  shape: BoxShape.circle,
+                  ],
                 ),
-                child: CustomButton(
-                  onPressed: onBack,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                      size: 34,
+              ),
+              Positioned.fill(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: content,
+                  ),
+                ),
+              ),
+              
+              if (widget.isTv)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.only(top: 64, bottom: 32),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.9),
+                          Colors.black.withValues(alpha: 0.4),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.onSkip != null) ...[
+                          _buildMiniHint(context, 'A', l10n.skip, Colors.greenAccent.shade400),
+                          const SizedBox(width: 16),
+                        ] else if (widget.phase.showGoLive && widget.onGoLive != null) ...[
+                          _buildMiniHint(context, 'A', l10n.goLive, Colors.greenAccent.shade400),
+                          const SizedBox(width: 16),
+                        ] else if (widget.phase.kind == PlaybackUiPhaseKind.error) ...[ // 🎯 FIX: Removed redundant check!
+                          _buildMiniHint(context, 'A', l10n.goBack, Colors.greenAccent.shade400),
+                          const SizedBox(width: 16),
+                        ],
+                        _buildMiniHint(context, 'B', l10n.cancel, Colors.redAccent.shade400),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ),
-            Positioned.fill(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: content,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -143,6 +245,7 @@ class _LoadingCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final showSourcePanel =
         phase.showsInlineSourcePanel && sourceAttempts.length > 1;
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 640),
       child: DecoratedBox(
@@ -256,7 +359,6 @@ class _LoadingCard extends StatelessWidget {
                           onPressed: onSkip,
                           primary: true,
                           isTv: isTv,
-                          // First button gets autofocus on TV to seed D-pad navigation.
                           autofocus: isTv,
                         ),
                       if (phase.showGoLive && onGoLive != null)
@@ -266,7 +368,6 @@ class _LoadingCard extends StatelessWidget {
                           onPressed: onGoLive,
                           primary: false,
                           isTv: isTv,
-                          // Autofocus if Skip isn't shown.
                           autofocus: isTv && onSkip == null,
                         ),
                       if (phase.kind == PlaybackUiPhaseKind.error &&
@@ -277,7 +378,6 @@ class _LoadingCard extends StatelessWidget {
                           onPressed: onBack,
                           primary: false,
                           isTv: isTv,
-                          // Autofocus on TV when it's the only action button.
                           autofocus:
                               isTv && onSkip == null && !phase.showGoLive,
                         ),
@@ -326,7 +426,7 @@ class _PhaseIndicator extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ActionButton extends StatefulWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
@@ -344,20 +444,136 @@ class _ActionButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)],
-    );
+  State<_ActionButton> createState() => _ActionButtonState();
+}
 
-    return CustomButton(
-      autofocus: autofocus,
-      isPrimary: primary,
-      onPressed: onPressed,
-      isOutlined: !primary,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: child,
+class _ActionButtonState extends State<_ActionButton> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'ActionButton_${widget.label}');
+    if (widget.autofocus && widget.isTv) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ActionButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.autofocus && !oldWidget.autofocus && widget.isTv) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bgColor = widget.primary
+        ? theme.colorScheme.primary
+        : theme.colorScheme.surfaceContainerHighest;
+    final fgColor = widget.primary
+        ? theme.colorScheme.onPrimary
+        : theme.colorScheme.onSurface;
+
+    return Semantics(
+      button: true,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onPressed?.call();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onPressed?.call();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          onFocusChange: (hasFocus) {
+            setState(() => _isFocused = hasFocus);
+          },
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onPressed?.call();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              onTap: widget.onPressed,
+              child: AnimatedScale(
+                scale: _isFocused ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _isFocused
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: _isFocused || _isHovered
+                        ? [
+                            BoxShadow(
+                              color: bgColor.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            )
+                          ]
+                        : [],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.icon, size: 18, color: fgColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: fgColor, 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

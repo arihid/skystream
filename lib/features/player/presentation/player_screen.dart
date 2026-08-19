@@ -20,7 +20,6 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../features/settings/presentation/player_settings_provider.dart';
 import '../../../../features/settings/presentation/general_settings_provider.dart';
 import '../../../../core/input/gamepad_actions.dart';
-import '../../../../core/input/gamepad_intents.dart';
 import 'widgets/skystream_player_controls.dart';
 import 'widgets/hotstar_player_style.dart';
 import 'player_controller.dart';
@@ -380,11 +379,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     final isLoading = ref.watch(playerControllerProvider.select((s) => s.isLoading));
 
     if (errorMessage != null) {
-      return Scaffold(
-        body: SafeArea(
-          child: Stack(
-            children: [
-              Center(
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          await _handleBack();
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            DismissIntent: CallbackAction<DismissIntent>(
+              onInvoke: (_) {
+                _handleBack();
+                return null;
+              }
+            ),
+          },
+          child: Scaffold(
+            body: SafeArea(
+              child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Column(
@@ -404,13 +416,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                   ),
                 ),
               ),
-              Positioned(
-                top: 8, left: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back), tooltip: AppLocalizations.of(context)!.goBack, onPressed: _handleBack,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -428,6 +434,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
+              DismissIntent: CallbackAction<DismissIntent>(
+                onInvoke: (_) {
+                  if (!_consumeBack()) {
+                    _handleBack();
+                  }
+                  return null;
+                }
+              ),
               GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
                 onInvoke: (intent) {
                   if (!controlsVisible) {
