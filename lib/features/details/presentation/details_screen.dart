@@ -25,6 +25,11 @@ import "../../../shared/widgets/expandable_text.dart";
 import "../../../shared/widgets/loading_indicator.dart";
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../core/input/gamepad_actions.dart'; 
+import '../../../core/input/gamepad_shortcut_manager.dart'; 
+import '../../../core/services/notification_service.dart';
+
 class DetailsScreen extends ConsumerStatefulWidget {
   final MultimediaItem item;
   final bool autoPlay;
@@ -61,6 +66,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref
           .read(detailsControllerProvider(widget.item.url).notifier)
           .loadDetails(widget.item, autoPlay: widget.autoPlay);
@@ -85,6 +91,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             .handlePlayPress(context, item);
       });
     });
+    
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -94,6 +101,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
     final libraryNotifier = ref.read(libraryProvider.notifier);
     final isLarge = context.isTabletOrLarger;
+    final isBigPicture = context.isTabletOrLarger; 
 
     final detailsAsync = ref.watch(
       detailsControllerProvider(widget.item.url).select((s) => s.details),
@@ -111,9 +119,23 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
     final l10n = AppLocalizations.of(context)!;
 
-    // ── Desktop / TV: Immersive hero layout ──
+    void toggleBookmark() {
+      final isLoading = detailsAsync is AsyncLoading || details == null;
+      if (isLoading) return; 
+      
+      if (isBookmarked) {
+        libraryNotifier.removeItem(item.url);
+        ref.read(notificationServiceProvider).showSuccess("Removed Bookmark");
+      } else {
+        libraryNotifier.addItem(item);
+        ref.read(notificationServiceProvider).showSuccess("Added Bookmark");
+      }
+    }
+
+    Widget scaffoldContent;
+
     if (isLarge) {
-      return _buildDesktopLayout(
+      scaffoldContent = _buildDesktopLayout(
         context,
         item,
         details,
@@ -123,149 +145,122 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         libraryNotifier,
         l10n,
         selectedEpisodeCount,
+        isBigPicture,
+      );
+    } else {
+      scaffoldContent = Scaffold(
+        bottomNavigationBar: selectedEpisodeCount == 0
+            ? null
+            : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
+        body: CustomScrollView(
+          cacheExtent: 99999,
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
+              stretch: true,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              flexibleSpace: FlexibleSpaceBar(
+                stretchModes: const [
+                  StretchMode.zoomBackground,
+                  StretchMode.blurBackground,
+                ],
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Hero(
+                      tag: 'banner_${item.url}',
+                      child: CachedNetworkImage(
+                        imageUrl:
+                            AppImageFallbacks.optional(item.bannerUrl) ??
+                            AppImageFallbacks.poster(
+                              item.posterUrl,
+                              label: item.title,
+                            ) ??
+                            '',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        memCacheWidth:
+                            (MediaQuery.sizeOf(context).width *
+                                    MediaQuery.devicePixelRatioOf(context))
+                                .round(),
+                        placeholder: (context, url) =>
+                            Container(color: Theme.of(context).dividerColor),
+                        errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(
+                          label: item.title,
+                          isBackdrop: true,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.65),
+                          ],
+                          stops: const [0.5, 1.0],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.15),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.45),
+                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                            Theme.of(context).scaffoldBackgroundColor,
+                          ],
+                          stops: const [0.0, 0.5, 0.75, 0.9, 1.0],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              leading: Focus(
+                descendantsAreTraversable: false,
+                child: CustomButton(
+                  shape: const CircleBorder(),
+                  backgroundColor: Colors.black45,
+                  onPressed: () => context.pop(),
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            ..._buildMobileSlivers(
+              context,
+              item,
+              details,
+              detailsAsync,
+              isMovie,
+              l10n,
+            ),
+          ],
+        ),
       );
     }
 
-    // ── Mobile: SliverAppBar-based layout (unchanged) ──
-    return Scaffold(
-      bottomNavigationBar: selectedEpisodeCount == 0
-          ? null
-          : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
-            stretch: true,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [
-                StretchMode.zoomBackground,
-                StretchMode.blurBackground,
-              ],
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Hero(
-                    tag: 'banner_${item.url}',
-                    child: CachedNetworkImage(
-                      imageUrl:
-                          AppImageFallbacks.optional(item.bannerUrl) ??
-                          AppImageFallbacks.poster(
-                            item.posterUrl,
-                            label: item.title,
-                          ) ??
-                          '',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      // Bound decoded bitmap; plugin backdrops are often at
-                      // source resolution. Without this, 4K-source posters
-                      // burn ~33 MB per detail page.
-                      memCacheWidth:
-                          (MediaQuery.sizeOf(context).width *
-                                  MediaQuery.devicePixelRatioOf(context))
-                              .round(),
-                      placeholder: (context, url) =>
-                          Container(color: Theme.of(context).dividerColor),
-                      errorWidget: (_, _, _) => ThumbnailErrorPlaceholder(
-                        label: item.title,
-                        isBackdrop: true,
-                      ),
-                    ),
-                  ),
-                  // 1. Legibility Scrim: Fixed dark-tinted overlay at the bottom of the backdrop
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.65),
-                        ],
-                        stops: const [0.5, 1.0],
-                      ),
-                    ),
-                  ),
-                  // 2. Blend-into-page transition: Theme-aware eased fade to surface
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withValues(alpha: 0.0),
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withValues(alpha: 0.15),
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withValues(alpha: 0.45),
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withValues(alpha: 0.8),
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                        stops: const [0.0, 0.5, 0.75, 0.9, 1.0],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Mobile: back/bookmark excluded from D-pad traversal.
-            // Users navigate back via hardware Back key on TV remotes.
-            leading: Focus(
-              descendantsAreTraversable: false,
-              child: CustomButton(
-                shape: const CircleBorder(),
-                backgroundColor: Colors.black45,
-                onPressed: () => context.pop(),
-                child: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            actions: [
-              Focus(
-                descendantsAreTraversable: false,
-                child: IconButton(
-                  icon: Icon(
-                    isBookmarked
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    color: isBookmarked
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white,
-                  ),
-                  onPressed: () {
-                    if (isBookmarked) {
-                      libraryNotifier.removeItem(item.url);
-                    } else {
-                      libraryNotifier.addItem(item);
-                    }
-                  },
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black45,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+    return RightStickScroller(
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              toggleBookmark();
+              return null;
+            }
           ),
-          ..._buildMobileSlivers(
-            context,
-            item,
-            details,
-            detailsAsync,
-            isMovie,
-            l10n,
-          ),
-        ],
+        },
+        child: scaffoldContent,
       ),
     );
   }
@@ -413,10 +408,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  //  DESKTOP / TV  — Immersive hero layout
-  // ─────────────────────────────────────────────────────────────────
-
   Widget _buildDesktopLayout(
     BuildContext context,
     MultimediaItem item,
@@ -427,6 +418,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     dynamic libraryNotifier,
     AppLocalizations l10n,
     int selectedEpisodeCount,
+    bool isBigPicture,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).colorScheme.onSurface;
@@ -439,8 +431,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Back button — D-pad reachable (Up from Play)
-        leading: IconButton(
+        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
           style: IconButton.styleFrom(
@@ -448,53 +439,46 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             foregroundColor: textColor,
           ),
         ),
-        actions: [
-          // Bookmark — D-pad reachable
-          IconButton(
-            icon: Icon(
-              isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: isBookmarked
-                  ? Theme.of(context).colorScheme.primary
-                  : textColor,
-            ),
-            onPressed: () {
-              if (isBookmarked) {
-                libraryNotifier.removeItem(item.url);
-              } else {
-                libraryNotifier.addItem(item);
-              }
-            },
-            style: IconButton.styleFrom(
-              backgroundColor: isDark ? Colors.black45 : Colors.white54,
-              foregroundColor: textColor,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: DetailsDesktopHero(
+              displayItem: item,
+              baseItem: widget.item,
+              details: details,
+              detailsState: detailsState,
+              isMovie: isMovie,
+              itemUrl: widget.item.url,
+              child: _buildDesktopContentBelow(
+                context,
+                item,
+                details,
+                detailsState,
+                isMovie,
+                l10n,
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          if (isBigPicture)
+            GamepadHintsOverlay(
+              customHints: [
+                GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Play', buttonColor: Colors.greenAccent.shade400),
+                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                GamepadHint(
+                  buttonLabel: 'X', 
+                  actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+                  buttonColor: Colors.blueAccent.shade400
+                ),
+                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400),
+                GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+              ],
+            ),
         ],
-      ),
-      body: DetailsDesktopHero(
-        displayItem: item,
-        baseItem: widget.item,
-        details: details,
-        detailsState: detailsState,
-        isMovie: isMovie,
-        itemUrl: widget.item.url,
-        child: _buildDesktopContentBelow(
-          context,
-          item,
-          details,
-          detailsState,
-          isMovie,
-          l10n,
-        ),
       ),
     );
   }
 
-  /// Content rendered below the hero section: season chips, episodes,
-  /// cast, trailers, and recommendations.
   Widget _buildDesktopContentBelow(
     BuildContext context,
     MultimediaItem item,
@@ -506,7 +490,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Loading / Error / Season chips
         if (detailsState is AsyncLoading)
           const Center(child: AppLoadingIndicator())
         else if (detailsState is AsyncError)
@@ -519,7 +502,6 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
         const SizedBox(height: 16),
 
-        // Episode grid (non-sliver version)
         DetailsDesktopEpisodeColumn(
           parentItem: item,
           itemUrl: widget.item.url,
@@ -528,18 +510,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
         const SizedBox(height: 32),
 
-        // Cast
         if (item.cast != null && item.cast!.isNotEmpty) ...[
           CastCarousel(cast: item.cast!),
         ],
 
-        // Trailers
         if (item.trailers != null && item.trailers!.isNotEmpty) ...[
           const SizedBox(height: 32),
           TrailersSection(trailers: item.trailers!),
         ],
 
-        // Recommendations
         if (item.recommendations != null &&
             item.recommendations!.isNotEmpty) ...[
           const SizedBox(height: 32),

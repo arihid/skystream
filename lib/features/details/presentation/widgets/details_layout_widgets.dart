@@ -4,6 +4,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../downloaded_file_provider.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
@@ -105,6 +106,17 @@ class DetailsActionButtons extends HookConsumerWidget {
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isMobile = context.isMobile;
 
+    useEffect(() {
+      if (details != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted && playFocusNode.canRequestFocus) {
+            playFocusNode.requestFocus();
+          }
+        });
+      }
+      return null;
+    }, [details != null]); // Only fires when details transition to loaded
+
     final isWifiFuture = useMemoized(() => isOnWifi());
     final isWifiSnapshot = useFuture(isWifiFuture);
     final onWifi = isWifiSnapshot.data ?? true;
@@ -162,7 +174,6 @@ class DetailsActionButtons extends HookConsumerWidget {
                   .read(detailsControllerProvider(item.url).notifier)
                   .handlePlayPress(context, details!);
 
-              // Phase 10 Fix: TV Focus restoration on return from player
               if (context.mounted && isTv) {
                 playFocusNode.requestFocus();
               }
@@ -194,7 +205,6 @@ class DetailsActionButtons extends HookConsumerWidget {
       ),
     );
 
-    // Dynamic quality preference selector button
     final settingsAsync = ref.watch(playerSettingsProvider);
     final settings = settingsAsync.asData?.value ?? const PlayerSettings();
     final currentPreference = onWifi
@@ -202,63 +212,76 @@ class DetailsActionButtons extends HookConsumerWidget {
         : settings.mobileQuality;
     final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
 
-    final qualityBtn = PopupMenuButton<QualityPreference>(
-      initialValue: currentPreference,
-      tooltip: 'Preferred Quality',
-      surfaceTintColor: Colors.transparent,
-      position: PopupMenuPosition.under, // Drops DOWN below the button!
-      onSelected: (q) {
-        final notifier = ref.read(playerSettingsProvider.notifier);
-        if (onWifi) {
-          notifier.setWifiQuality(q);
-        } else {
-          notifier.setMobileQuality(q);
-        }
-      },
-      itemBuilder: (context) => QualityPreference.values.map((q) {
-        return PopupMenuItem<QualityPreference>(
-          value: q,
-          child: Row(
-            children: [
-              if (q == currentPreference)
-                const Icon(Icons.check_rounded, color: Colors.blue, size: 18)
-              else
-                const SizedBox(width: 18),
-              const SizedBox(width: 8),
-              Text(qualityPreferenceLabel(q, l10n)),
-            ],
+    final qualityBtnKey = useMemoized(() => GlobalKey());
+    final qualityBtn = CustomButton(
+      key: qualityBtnKey,
+      isPrimary: false,
+      isOutlined: true,
+      onPressed: () {
+        final renderBox = qualityBtnKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox == null) return;
+        
+        final offset = renderBox.localToGlobal(Offset.zero);
+        showMenu<QualityPreference>(
+          context: context,
+          initialValue: currentPreference, // 🎯 THE FIX: Tells Flutter to autofocus this exact item!
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy + renderBox.size.height + 8,
+            offset.dx + renderBox.size.width,
+            0,
           ),
-        );
-      }).toList(),
-      child: IgnorePointer(
-        child: CustomButton(
-          isPrimary: false,
-          isOutlined: true,
-          onPressed: () {},
-          child: Padding(
-            padding: btnPadding,
-            child: Row(
-              children: [
-                const Icon(Icons.hd_rounded, size: 20),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Preferred Quality: $currentPrefLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          items: QualityPreference.values.map((q) {
+            return PopupMenuItem<QualityPreference>(
+              value: q,
+              child: Row(
+                children: [
+                  if (q == currentPreference)
+                    Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary, size: 20)
+                  else
+                    const SizedBox(width: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    qualityPreferenceLabel(q, l10n),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                ),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-              ],
+                ],
+              ),
+            );
+          }).toList(),
+        ).then((q) {
+          if (q != null) {
+            final notifier = ref.read(playerSettingsProvider.notifier);
+            if (onWifi) {
+              notifier.setWifiQuality(q);
+            } else {
+              notifier.setMobileQuality(q);
+            }
+          }
+        });
+      },
+      child: Padding(
+        padding: btnPadding,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hd_rounded, size: 20),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            Text(
+              'Quality: $currentPrefLabel',
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-          ),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          ],
         ),
       ),
     );
 
-    // Download feature: only for single episode VOD content
     final isLivestream = item.contentType == MultimediaContentType.livestream;
     final showDownload =
         details?.episodes != null &&
@@ -275,22 +298,50 @@ class DetailsActionButtons extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
 
-    // Check for downloaded file on load
     useEffect(() {
       if (details != null && !isDownloading) {
         Future.microtask(() {
-          ref
-              .read(downloadedFilesProvider.notifier)
-              .checkFile(
-                details!,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
+          if (context.mounted) {
+            ref
+                .read(downloadedFilesProvider.notifier)
+                .checkFile(
+                  details!,
+                  episode: details?.episodes?.firstWhereOrNull(
+                    (e) => e.url == episodeUrl,
+                  ),
+                );
+          }
         });
       }
       return null;
     }, [details, episodeUrl, isDownloading]);
+
+    void handleDownloadAction() {
+      if (downloadedFile != null) {
+        DownloadManagementDialog.show(
+          context,
+          details ?? item,
+          downloadedFile,
+          episode: details?.episodes?.firstWhereOrNull(
+            (e) => e.url == episodeUrl,
+          ),
+        );
+      } else if (isDownloading) {
+        DownloadProgressDialog.show(
+          context,
+          details?.title ?? item.title,
+          episodeUrl,
+        );
+      } else {
+        ref
+            .read(downloadLauncherProvider)
+            .launch(
+              context,
+              details ?? item,
+              episodeUrl: episodeUrl,
+            );
+      }
+    }
 
     final downloadBtn = !showDownload
         ? const SizedBox.shrink()
@@ -298,16 +349,7 @@ class DetailsActionButtons extends HookConsumerWidget {
         ? CustomButton(
             isPrimary: false,
             isOutlined: true,
-            onPressed: () {
-              DownloadManagementDialog.show(
-                context,
-                details ?? item,
-                downloadedFile,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
-            },
+            onPressed: handleDownloadAction,
             child: Padding(
               padding: btnPadding,
               child: Row(
@@ -323,21 +365,7 @@ class DetailsActionButtons extends HookConsumerWidget {
         : CustomButton(
             isPrimary: false,
             isOutlined: true,
-            onPressed: isDownloading
-                ? () => DownloadProgressDialog.show(
-                    context,
-                    details?.title ?? item.title,
-                    episodeUrl,
-                  )
-                : () {
-                    ref
-                        .read(downloadLauncherProvider)
-                        .launch(
-                          context,
-                          details ?? item,
-                          episodeUrl: episodeUrl,
-                        );
-                  },
+            onPressed: handleDownloadAction,
             child: Padding(
               padding: btnPadding,
               child: Row(
@@ -388,7 +416,7 @@ class DetailsActionButtons extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(100), // Stadium style
+              borderRadius: BorderRadius.circular(100), 
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
@@ -438,14 +466,24 @@ class DetailsActionButtons extends HookConsumerWidget {
           )
         : playBtn;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        progressWidget,
-        qualityBtn,
-        const SizedBox(height: LayoutConstants.spacingSm),
-        actionRow,
-      ],
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+          onInvoke: (_) {
+            if (showDownload) handleDownloadAction();
+            return null;
+          }
+        ),
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          progressWidget,
+          qualityBtn,
+          const SizedBox(height: LayoutConstants.spacingSm),
+          actionRow,
+        ],
+      ),
     );
   }
 }
@@ -917,14 +955,16 @@ class DetailsProviderChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isDebug = false;
     String displayName = providerName;
+    
     try {
       final manager = ref.read(extensionManagerProvider.notifier);
-      final p = manager.getAllProviders().firstWhere(
+      final p = manager.getAllProviders().firstWhereOrNull(
         (p) => p.packageName == providerName || p.name == providerName,
       );
-      displayName = p.name;
-      if (p.isDebug) {
-        isDebug = true;
+      
+      if (p != null) {
+        displayName = p.name;
+        isDebug = p.isDebug;
       }
     } catch (e) {
       if (kDebugMode) debugPrint('DetailsProviderChip.build: $e');

@@ -122,6 +122,7 @@ class DownloadLauncher {
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
                     return ListTile(
+                      autofocus: index == 0,
                       leading: const Icon(Icons.file_download_outlined),
                       title: Text(label),
                       subtitle: host.isNotEmpty ? Text(host) : null,
@@ -174,6 +175,7 @@ class DownloadLauncher {
               actions: [
                 CustomButton(
                   isPrimary: false,
+                  autofocus: true,
                   onPressed: () {
                     isCanceled = true;
                     Navigator.of(ctx).pop();
@@ -245,6 +247,7 @@ class DownloadLauncher {
                 child: Text(l10n.cancel),
               ),
               ElevatedButton(
+                autofocus: true, 
                 onPressed: () async {
                   Navigator.pop(ctx);
 
@@ -330,6 +333,7 @@ class DownloadLauncher {
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
+            autofocus: true,
             onPressed: () {
               Navigator.pop(ctx);
               launch(

@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🎯 Added for KeyEvent and LogicalKeyboardKey
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../../core/router/app_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -7,7 +9,6 @@ import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
 import 'package:skystream/features/search/presentation/search_provider.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
 
 import '../../../../shared/widgets/desktop_scroll_wrapper.dart';
 import '../../../../core/utils/layout_constants.dart';
@@ -161,7 +162,7 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
                     final item = data['item'] as MultimediaItem;
                     final providerName = data['providerName'] as String;
 
-                    return CardsWrapper(
+                    return _FocusableSourceCard(
                       onTap: () {
                         // Enrich item with provider, content type, and metadata IDs before navigation
                         final enrichedItem = item.copyWith(
@@ -363,6 +364,109 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
           const SizedBox(height: LayoutConstants.spacingSm),
           content,
         ],
+      ),
+    );
+  }
+}
+
+class _FocusableSourceCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _FocusableSourceCard({required this.child, required this.onTap});
+
+  @override
+  State<_FocusableSourceCard> createState() => _FocusableSourceCardState();
+}
+
+class _FocusableSourceCardState extends State<_FocusableSourceCard> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          onFocusChange: (hasFocus) {
+            setState(() => _isFocused = hasFocus);
+            if (hasFocus) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                Scrollable.maybeOf(context)?.position.ensureVisible(
+                  context.findRenderObject()!,
+                  alignment: 0.5,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.fastOutSlowIn,
+                );
+              });
+            }
+          },
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              child: AnimatedScale(
+                scale: _isFocused ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14), // Matches inner card + 2px
+                    border: Border.all(
+                      color: _isFocused || _isHovered
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: _isFocused
+                        ? [
+                            BoxShadow(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            )
+                          ]
+                        : null,
+                  ),
+                  child: widget.child,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

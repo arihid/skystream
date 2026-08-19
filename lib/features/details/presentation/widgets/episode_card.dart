@@ -7,11 +7,14 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/storage/episode_watch_repository.dart';
 import 'package:skystream/core/services/download_service.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:skystream/features/library/presentation/library_provider.dart';
+import 'package:skystream/features/library/presentation/library_state.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../library/presentation/history_provider.dart';
 import '../details_controller.dart';
@@ -20,6 +23,8 @@ import '../downloaded_file_provider.dart';
 import 'download_progress_dialog.dart';
 import 'download_management_dialog.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class EpisodeCard extends HookConsumerWidget {
   final Episode episode;
@@ -102,6 +107,14 @@ class EpisodeCard extends HookConsumerWidget {
     final downloadProgress = downloadProgressData?.progress ?? 0.0;
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episode.url];
+    
+    final isBookmarked = ref.watch(
+      libraryProvider.select(
+        (state) =>
+            state is LibrarySuccess &&
+            state.items.any((i) => i.url == parentItem.url),
+      ),
+    );
 
     // Check for downloaded file on load
     useEffect(() {
@@ -177,10 +190,26 @@ class EpisodeCard extends HookConsumerWidget {
 
     final selectKeyDown = useRef(false);
     final longPressTriggered = useRef(false);
+    
+    final playHints = [
+      GamepadHint(buttonLabel: 'A', actionLabel: isSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Play', buttonColor: Colors.greenAccent.shade400),
+      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+      GamepadHint(
+        buttonLabel: 'X', 
+        actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+        buttonColor: Colors.blueAccent.shade400,
+      ),
+      if (parentItem.contentType != MultimediaContentType.livestream)
+        GamepadHint(
+          buttonLabel: 'Y', 
+          actionLabel: downloadedFile != null ? 'Manage Download' : (isDownloading ? 'Downloading...' : 'Download'), 
+          buttonColor: Colors.yellowAccent.shade700,
+        ),
+      GamepadHint(buttonLabel: 'LS', actionLabel: 'Scroll', buttonColor: Colors.white),
+      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+    ];
 
     return Focus(
-      // Passive observer — let the inner InkWell be the real focus target so
-      // OK plays and Right can traverse into the download icon (a descendant).
       canRequestFocus: false,
       skipTraversal: true,
       onFocusChange: (f) {
@@ -190,8 +219,11 @@ class EpisodeCard extends HookConsumerWidget {
           longPressTriggered.value = false;
         }
         if (f) {
-          // Center the focused episode in the viewport when reachable.
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ref.context.mounted) {
+              ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
+            }
+            // Auto-scroll
             final ctx = FocusManager.instance.primaryFocus?.context;
             final ro = ctx?.findRenderObject();
             if (ctx != null && ctx.mounted && ro != null) {
@@ -205,157 +237,175 @@ class EpisodeCard extends HookConsumerWidget {
           });
         }
       },
-      child: Focus(
-        focusNode: bodyFocusNode,
-        onKeyEvent: (node, event) {
-          // Menu key → trigger download immediately.
-          final isMenu =
-              event.logicalKey == LogicalKeyboardKey.contextMenu ||
-              event.logicalKey == LogicalKeyboardKey.f10;
-          if (event is KeyDownEvent && isMenu) {
-            triggerDownload();
-            return KeyEventResult.handled;
-          }
-
-          // Select / Enter / Space → long-press detection via KeyRepeatEvent.
-          if (event.logicalKey == LogicalKeyboardKey.select ||
-              event.logicalKey == LogicalKeyboardKey.enter ||
-              event.logicalKey == LogicalKeyboardKey.space) {
-            if (event is KeyDownEvent) {
-              selectKeyDown.value = true;
-              longPressTriggered.value = false;
-              return KeyEventResult.handled;
-            } else if (event is KeyRepeatEvent) {
-              if (selectKeyDown.value && !longPressTriggered.value) {
-                longPressTriggered.value = true;
-                updateSelection();
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              handleEpisodeTap();
+              return null;
+            }
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              handleEpisodeTap();
+              return null;
+            }
+          ),
+          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+            onInvoke: (_) {
+              if (parentItem.contentType != MultimediaContentType.livestream) {
+                triggerDownload();
               }
-              return KeyEventResult.handled;
-            } else if (event is KeyUpEvent) {
-              if (selectKeyDown.value && !longPressTriggered.value) {
-                // Short press plays normally, or toggles when selecting.
-                handleEpisodeTap();
-              }
-              selectKeyDown.value = false;
-              longPressTriggered.value = false;
+              return null;
+            }
+          ),
+        },
+        child: Focus(
+          focusNode: bodyFocusNode,
+          onKeyEvent: (node, event) {
+            final isMenu =
+                event.logicalKey == LogicalKeyboardKey.contextMenu ||
+                event.logicalKey == LogicalKeyboardKey.f10;
+            if (event is KeyDownEvent && isMenu) {
+              triggerDownload();
               return KeyEventResult.handled;
             }
-          }
 
-          return KeyEventResult.ignored;
-        },
-        child: InkWell(
-          onTap: handleEpisodeTap,
-          onLongPress: updateSelection,
-          borderRadius: BorderRadius.circular(12),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: width,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? primary.withValues(alpha: 0.24)
-                  : isFocused.value
-                  ? primary.withValues(alpha: 0.18)
-                  : isWatched
-                  ? watchedCardColor
-                  : normalCardColor,
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(
-                color: isSelected || isFocused.value
-                    ? primary
-                    : Theme.of(context).dividerColor.withValues(
-                        alpha: Theme.of(context).brightness == Brightness.dark
-                            ? 0.1
-                            : 0.5,
-                      ),
-                width: isSelected || isFocused.value ? 2 : 1,
-              ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            padding: const EdgeInsets.all(LayoutConstants.spacingSm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildThumbnail(
-                      context,
-                      displayedProgress,
-                      statusBadge,
-                      isWatched: isWatched,
-                      isSelectionMode: isSelectionMode,
-                      isSelected: isSelected,
-                    ),
-                    const SizedBox(width: LayoutConstants.spacingMd),
-                    Expanded(
-                      child: Text(
-                        "${episode.episode}. ${episode.name.toUpperCase()}",
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isWatched
-                              ? theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.65,
-                                )
-                              : theme.colorScheme.onSurface,
+            if (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.space) {
+              if (event is KeyDownEvent) {
+                selectKeyDown.value = true;
+                longPressTriggered.value = false;
+                return KeyEventResult.handled;
+              } else if (event is KeyRepeatEvent) {
+                if (selectKeyDown.value && !longPressTriggered.value) {
+                  longPressTriggered.value = true;
+                  updateSelection();
+                }
+                return KeyEventResult.handled;
+              } else if (event is KeyUpEvent) {
+                if (selectKeyDown.value && !longPressTriggered.value) {
+                  handleEpisodeTap();
+                }
+                selectKeyDown.value = false;
+                longPressTriggered.value = false;
+                return KeyEventResult.handled;
+              }
+            }
+
+            return KeyEventResult.ignored;
+          },
+          child: InkWell(
+            onTap: handleEpisodeTap,
+            onLongPress: updateSelection,
+            borderRadius: BorderRadius.circular(12),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: width,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? primary.withValues(alpha: 0.24)
+                    : isFocused.value
+                    ? primary.withValues(alpha: 0.18)
+                    : isWatched
+                    ? watchedCardColor
+                    : normalCardColor,
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(
+                  color: isSelected || isFocused.value
+                      ? primary
+                      : Theme.of(context).dividerColor.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.1
+                              : 0.5,
                         ),
-                        maxLines: 2,
+                  width: isSelected || isFocused.value ? 2 : 1,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              padding: const EdgeInsets.all(LayoutConstants.spacingSm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildThumbnail(
+                        context,
+                        displayedProgress,
+                        statusBadge,
+                        isWatched: isWatched,
+                        isSelectionMode: isSelectionMode,
+                        isSelected: isSelected,
+                      ),
+                      const SizedBox(width: LayoutConstants.spacingMd),
+                      Expanded(
+                        child: Text(
+                          "${episode.episode}. ${episode.name.toUpperCase()}",
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isWatched
+                                    ? theme.colorScheme.onSurface.withValues(
+                                        alpha: 0.65,
+                                      )
+                                    : theme.colorScheme.onSurface,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: LayoutConstants.spacingXs),
+                      if (isSelectionMode)
+                        Icon(
+                          isSelected
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: isSelected
+                              ? primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          size: 30,
+                        )
+                      else
+                        _buildActionButtons(
+                          context,
+                          ref,
+                          downloadedFile,
+                          isDownloading,
+                          downloadProgress,
+                          downloadProgressData,
+                          details,
+                          downloadFocusNode,
+                          bodyFocusNode,
+                        ),
+                    ],
+                  ),
+                  if (episode.description != null &&
+                      episode.description!.isNotEmpty) ...[
+                    const SizedBox(height: LayoutConstants.spacingSm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Text(
+                        episode.description!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.8),
+                              height: 1.4,
+                            ),
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: LayoutConstants.spacingXs),
-                    // Download icon — uses an explicit FocusNode so the parent
-                    // onKeyEvent can force focus here from the body. Left from
-                    // the icon returns focus to the body via this widget's own
-                    // onKeyEvent.
-                    if (isSelectionMode)
-                      Icon(
-                        isSelected
-                            ? Icons.check_circle_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                        color: isSelected
-                            ? primary
-                            : theme.colorScheme.onSurfaceVariant,
-                        size: 30,
-                      )
-                    else
-                      _buildActionButtons(
-                        context,
-                        ref,
-                        downloadedFile,
-                        isDownloading,
-                        downloadProgress,
-                        downloadProgressData,
-                        details,
-                        downloadFocusNode,
-                        bodyFocusNode,
-                      ),
                   ],
-                ),
-                if (episode.description != null &&
-                    episode.description!.isNotEmpty) ...[
-                  const SizedBox(height: LayoutConstants.spacingSm),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Text(
-                      episode.description!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
           ),
         ),
-      ),
+      ),  
     );
   }
 
@@ -381,10 +431,6 @@ class EpisodeCard extends HookConsumerWidget {
     );
     if (raw == null) return const SizedBox.shrink();
 
-    // On desktop/TV the download icon stays visible for mouse clicks but
-    // is NOT a separate D-pad focus target. Downloads are triggered via
-    // Menu key or long-press OK (handled in the outer Focus.onKeyEvent).
-    // This keeps D-pad Right → next episode card in the grid.
     if (context.isDesktop) {
       return ExcludeFocus(child: raw);
     }
@@ -450,7 +496,7 @@ class EpisodeCard extends HookConsumerWidget {
                         strokeWidth: 2,
                       ),
                       Text(
-                        "${(downloadProgress * 100).toInt()}%", // Display the percentage
+                        "${(downloadProgress * 100).toInt()}%", 
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -546,9 +592,10 @@ class EpisodeCard extends HookConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.9),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -573,8 +620,8 @@ class EpisodeCard extends HookConsumerWidget {
               child: Icon(
                 isSelectionMode
                     ? isSelected
-                          ? Icons.check_rounded
-                          : Icons.add_rounded
+                        ? Icons.check_rounded
+                        : Icons.add_rounded
                     : Icons.play_arrow_rounded,
                 color: Colors.white,
                 size: 24,
@@ -587,8 +634,6 @@ class EpisodeCard extends HookConsumerWidget {
   }
 }
 
-/// Wraps the small download icon so D-pad / Tab focus is unmistakable when it
-/// has focus (the IconButton's default focus ring is too subtle on TV).
 class _FocusableActionWrapper extends StatefulWidget {
   final Widget child;
   final FocusNode focusNode;
@@ -614,23 +659,17 @@ class _FocusableActionWrapperState extends State<_FocusableActionWrapper> {
       focusNode: widget.focusNode,
       onFocusChange: (f) => setState(() => _focused = f),
       onKeyEvent: (node, event) {
-        // Left from the download icon returns focus to the card body.
         if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
             event.logicalKey == LogicalKeyboardKey.arrowLeft &&
             widget.bodyFocusNode.canRequestFocus) {
           widget.bodyFocusNode.requestFocus();
           return KeyEventResult.handled;
         }
-        // Enter/Select on the download icon activates it (the child
-        // IconButton/InkWell already handles mouse tap, but D-pad
-        // select events may not propagate to the IconButton.onPressed).
         if (event is KeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.space)) {
-          // Find and activate the nearest InkWell / IconButton child.
-          // The child's onPressed is what we need to trigger.
-          return KeyEventResult.ignored; // Let it bubble to the IconButton
+          return KeyEventResult.ignored; 
         }
         return KeyEventResult.ignored;
       },
