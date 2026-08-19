@@ -15,7 +15,6 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 
-
 /// Lightweight controller for the hero carousel.
 /// API-compatible with the old CarouselSliderController (nextPage/previousPage).
 class HeroCarouselController {
@@ -48,20 +47,6 @@ class ExploreCarousel extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<ExploreCarousel> createState() => _ExploreCarouselState();
-}
-
-// Intents used by the carousel's keyboard shortcuts. Defined at file scope so
-// they're const-constructible and stable across rebuilds.
-class _CarouselUpIntent extends Intent {
-  const _CarouselUpIntent();
-}
-
-class _CarouselPrevIntent extends Intent {
-  const _CarouselPrevIntent();
-}
-
-class _CarouselNextIntent extends Intent {
-  const _CarouselNextIntent();
 }
 
 class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
@@ -211,15 +196,13 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       },
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
-        autofocus: false,
+        autofocus: true,
+        descendantsAreFocusable: false, 
         mouseCursor: SystemMouseCursors.click,
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowUp): _CarouselUpIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowLeft): _CarouselPrevIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowRight): _CarouselNextIntent(),
         },
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
@@ -235,29 +218,33 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
               } else if (intent.direction == TraversalDirection.right) {
                 _goToNextSlide();
               } else if (intent.direction == TraversalDirection.up) {
-                widget.onNavigateUp?.call();
+                if (widget.onNavigateUp != null) {
+                  widget.onNavigateUp!.call();
+                } else {
+                  FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                }
               } else if (intent.direction == TraversalDirection.down) {
                 FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
               }
-              return Object(); 
+              return null; 
             },
           ),
-          _CarouselUpIntent: CallbackAction<_CarouselUpIntent>(
-            onInvoke: (_) {
-              widget.onNavigateUp?.call();
-              return Object();
-            },
-          ),
-          _CarouselPrevIntent: CallbackAction<_CarouselPrevIntent>(
-            onInvoke: (_) {
-              _goToPreviousSlide();
-              return Object();
-            },
-          ),
-          _CarouselNextIntent: CallbackAction<_CarouselNextIntent>(
-            onInvoke: (_) {
-              _goToNextSlide();
-              return Object();
+          DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
+            onInvoke: (intent) {
+              if (intent.direction == TraversalDirection.left) {
+                _goToPreviousSlide();
+              } else if (intent.direction == TraversalDirection.right) {
+                _goToNextSlide();
+              } else if (intent.direction == TraversalDirection.up) {
+                if (widget.onNavigateUp != null) {
+                  widget.onNavigateUp!.call();
+                } else {
+                  FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                }
+              } else if (intent.direction == TraversalDirection.down) {
+                FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
+              }
+              return null; 
             },
           ),
         },
