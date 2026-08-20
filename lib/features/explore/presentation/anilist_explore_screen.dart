@@ -13,12 +13,14 @@ class AnilistExploreScreen extends ConsumerStatefulWidget {
   final ScrollController scrollController;
   final FocusNode firstActionFocusNode;
   final ValueChanged<HeroCarouselController>? onControllerReady;
+  final bool autofocus;
 
   const AnilistExploreScreen({
     super.key,
     required this.scrollController,
     required this.firstActionFocusNode,
-    this.onControllerReady,
+    this.onControllerReady, 
+    required this.autofocus,
   });
 
   @override
@@ -49,6 +51,7 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
+                        autofocus: widget.autofocus,
                         movies: value,
                         scrollController: widget.scrollController,
                         onNavigateUp: () =>

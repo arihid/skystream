@@ -296,6 +296,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           body: _withGradientEdgeHint(
             ref.watch(exploreModeProvider)
                 ? AnilistExploreScreen(
+                    autofocus: true,
                     scrollController: _scrollController,
                     firstActionFocusNode: _firstActionFocusNode,
                     onControllerReady: (c) =>
@@ -451,6 +452,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           child: _withGradientEdgeHint(
             isAnime
                 ? AnilistExploreScreen(
+                    autofocus: true,
                     scrollController: _scrollController,
                     firstActionFocusNode: _firstActionFocusNode,
                     onControllerReady: (c) =>
@@ -547,6 +549,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
+                        autofocus: true,
                         movies: value,
                         scrollController: _scrollController,
                         onNavigateUp: () =>

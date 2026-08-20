@@ -31,6 +31,7 @@ class ExploreCarousel extends ConsumerStatefulWidget {
   final ScrollController? scrollController;
   final void Function(MultimediaItem)? onTap;
   final VoidCallback? onNavigateUp;
+  final bool autofocus;
 
   /// Called once after initState with the internal [HeroCarouselController]
   /// so the parent can drive prev/next from an external UI (e.g. header arrows).
@@ -43,6 +44,7 @@ class ExploreCarousel extends ConsumerStatefulWidget {
     this.onTap,
     this.onNavigateUp,
     this.onControllerReady,
+    this.autofocus = false,
   });
 
   @override
@@ -109,6 +111,17 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     }
 
     _fillController.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.autofocus) return;
+      final currentFocus = FocusManager.instance.primaryFocus;
+      
+      // Only request focus if literally nothing is focused, or we are at the app root.
+      // If the user opened the Global Menu, or moved to the Search Bar, this backs off!
+      if (currentFocus == null || currentFocus == FocusManager.instance.rootScope) {
+        _carouselFocusNode.requestFocus();
+      }
+    });
   }
 
   void _goToNextSlide() {
@@ -196,7 +209,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       },
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
-        autofocus: true,
+        autofocus: false,
         descendantsAreFocusable: false, 
         mouseCursor: SystemMouseCursors.click,
         shortcuts: const <ShortcutActivator, Intent>{
@@ -797,7 +810,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 }
 
-/// A single progress dot whose width animates with spring physics.
 class _ProgressDot extends StatefulWidget {
   final bool isActive;
   final AnimationController fillController;
