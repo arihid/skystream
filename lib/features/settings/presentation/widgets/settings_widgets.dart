@@ -50,6 +50,7 @@ class SettingsTile extends StatefulWidget {
   final bool isLast;
   final bool isBeta;
   final FocusNode? focusNode;
+  final bool autofocus;
 
   const SettingsTile({
     super.key,
@@ -61,6 +62,7 @@ class SettingsTile extends StatefulWidget {
     this.isLast = false,
     this.isBeta = false,
     this.focusNode,
+    this.autofocus = false, 
   });
 
   @override
@@ -76,17 +78,12 @@ class _SettingsTileState extends State<SettingsTile> {
     return Column(
       children: [
         Focus(
-          // Passive observer — we want the inner ListTile's InkWell to remain
-          // the actual focus target (it's what handles onTap when OK is
-          // pressed). hasFocus on this node reflects "any descendant focused"
-          // so onFocusChange still fires when the tile is reached.
           focusNode: widget.focusNode,
           canRequestFocus: false,
           skipTraversal: true,
           onFocusChange: (f) {
             setState(() => _isFocused = f);
             if (f) {
-              // Center the focused setting row in the viewport.
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 final ctx = FocusManager.instance.primaryFocus?.context;
                 final ro = ctx?.findRenderObject();
@@ -116,6 +113,7 @@ class _SettingsTileState extends State<SettingsTile> {
             child: Material(
               type: MaterialType.transparency,
               child: ListTile(
+                autofocus: widget.autofocus,
                 focusColor: Colors.transparent,
                 hoverColor: primary.withValues(alpha: 0.10),
                 leading: Container(
