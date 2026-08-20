@@ -307,7 +307,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       return KeyEventResult.handled;
     }
     
-    // 🎯 KEYBOARD SUPPORT: Matches Gamepad 'A' exactly!
     if (event.logicalKey == LogicalKeyboardKey.space || 
         event.logicalKey == LogicalKeyboardKey.enter || 
         event.logicalKey == LogicalKeyboardKey.select) {
@@ -505,8 +504,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
                 onInvoke: (intent) {
                   
-                  // 🎯 WAKE AND PAUSE: If the UI is hidden, pressing 'A' wakes the UI 
-                  // and pauses the video instantly!
                   if (!controlsVisible) {
                     _controlsKeyFinal.currentState?.showControls();
                     _controlsKeyFinal.currentState?.togglePlayPause();

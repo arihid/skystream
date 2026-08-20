@@ -224,7 +224,7 @@ class DetailsActionButtons extends HookConsumerWidget {
         final offset = renderBox.localToGlobal(Offset.zero);
         showMenu<QualityPreference>(
           context: context,
-          initialValue: currentPreference, // 🎯 THE FIX: Tells Flutter to autofocus this exact item!
+          initialValue: currentPreference,
           position: RelativeRect.fromLTRB(
             offset.dx,
             offset.dy + renderBox.size.height + 8,

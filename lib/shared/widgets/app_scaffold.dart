@@ -60,7 +60,7 @@ class AppScaffold extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(child: navigationShell),
-                    const GamepadHintsOverlay(), // 🎯 RESTORED GLOBAL HINTS!
+                    const GamepadHintsOverlay(),
                   ],
                 ),
               ),

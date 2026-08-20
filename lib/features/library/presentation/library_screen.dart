@@ -217,7 +217,6 @@ class _TabChipState extends State<_TabChip> {
   Widget build(BuildContext context) {
     final theme = widget.theme;
 
-    // 🎯 THE FIX: Completely hide these buttons from the D-Pad!
     return ExcludeFocus(
       child: GestureDetector(
         onTap: widget.onTap,

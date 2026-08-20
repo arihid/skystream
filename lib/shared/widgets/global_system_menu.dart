@@ -17,7 +17,6 @@ class GlobalSystemMenu extends StatelessWidget {
     if (_isOpen) return;
     _isOpen = true;
 
-    // 🎯 Safely grab the location from the main screen's context BEFORE opening the dialog
     String location = '/';
     try {
       location = GoRouterState.of(context).uri.path;
@@ -245,7 +244,6 @@ class _MenuButtonState extends State<_MenuButton> {
     final color = widget.isDestructive ? theme.colorScheme.error : theme.colorScheme.primary;
     final onColor = widget.isDestructive ? theme.colorScheme.onError : theme.colorScheme.onPrimary;
 
-    // 🎯 THE FIX: Pass _focusNode directly to FocusableWrapper. NO Focus() widget inside!
     return FocusableWrapper(
       focusNode: _focusNode,
       autofocus: widget.autofocus,

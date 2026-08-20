@@ -1098,7 +1098,6 @@ class _SuggestionCard extends StatelessWidget {
               ),
             ),
             Container(width: 1.0, height: 24.0, color: theme.dividerColor.withValues(alpha: 0.2)),
-            // 🎯 THE TRICK: Hide this from the D-Pad, but keep it clickable for mouse/touch!
             ExcludeFocus(
               child: IconButton(
                 icon: const Icon(Icons.north_west_rounded, size: 20),

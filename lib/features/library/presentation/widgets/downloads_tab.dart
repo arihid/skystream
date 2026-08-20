@@ -179,9 +179,8 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 🎯 THE FIX: Flattened header acts as a giant button!
           FocusableWrapper(
-            focusNode: nodeToUse, // 🎯 Attach node!
+            focusNode: nodeToUse,
             useScaleEffect: false, 
             onTap: _toggleExpand,
             onSecondaryTap: () => _confirmDeleteAll(context, ref, nodeToUse),
@@ -253,7 +252,6 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                   ),
                   const SizedBox(width: LayoutConstants.spacingSm),
                   
-                  // 🎯 THE FIX: Internal buttons are excluded from the D-Pad map
                   if (!isTv)
                     ExcludeFocus(
                       child: Row(
@@ -279,7 +277,6 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
             ),
           ),
 
-          // 🎯 Replace ExpansionTile with AnimatedSize to avoid focus traps
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
@@ -521,7 +518,6 @@ class _DownloadItemTile extends HookConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 🎯 THE FIX: Internal buttons are excluded from the D-Pad map
                   if (!isTv)
                     ExcludeFocus(
                       child: Row(

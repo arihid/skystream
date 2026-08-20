@@ -203,7 +203,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
 
     _subscriptions.addAll([
       widget.player.stream.playing.listen((val) {
-        if (!mounted) return; // 🎯 THE SHIELD
+        if (!mounted) return;
         final oldPlaying = _isPlaying;
         _isPlaying = val;
         setState(() {}); 
@@ -849,7 +849,6 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
 
     if (_isInPip || isSmallWindow) return const SizedBox.shrink();
 
-    // 🎯 TV QoL: Handles "Fetching source..." phase
     if (uiPhase.fullscreenBlocking) return _buildLoadingUI(phase: uiPhase, sourceAttempts: sourceAttempts);
 
     final chromeVisible = _isVisible && !_panelOpen;

@@ -204,7 +204,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                         ] else if (widget.phase.showGoLive && widget.onGoLive != null) ...[
                           _buildMiniHint(context, 'A', l10n.goLive, Colors.greenAccent.shade400),
                           const SizedBox(width: 16),
-                        ] else if (widget.phase.kind == PlaybackUiPhaseKind.error) ...[ // 🎯 FIX: Removed redundant check!
+                        ] else if (widget.phase.kind == PlaybackUiPhaseKind.error) ...[
                           _buildMiniHint(context, 'A', l10n.goBack, Colors.greenAccent.shade400),
                           const SizedBox(width: 16),
                         ],
