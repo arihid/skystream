@@ -37,7 +37,6 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
       }
     });
 
-    // 🎯 THE FIX: Raw physical hook bypasses Intent collisions entirely!
     _gamepadSubscription = Gamepads.events.listen((event) {
       if (!mounted || !_isKeyboardFocused) return;
 
@@ -107,9 +106,8 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
     final activeGrid = _isSymbols ? symbols : letters;
 
     return FocusTraversalGroup(
-      policy: WidgetOrderTraversalPolicy(),
+      policy: ReadingOrderTraversalPolicy(),
       child: Focus(
-        // 🎯 THE TRACKER: Tells the Gamepad stream if it's allowed to execute
         skipTraversal: true,
         canRequestFocus: false,
         onFocusChange: (hasFocus) => _isKeyboardFocused = hasFocus,

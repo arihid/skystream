@@ -5,6 +5,7 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../search_provider.dart';
 
 import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
 class SearchHeaderBar extends ConsumerStatefulWidget {
   final TextEditingController textController;
@@ -63,43 +64,58 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                   final query = value.text;
 
                   if (widget.isBigPicture) {
-                    return ExcludeFocus(
-                      excluding: true,
-                      child: FocusableWrapper(
-                        useScaleEffect: false,
-                        borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
-                        onTap: widget.onTapFakeInput,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
-                            border: Border.all(color: Colors.transparent), 
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  query.isEmpty ? l10n.searchHint : query,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: query.isEmpty ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                    return ListenableBuilder(
+                      listenable: widget.searchFocusNode,
+                      builder: (context, child) {
+                        final hasFocus = widget.searchFocusNode.hasFocus;
+                        return FocusableWrapper(
+                          focusNode: widget.searchFocusNode, 
+                          useScaleEffect: true,
+                          borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                          onTap: widget.onTapFakeInput,
+                          gamepadHints: [
+                            GamepadHint(
+                              buttonLabel: 'A', 
+                              actionLabel: query.isEmpty ? l10n.searchHint : 'Edit Search', 
+                              buttonColor: Colors.greenAccent.shade400,
+                            ),
+                          ],
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: hasFocus ? 0.8 : 0.5),
+                              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                              border: Border.all(
+                                color: hasFocus ? theme.colorScheme.primary : Colors.transparent, 
+                                width: 2.5
+                              ), 
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    query.isEmpty ? l10n.searchHint : query,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: query.isEmpty ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              if (query.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 8.0),
-                                  child: Icon(Icons.edit_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                                ),
-                            ],
+                                if (query.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Icon(Icons.edit_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }
                     );
                   }
 
@@ -187,6 +203,7 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
 
           FocusableWrapper(
             borderRadius: BorderRadius.circular(18),
+            useScaleEffect: true,
             onTap: () => _popupKey.currentState?.showButtonMenu(),
             child: PopupMenuButton<SearchFilter>(
               key: _popupKey,
