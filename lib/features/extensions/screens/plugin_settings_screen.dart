@@ -13,6 +13,9 @@ import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../settings/presentation/widgets/settings_widgets.dart';
 
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../core/widgets/focusable_wrapper.dart';
+
 class PluginSettingsScreen extends ConsumerStatefulWidget {
   final ExtensionPlugin plugin;
 
@@ -24,6 +27,7 @@ class PluginSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
+  final FocusNode _screenFocusNode = FocusNode(debugLabel: 'PluginSettings');
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -42,6 +46,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
   @override
   void dispose() {
+    _screenFocusNode.dispose();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -260,6 +265,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                     final description = option.description?.trim();
 
                     return SwitchListTile(
+                      autofocus: definition.options.indexOf(option) == 0,
                       contentPadding: EdgeInsets.zero,
                       secondary: Icon(_toggleGroupOptionIcon(option)),
                       title: Text(option.label),
@@ -380,6 +386,9 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Extension settings saved')));
+      
+      Navigator.of(context).pop();
+      
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -465,6 +474,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               children: definition.options
                   .map(
                     (option) => ListTile(
+                      autofocus: current == option.value,
                       title: Text(option.label),
                       leading: Radio<String>(value: option.value),
                       onTap: () {
@@ -503,7 +513,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         title: Text(definition.title),
         content: CustomTextField(
           controller: editor,
-          autofocus: true,
+          // Removed autofocus to stop TV keyboard popup
           keyboardType: definition.type == PluginSettingType.url
               ? TextInputType.url
               : TextInputType.text,
@@ -520,6 +530,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         ),
         actions: [
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
@@ -561,6 +572,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               children: domains
                   .map(
                     (domain) => ListTile(
+                      autofocus: _selectedDomain == domain.url,
                       title: Text(domain.name),
                       subtitle: Text(domain.url),
                       leading: Radio<String>(value: domain.url),
@@ -591,11 +603,13 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
   Widget _buildSettingTile(
     PluginSettingDefinition definition, {
     required bool isLast,
+    bool isFirst = false,
   }) {
     switch (definition.type) {
       case PluginSettingType.toggle:
         final value = _boolValue(definition.key);
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: definition.description,
@@ -613,6 +627,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
       case PluginSettingType.toggleGroup:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
@@ -624,6 +639,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
       case PluginSettingType.select:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
@@ -634,6 +650,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       case PluginSettingType.text:
       case PluginSettingType.url:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
@@ -660,6 +677,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                   _definitions.length,
                   (index) => _buildSettingTile(
                     _definitions[index],
+                    isFirst: index == 0,
                     isLast: index == _definitions.length - 1,
                   ),
                 ),
@@ -673,6 +691,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                 title: 'Website address',
                 children: [
                   SettingsTile(
+                    autofocus: _definitions.isEmpty,
                     icon: Icons.language_rounded,
                     title: 'Selected website',
                     subtitle: _selectedDomainLabel(domains),
@@ -693,6 +712,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                   final enabled = _providerEnabled[provider.id] ?? true;
 
                   return SettingsTile(
+                    autofocus: _definitions.isEmpty && domains.isEmpty && index == 0,
                     icon: Icons.extension_rounded,
                     title: provider.name,
                     subtitle: provider.id,
@@ -722,19 +742,23 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               padding: const EdgeInsets.symmetric(
                 horizontal: LayoutConstants.spacingMd,
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: _saving
-                      ? const AppLoadingIndicator(
-                          constraints: BoxConstraints.tightFor(
-                            width: 18,
-                            height: 18,
-                          ),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: const Text('Save settings'),
+              child: FocusableWrapper(
+                useScaleEffect: true,
+                onTap: _saving ? null : _save,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const AppLoadingIndicator(
+                            constraints: BoxConstraints.tightFor(
+                              width: 18,
+                              height: 18,
+                            ),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: const Text('Save settings'),
+                  ),
                 ),
               ),
             ),
@@ -758,52 +782,70 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(l10n.pluginSettings(widget.plugin.name)),
-        actions: [
-          IconButton(
-            tooltip: 'Save',
-            onPressed: _loading || _saving ? null : _save,
-            icon: _saving
-                ? const AppLoadingIndicator(
-                    constraints: BoxConstraints.tightFor(width: 20, height: 20),
-                  )
-                : const Icon(Icons.save_outlined),
-          ),
-        ],
       ),
-      body: _loading
-          ? const Center(child: AppLoadingIndicator())
-          : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+      body: Focus(
+        focusNode: _screenFocusNode,
+        canRequestFocus: false,
+        onFocusChange: (hasFocus) {
+          if (hasFocus) {
+            Future.microtask(() {
+              if (mounted) {
+                ref.read(focusedGamepadHintsProvider.notifier).state = [
+                  GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Toggle', buttonColor: Colors.greenAccent.shade400),
+                  GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                ];
+              }
+            });
+          } else {
+            Future.microtask(() {
+              if (mounted) {
+                final currentHints = ref.read(focusedGamepadHintsProvider);
+                if (currentHints?.any((h) => h.actionLabel == 'Select / Toggle') == true) {
+                  ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                }
+              }
+            });
+          }
+        },
+        child: FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
+          child: _loading
+              ? const Center(child: AppLoadingIndicator())
+              : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(onPressed: _load, child: const Text('Retry')),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton(onPressed: _load, child: const Text('Retry')),
-                  ],
-                ),
-              ),
-            )
-          : !hasContent
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'This extension does not define configurable settings.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          : _buildContent(domains, hasScriptBaseUrl),
+                  ),
+                )
+              : !hasContent
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'This extension does not define configurable settings.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : _buildContent(domains, hasScriptBaseUrl),
+        ),
+      ),
     );
   }
 }
