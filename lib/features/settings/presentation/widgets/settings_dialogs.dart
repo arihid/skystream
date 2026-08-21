@@ -89,6 +89,7 @@ void showDefaultHomeScreenDialog(
             mainAxisSize: MainAxisSize.min,
             children: options.map((opt) {
               return ListTile(
+                autofocus: current == opt['route'],
                 title: Text(opt['label']!),
                 leading: Radio<String>(value: opt['route']!),
                 onTap: () {
@@ -146,6 +147,7 @@ void showTitlePositionDialog(
             mainAxisSize: MainAxisSize.min,
             children: options.map((opt) {
               return ListTile(
+                autofocus: current == opt['value'],
                 title: Text(opt['label']!),
                 leading: Radio<String>(value: opt['value']!),
                 onTap: () {
@@ -164,11 +166,82 @@ void showTitlePositionDialog(
 }
 
 // Must be used inside a RadioGroup<ThemeMode> ancestor.
-Widget _buildThemeOption(String title, ThemeMode value, VoidCallback onSelect) {
+Widget _buildThemeOption(
+  String title,
+  ThemeMode value,
+  ThemeMode currentTheme,
+  VoidCallback onSelect,
+) {
   return ListTile(
+    autofocus: currentTheme == value,
     title: Text(title),
     leading: Radio<ThemeMode>(value: value),
     onTap: onSelect,
+  );
+}
+
+/// Shows a dialog to pick the app theme mode.
+void showThemeDialog(
+  BuildContext context,
+  WidgetRef ref,
+  ThemeMode currentTheme,
+) {
+  final l10n = AppLocalizations.of(context)!;
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.chooseTheme),
+      content: RadioGroup<ThemeMode>(
+        groupValue: currentTheme,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(appThemeModeProvider.notifier).setThemeMode(val);
+          Navigator.pop<void>(context);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildThemeOption(
+                l10n.system,
+                ThemeMode.system,
+                currentTheme,
+                () {
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.system);
+                  Navigator.pop<void>(context);
+                },
+              ),
+              _buildThemeOption(l10n.dark, ThemeMode.dark, currentTheme, () {
+                ref
+                    .read(appThemeModeProvider.notifier)
+                    .setThemeMode(ThemeMode.dark);
+                Navigator.pop<void>(context);
+              }),
+              _buildThemeOption(l10n.light, ThemeMode.light, currentTheme, () {
+                ref
+                    .read(appThemeModeProvider.notifier)
+                    .setThemeMode(ThemeMode.light);
+                Navigator.pop<void>(context);
+              }),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop<void>(context),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -218,245 +291,6 @@ String getDohProviderLabel(
   }
 }
 
-/// Shows a dialog to pick the left/right swipe gesture.
-void showGestureDialog(
-  BuildContext context,
-  WidgetRef ref,
-  bool isLeft,
-  PlayerGesture current,
-) {
-  final l10n = AppLocalizations.of(context)!;
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.selectGesture(isLeft ? l10n.left : l10n.right)),
-      content: RadioGroup<PlayerGesture>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          if (isLeft) {
-            ref.read(playerSettingsProvider.notifier).setLeftGesture(val);
-          } else {
-            ref.read(playerSettingsProvider.notifier).setRightGesture(val);
-          }
-          Navigator.pop<void>(context);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: PlayerGesture.values.map((g) {
-              final String label = getGestureLabel(g, l10n);
-              return ListTile(
-                title: Text(label),
-                leading: Radio<PlayerGesture>(value: g),
-                onTap: () {
-                  if (isLeft) {
-                    ref.read(playerSettingsProvider.notifier).setLeftGesture(g);
-                  } else {
-                    ref
-                        .read(playerSettingsProvider.notifier)
-                        .setRightGesture(g);
-                  }
-                  Navigator.pop<void>(context);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog to pick the seek duration.
-void showDurationDialog(BuildContext context, WidgetRef ref, int current) {
-  final l10n = AppLocalizations.of(context)!;
-  final options = <int>[5, 10, 15, 20, 30, 60, 120];
-
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.selectSeekDuration),
-      content: RadioGroup<int>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          ref.read(playerSettingsProvider.notifier).setSeekDuration(val);
-          Navigator.pop<void>(context);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((sec) {
-              return ListTile(
-                title: Text(formatSeekDuration(sec, l10n)),
-                leading: Radio<int>(value: sec),
-                onTap: () {
-                  ref
-                      .read(playerSettingsProvider.notifier)
-                      .setSeekDuration(sec);
-                  Navigator.pop<void>(context);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog to pick the default resize mode.
-void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
-  final l10n = AppLocalizations.of(context)!;
-  final options = <Map<String, String>>[
-    {'label': l10n.fit, 'value': 'Fit'},
-    {'label': l10n.zoom, 'value': 'Zoom'},
-    {'label': l10n.stretch, 'value': 'Stretch'},
-  ];
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.defaultResizeMode),
-      content: RadioGroup<String>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          ref.read(playerSettingsProvider.notifier).setDefaultResizeMode(val);
-          Navigator.pop<void>(ctx);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((e) {
-              return ListTile(
-                title: Text(e['label']!),
-                leading: Radio<String>(value: e['value']!),
-                onTap: () {
-                  ref
-                      .read(playerSettingsProvider.notifier)
-                      .setDefaultResizeMode(e['value']!);
-                  Navigator.pop<void>(ctx);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog to pick the readahead duration (5-10 min).
-void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
-  final l10n = AppLocalizations.of(context)!;
-  // 1 to 20 minutes in 1-minute steps
-  final options = List.generate(20, (i) => (1 + i) * 60);
-
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.selectBufferDepth),
-      content: RadioGroup<int>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          ref.read(playerSettingsProvider.notifier).setReadaheadSeconds(val);
-          Navigator.pop<void>(context);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((sec) {
-              return ListTile(
-                title: Text(formatReadahead(sec, l10n)),
-                leading: Radio<int>(value: sec),
-                onTap: () {
-                  ref
-                      .read(playerSettingsProvider.notifier)
-                      .setReadaheadSeconds(sec);
-                  Navigator.pop<void>(context);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog for subtitle size + background settings.
-void showSubtitleDialog(
-  BuildContext context,
-  WidgetRef ref,
-  PlayerSettings settings,
-) {
-  final l10n = AppLocalizations.of(context)!;
-  double size = settings.subtitleSize;
-  bool showBackground = settings.subtitleBackgroundColor != 0;
-
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          surfaceTintColor: Colors.transparent,
-          title: Text(l10n.subtitleSettings),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l10n.size(size.toInt())),
-                CustomSlider(
-                  value: size,
-                  min: 10,
-                  max: 80,
-                  divisions: 70,
-                  step: 1.0,
-                  onChanged: (v) => setState(() => size = v),
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: Text(l10n.background),
-                  value: showBackground,
-                  onChanged: (v) => setState(() => showBackground = v),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop<void>(ctx),
-              child: Text(
-                l10n.cancel,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            CustomButton(
-              isPrimary: true,
-              onPressed: () {
-                final bg = showBackground ? 0x99000000 : 0x00000000;
-                ref
-                    .read(playerSettingsProvider.notifier)
-                    .setSubtitleSettings(size, settings.subtitleColor, bg);
-                Navigator.pop<void>(ctx);
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
 /// Shows a dialog to pick the default player (internal or external).
 void showDefaultPlayerDialog(
   BuildContext context,
@@ -483,6 +317,7 @@ void showDefaultPlayerDialog(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                autofocus: currentPlayerId == null,
                 title: Text(l10n.internalPlayer),
                 subtitle: Text(l10n.builtInPlayer),
                 leading: const Radio<String?>(value: null),
@@ -497,6 +332,7 @@ void showDefaultPlayerDialog(
               const Divider(),
               ...platformPlayers.map((player) {
                 return ListTile(
+                  autofocus: currentPlayerId == player.id,
                   title: Text(player.displayName),
                   leading: Radio<String?>(value: player.id),
                   trailing: Icon(player.icon),
@@ -568,6 +404,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
+                      autofocus: currentProvider == DohProvider.cloudflare,
                       title: Text(l10n.cloudflare),
                       subtitle: const Text('1.1.1.1'),
                       leading: const Radio<DohProvider>(
@@ -576,6 +413,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.cloudflare),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.google,
                       title: Text(l10n.google),
                       subtitle: const Text('8.8.8.8'),
                       leading: const Radio<DohProvider>(
@@ -584,6 +422,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.google),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.adguard,
                       title: Text(l10n.adguard),
                       subtitle: const Text('dns.adguard.com'),
                       leading: const Radio<DohProvider>(
@@ -592,6 +431,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.adguard),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.dnsWatch,
                       title: Text(l10n.dnsWatch),
                       subtitle: const Text('resolver2.dns.watch'),
                       leading: const Radio<DohProvider>(
@@ -600,6 +440,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.dnsWatch),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.quad9,
                       title: Text(l10n.quad9),
                       subtitle: const Text('9.9.9.9'),
                       leading: const Radio<DohProvider>(
@@ -608,6 +449,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.quad9),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.dnsSb,
                       title: Text(l10n.dnsSb),
                       subtitle: const Text('doh.dns.sb'),
                       leading: const Radio<DohProvider>(
@@ -616,6 +458,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.dnsSb),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.canadianShield,
                       title: Text(l10n.canadianShield),
                       subtitle: const Text('private.canadianshield.cira.ca'),
                       leading: const Radio<DohProvider>(
@@ -624,6 +467,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       onTap: () => saveAndClose(DohProvider.canadianShield),
                     ),
                     ListTile(
+                      autofocus: currentProvider == DohProvider.custom,
                       title: Text(l10n.custom),
                       subtitle: Text(l10n.enterCustomDohUrl),
                       leading: const Radio<DohProvider>(
@@ -640,7 +484,7 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                         ),
                         child: CustomTextField(
                           controller: controller,
-                          autofocus: true,
+                          // No autofocus here! Keeps TV keyboard from popping up instantly.
                           decoration: InputDecoration(
                             labelText: l10n.customDohUrlLabel,
                             hintText: 'https://...',
@@ -685,405 +529,248 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to pick the app theme mode.
-void showThemeDialog(
+/// Shows a dialog to pick the left/right swipe gesture.
+void showGestureDialog(
   BuildContext context,
   WidgetRef ref,
-  ThemeMode currentTheme,
+  bool isLeft,
+  PlayerGesture current,
 ) {
   final l10n = AppLocalizations.of(context)!;
   showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
       surfaceTintColor: Colors.transparent,
-      title: Text(l10n.chooseTheme),
-      content: RadioGroup<ThemeMode>(
-        groupValue: currentTheme,
+      title: Text(l10n.selectGesture(isLeft ? l10n.left : l10n.right)),
+      content: RadioGroup<PlayerGesture>(
+        groupValue: current,
         onChanged: (val) {
           if (val == null) return;
-          ref.read(appThemeModeProvider.notifier).setThemeMode(val);
+          if (isLeft) {
+            ref.read(playerSettingsProvider.notifier).setLeftGesture(val);
+          } else {
+            ref.read(playerSettingsProvider.notifier).setRightGesture(val);
+          }
           Navigator.pop<void>(context);
         },
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildThemeOption(l10n.system, ThemeMode.system, () {
-                ref
-                    .read(appThemeModeProvider.notifier)
-                    .setThemeMode(ThemeMode.system);
-                Navigator.pop<void>(context);
-              }),
-              _buildThemeOption(l10n.dark, ThemeMode.dark, () {
-                ref
-                    .read(appThemeModeProvider.notifier)
-                    .setThemeMode(ThemeMode.dark);
-                Navigator.pop<void>(context);
-              }),
-              _buildThemeOption(l10n.light, ThemeMode.light, () {
-                ref
-                    .read(appThemeModeProvider.notifier)
-                    .setThemeMode(ThemeMode.light);
-                Navigator.pop<void>(context);
-              }),
-            ],
+            children: PlayerGesture.values.map((g) {
+              final String label = getGestureLabel(g, l10n);
+              return ListTile(
+                autofocus: current == g,
+                title: Text(label),
+                leading: Radio<PlayerGesture>(value: g),
+                onTap: () {
+                  if (isLeft) {
+                    ref.read(playerSettingsProvider.notifier).setLeftGesture(g);
+                  } else {
+                    ref
+                        .read(playerSettingsProvider.notifier)
+                        .setRightGesture(g);
+                  }
+                  Navigator.pop<void>(context);
+                },
+              );
+            }).toList(),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop<void>(context),
-          child: Text(
-            l10n.cancel,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
     ),
   );
 }
 
-/// Shows a dialog to reset data.
-void showResetDataDialog(BuildContext context, WidgetRef ref) {
+/// Shows a dialog to pick the seek duration.
+void showDurationDialog(BuildContext context, WidgetRef ref, int current) {
   final l10n = AppLocalizations.of(context)!;
-  final callerContext = context;
+  final options = <int>[5, 10, 15, 20, 30, 60, 120];
+
   showDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    builder: (context) => AlertDialog(
       surfaceTintColor: Colors.transparent,
-      title: Text(l10n.resetDataDialogTitle),
-      content: Text(l10n.resetDataDialogContent),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(
-            l10n.cancel,
-            style: TextStyle(
-              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop<void>(dialogContext);
-
-            // Clear Preferences ONLY
-            await ref.read(settingsRepositoryProvider).clearPreferences();
-
-            // Restart App - use caller's context; dialog context may be disposed after pop
-            if (callerContext.mounted) {
-              await AppUtils.restartApp(callerContext);
-            }
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(dialogContext).colorScheme.tertiary,
-          ),
-          child: Text(l10n.resetDataKeepExtensions),
-        ),
-      ],
-    ),
-  );
-}
-
-/// Shows a dialog to factory reset.
-void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
-  final l10n = AppLocalizations.of(context)!;
-  final callerContext = context;
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.factoryResetDialogTitle),
-      content: Text(l10n.factoryResetDialogContent),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(
-            l10n.cancel,
-            style: TextStyle(
-              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop<void>(dialogContext);
-            // Deep Clean (Extensions, Prefs, Hive)
-            await ref.read(settingsRepositoryProvider).deleteAllData();
-
-            // Restart App - use caller's context; dialog context may be disposed after pop
-            if (callerContext.mounted) {
-              await AppUtils.restartApp(callerContext);
-            }
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(dialogContext).colorScheme.error,
-          ),
-          child: Text(l10n.factoryReset),
-        ),
-      ],
-    ),
-  );
-}
-
-/// Shows a dialog to clear the image & video cache.
-void showClearCacheDialog(BuildContext context, WidgetRef ref) {
-  final l10n = AppLocalizations.of(context)!;
-  final callerContext = context;
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.clearCacheDialogTitle),
-      content: Text(l10n.clearCacheDialogContent),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(
-            l10n.cancel,
-            style: TextStyle(
-              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.pop<void>(dialogContext);
-            await ref.read(settingsRepositoryProvider).clearImageVideoCache();
-            ref.invalidate(cacheSizeProvider);
-            if (callerContext.mounted) {
-              ScaffoldMessenger.of(callerContext).showSnackBar(
-                SnackBar(content: Text(l10n.cacheCleared)),
+      title: Text(l10n.selectSeekDuration),
+      content: RadioGroup<int>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(playerSettingsProvider.notifier).setSeekDuration(val);
+          Navigator.pop<void>(context);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((sec) {
+              return ListTile(
+                autofocus: current == sec,
+                title: Text(formatSeekDuration(sec, l10n)),
+                leading: Radio<int>(value: sec),
+                onTap: () {
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setSeekDuration(sec);
+                  Navigator.pop<void>(context);
+                },
               );
-            }
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            }).toList(),
           ),
-          child: Text(l10n.clearCacheNow),
         ),
-      ],
+      ),
     ),
   );
 }
 
-/// Shows a dialog to pick the application language.
-void showLanguageDialog(
+/// Shows a dialog to pick the default resize mode.
+void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
+  final l10n = AppLocalizations.of(context)!;
+  final options = <Map<String, String>>[
+    {'label': l10n.fit, 'value': 'Fit'},
+    {'label': l10n.zoom, 'value': 'Zoom'},
+    {'label': l10n.stretch, 'value': 'Stretch'},
+  ];
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.defaultResizeMode),
+      content: RadioGroup<String>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(playerSettingsProvider.notifier).setDefaultResizeMode(val);
+          Navigator.pop<void>(ctx);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((e) {
+              return ListTile(
+                autofocus: current == e['value'],
+                title: Text(e['label']!),
+                leading: Radio<String>(value: e['value']!),
+                onTap: () {
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setDefaultResizeMode(e['value']!);
+                  Navigator.pop<void>(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Shows a dialog to pick the readahead duration (5-10 min).
+void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
+  final l10n = AppLocalizations.of(context)!;
+  // 1 to 20 minutes in 1-minute steps
+  final options = List.generate(20, (i) => (1 + i) * 60);
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.selectBufferDepth),
+      content: RadioGroup<int>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(playerSettingsProvider.notifier).setReadaheadSeconds(val);
+          Navigator.pop<void>(context);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((sec) {
+              return ListTile(
+                autofocus: current == sec,
+                title: Text(formatReadahead(sec, l10n)),
+                leading: Radio<int>(value: sec),
+                onTap: () {
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setReadaheadSeconds(sec);
+                  Navigator.pop<void>(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Shows a dialog for subtitle size + background settings.
+void showSubtitleDialog(
   BuildContext context,
   WidgetRef ref,
-  Locale currentLocale,
+  PlayerSettings settings,
 ) {
   final l10n = AppLocalizations.of(context)!;
+  double size = settings.subtitleSize;
+  bool showBackground = settings.subtitleBackgroundColor != 0;
 
   showDialog<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.selectLanguage),
-      content: FutureBuilder<List<Map<String, dynamic>>>(
-        future: Future.wait(
-          AppLocalizations.supportedLocales.map((locale) async {
-            final localL10n = await AppLocalizations.delegate.load(locale);
-            return {'label': localL10n.languageName, 'locale': locale};
-          }),
-        ),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const SizedBox(
-              height: 100,
-              child: Center(child: AppLoadingIndicator()),
-            );
-          }
-
-          final options = snapshot.data!;
-
-          return RadioGroup<Locale>(
-            groupValue: currentLocale,
-            onChanged: (val) {
-              if (val == null) return;
-              ref.read(localeProvider.notifier).setLocale(val);
-              Navigator.pop<void>(context);
-            },
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: options.map((opt) {
-                  final locale = opt['locale'] as Locale;
-                  return ListTile(
-                    title: Text(opt['label'] as String),
-                    leading: Radio<Locale>(value: locale),
-                    onTap: () {
-                      ref.read(localeProvider.notifier).setLocale(locale);
-                      Navigator.pop<void>(context);
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-          );
-        },
-      ),
-    ),
-  );
-}
-
-/// Shows a beautiful dialog with information about the developer.
-void showDeveloperDialog(BuildContext context) {
-  final l10n = AppLocalizations.of(context)!;
-  final colorScheme = Theme.of(context).colorScheme;
-
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      contentPadding: const EdgeInsets.all(24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Profile Picture
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.2),
-                  width: 4,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.primary.withValues(alpha: 0.1),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.network(
-                  'https://avatars.githubusercontent.com/u/74624467?v=4',
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(child: AppLoadingIndicator());
-                  },
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.person_rounded, size: 50),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Name and Title
-            Text(
-              'Akash',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Fullstack & Flutter Developer',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Social Links
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          surfaceTintColor: Colors.transparent,
+          title: Text(l10n.subtitleSettings),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _SocialButton(
-                  svgUrl:
-                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
-                  color: const Color(
-                    0xFF909692,
-                  ), // GitHub Official Black/Dark Grey
-                  onTap: () => launchUrl(
-                    Uri.parse('https://github.com/akashdh11'),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                Text(l10n.size(size.toInt())),
+                CustomSlider(
+                  value: size,
+                  min: 10,
+                  max: 80,
+                  divisions: 70,
+                  step: 1.0,
+                  onChanged: (v) => setState(() => size = v),
                 ),
-                _SocialButton(
-                  svgUrl:
-                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg',
-                  color: const Color(0xFF2d65bc), // LinkedIn Official Blue
-                  onTap: () => launchUrl(
-                    Uri.parse('https://www.linkedin.com/in/akashdh11'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                _SocialButton(
-                  svgUrl:
-                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg',
-                  color: const Color(0xFF5865F2), // Discord Blurple
-                  onTap: () => launchUrl(
-                    Uri.parse('https://discord.gg/73XGA8Mxn9'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-                _SocialButton(
-                  svgUrl:
-                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg',
-                  color: const Color(0xFF5baae3), // Telegram Official Blue
-                  onTap: () => launchUrl(
-                    Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: Text(l10n.background),
+                  value: showBackground,
+                  onChanged: (v) => setState(() => showBackground = v),
                 ),
               ],
             ),
+          ),
+          actions: [
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.pop<void>(ctx),
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            CustomButton(
+              isPrimary: true,
+              onPressed: () {
+                final bg = showBackground ? 0x99000000 : 0x00000000;
+                ref
+                    .read(playerSettingsProvider.notifier)
+                    .setSubtitleSettings(size, settings.subtitleColor, bg);
+                Navigator.pop<void>(ctx);
+              },
+              child: Text(l10n.save),
+            ),
           ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop<void>(context),
-          child: Text(l10n.close),
-        ),
-      ],
+        );
+      },
     ),
   );
-}
-
-class _SocialButton extends StatelessWidget {
-  final String svgUrl;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.svgUrl,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Material(
-      color: color.withValues(alpha: 0.15),
-      shape: const CircleBorder(),
-      child: IconButton(
-        icon: SvgPicture.network(
-          svgUrl,
-          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-          width: 24,
-          height: 24,
-          placeholderBuilder: (context) => AppLoadingIndicator(
-            color: color.withValues(alpha: 0.5),
-            constraints: BoxConstraints.tight(const Size(24, 24)),
-          ),
-        ),
-        onPressed: onTap,
-        tooltip: l10n.openLink,
-      ),
-    );
-  }
 }
 
 /// Shows a dialog to pick a [QualityPreference] for [title] (Wi-Fi or Mobile).
@@ -1117,6 +804,7 @@ void showQualityDialog(
                 mainAxisSize: MainAxisSize.min,
                 children: options.map((q) {
                   return ListTile(
+                    autofocus: current == q,
                     title: Text(qualityPreferenceLabel(q, l10n)),
                     subtitle: q == QualityPreference.any
                         ? Text(l10n.keepSourcesOriginalOrder)
@@ -1212,6 +900,7 @@ void showQualityFilterModeDialog(
                 mainAxisSize: MainAxisSize.min,
                 children: options.map((opt) {
                   return ListTile(
+                    autofocus: current == opt.mode,
                     title: Text(opt.label),
                     subtitle: Text(opt.subtitle),
                     leading: Radio<QualityFilterMode>(value: opt.mode),
@@ -1297,6 +986,7 @@ void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
               children: [
                 for (var i = 0; i < metadata.length; i++)
                   SwitchListTile(
+                    autofocus: i == 0,
                     secondary: Icon(metadata[i].icon),
                     title: Text(metadata[i].label),
                     value: values[i],
@@ -1325,7 +1015,6 @@ void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to enter OpenSubtitles.com credentials.
 /// Shows a dialog to enter OpenSubtitles.com credentials.
 void showOpenSubtitlesAuthDialog(
   BuildContext context,
@@ -1370,7 +1059,7 @@ void showOpenSubtitlesAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: userController,
-                    autofocus: true,
+                    // No autofocus here! Keeps TV keyboard from popping up instantly.
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: l10n.username,
@@ -1490,6 +1179,7 @@ void showOpenSubtitlesAuthDialog(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
+                    autofocus: true,
                     onPressed: isVerifying
                         ? null
                         : () => Navigator.pop<void>(ctx),
@@ -1574,7 +1264,7 @@ void showSubDlAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: apiKeyController,
-                    autofocus: true,
+                    // No autofocus here!
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: l10n.apiKey,
@@ -1780,6 +1470,7 @@ void showSubDlAuthDialog(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
+                    autofocus: true,
                     onPressed: (isFetching || isVerifyingKey)
                         ? null
                         : () => Navigator.pop<void>(ctx),
@@ -1859,7 +1550,7 @@ void showSubSourceAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: keyController,
-                    autofocus: true,
+                    // No autofocus here! Keeps TV keyboard from popping up instantly.
                     decoration: InputDecoration(
                       labelText: l10n.apiKeyOptionalOverride,
                       prefixIcon: const Icon(Icons.key_rounded, size: 20),
@@ -1953,6 +1644,7 @@ void showSubSourceAuthDialog(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
+                    autofocus: true,
                     onPressed: isVerifying
                         ? null
                         : () => Navigator.pop<void>(ctx),
@@ -1984,4 +1676,348 @@ void showSubSourceAuthDialog(
       );
     },
   );
+}
+
+/// Shows a dialog to reset data.
+void showResetDataDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final callerContext = context;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.resetDataDialogTitle),
+      content: Text(l10n.resetDataDialogContent),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop<void>(dialogContext),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop<void>(dialogContext);
+
+            // Clear Preferences ONLY
+            await ref.read(settingsRepositoryProvider).clearPreferences();
+
+            // Restart App - use caller's context; dialog context may be disposed after pop
+            if (callerContext.mounted) {
+              await AppUtils.restartApp(callerContext);
+            }
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.tertiary,
+          ),
+          child: Text(l10n.resetDataKeepExtensions),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Shows a dialog to factory reset.
+void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final callerContext = context;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.factoryResetDialogTitle),
+      content: Text(l10n.factoryResetDialogContent),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop<void>(dialogContext),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop<void>(dialogContext);
+            // Deep Clean (Extensions, Prefs, Hive)
+            await ref.read(settingsRepositoryProvider).deleteAllData();
+
+            // Restart App - use caller's context; dialog context may be disposed after pop
+            if (callerContext.mounted) {
+              await AppUtils.restartApp(callerContext);
+            }
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          child: Text(l10n.factoryReset),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Shows a dialog to clear the image & video cache.
+void showClearCacheDialog(BuildContext context, WidgetRef ref) {
+  final l10n = AppLocalizations.of(context)!;
+  final callerContext = context;
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.clearCacheDialogTitle),
+      content: Text(l10n.clearCacheDialogContent),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop<void>(dialogContext),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop<void>(dialogContext);
+            await ref.read(settingsRepositoryProvider).clearImageVideoCache();
+            ref.invalidate(cacheSizeProvider);
+            if (callerContext.mounted) {
+              ScaffoldMessenger.of(
+                callerContext,
+              ).showSnackBar(SnackBar(content: Text(l10n.cacheCleared)));
+            }
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
+          child: Text(l10n.clearCacheNow),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Shows a dialog to pick the application language.
+void showLanguageDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Locale currentLocale,
+) {
+  final l10n = AppLocalizations.of(context)!;
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.selectLanguage),
+      content: FutureBuilder<List<Map<String, dynamic>>>(
+        future: Future.wait(
+          AppLocalizations.supportedLocales.map((locale) async {
+            final localL10n = await AppLocalizations.delegate.load(locale);
+            return {'label': localL10n.languageName, 'locale': locale};
+          }),
+        ),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const SizedBox(
+              height: 100,
+              child: Center(child: AppLoadingIndicator()),
+            );
+          }
+
+          final options = snapshot.data!;
+
+          return RadioGroup<Locale>(
+            groupValue: currentLocale,
+            onChanged: (val) {
+              if (val == null) return;
+              ref.read(localeProvider.notifier).setLocale(val);
+              Navigator.pop<void>(context);
+            },
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: options.map((opt) {
+                  final locale = opt['locale'] as Locale;
+                  return ListTile(
+                    autofocus: currentLocale == locale,
+                    title: Text(opt['label'] as String),
+                    leading: Radio<Locale>(value: locale),
+                    onTap: () {
+                      ref.read(localeProvider.notifier).setLocale(locale);
+                      Navigator.pop<void>(context);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
+/// Shows a beautiful dialog with information about the developer.
+void showDeveloperDialog(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  final colorScheme = Theme.of(context).colorScheme;
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      contentPadding: const EdgeInsets.all(24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Profile Picture
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.2),
+                  width: 4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.network(
+                  'https://avatars.githubusercontent.com/u/74624467?v=4',
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const Center(child: AppLoadingIndicator());
+                  },
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.person_rounded, size: 50),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Name and Title
+            Text(
+              'Akash',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Fullstack & Flutter Developer',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Social Links
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
+                  color: const Color(0xFF909692),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://github.com/akashdh11'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg',
+                  color: const Color(0xFF2d65bc),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://www.linkedin.com/in/akashdh11'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg',
+                  color: const Color(0xFF5865F2),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://discord.gg/73XGA8Mxn9'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg',
+                  color: const Color(0xFF5baae3),
+                  onTap: () => launchUrl(
+                    Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          autofocus: true,
+          onPressed: () => Navigator.pop<void>(context),
+          child: Text(l10n.close),
+        ),
+      ],
+    ),
+  );
+}
+
+class _SocialButton extends StatelessWidget {
+  final String svgUrl;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SocialButton({
+    required this.svgUrl,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Material(
+      color: color.withValues(alpha: 0.15),
+      shape: const CircleBorder(),
+      child: IconButton(
+        icon: SvgPicture.network(
+          svgUrl,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          width: 24,
+          height: 24,
+          placeholderBuilder: (context) => AppLoadingIndicator(
+            color: color.withValues(alpha: 0.5),
+            constraints: BoxConstraints.tight(const Size(24, 24)),
+          ),
+        ),
+        onPressed: onTap,
+        tooltip: l10n.openLink,
+      ),
+    );
+  }
 }

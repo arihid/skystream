@@ -50,6 +50,7 @@ class SettingsTile extends StatefulWidget {
   final bool isLast;
   final bool isBeta;
   final FocusNode? focusNode;
+  final bool autofocus;
 
   const SettingsTile({
     super.key,
@@ -61,6 +62,7 @@ class SettingsTile extends StatefulWidget {
     this.isLast = false,
     this.isBeta = false,
     this.focusNode,
+    this.autofocus = false,
   });
 
   @override
@@ -116,6 +118,8 @@ class _SettingsTileState extends State<SettingsTile> {
             child: Material(
               type: MaterialType.transparency,
               child: ListTile(
+                autofocus: widget
+                    .autofocus, // Passes focus request to the actual interactable
                 focusColor: Colors.transparent,
                 hoverColor: primary.withValues(alpha: 0.10),
                 leading: Container(
