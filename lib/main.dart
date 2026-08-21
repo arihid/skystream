@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // LogicalKeyboardKey, KeyDownEvent
-import 'package:flutter/foundation.dart'; // For kReleaseMode
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:window_manager/window_manager.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/router/app_router.dart';
@@ -30,18 +32,20 @@ import 'core/providers/device_info_provider.dart';
 import 'shared/widgets/loading_indicator.dart';
 import 'features/settings/presentation/general_settings_provider.dart';
 
-void main() async {
+// TV/Gamepad Feature Imports
+import 'core/input/gamepad_shortcut_manager.dart';
+import 'core/input/gamepad_actions.dart';
+import 'features/settings/presentation/big_picture_provider.dart';
+
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await Hive.initFlutter();
 
-  // Cap Flutter's image cache. Default is 1000 entries / 100 MB which is too
-  // generous for low-RAM TVs and even most phones — decoded TMDB posters fill
-  // it quickly. Tighter limits force earlier eviction and keep raster smooth.
   PaintingBinding.instance.imageCache
     ..maximumSize = 200
     ..maximumSizeBytes = 50 * 1024 * 1024; // 50 MB
 
-  // Silence logs in release mode
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
@@ -50,12 +54,12 @@ void main() async {
   if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
 
+    // Use Upstream Defaults: Let Big Picture provider handle fullscreen overrides
     final windowOptions = WindowOptions(
       size: const Size(1280, 720),
       minimumSize: const Size(360, 640),
       center: true,
-      backgroundColor: Colors
-          .black, // Solid black prevents transparency during fullscreen transition
+      backgroundColor: Colors.black,
       skipTaskbar: false,
       titleBarStyle: Platform.isMacOS
           ? TitleBarStyle.normal
@@ -70,12 +74,13 @@ void main() async {
     );
   }
 
-  AppUtils.setRestartFunction(() => runApp(const AppRoot()));
-  runApp(const AppRoot());
+  AppUtils.setRestartFunction(() => runApp(AppRoot(args: args)));
+  runApp(AppRoot(args: args));
 }
 
 class AppRoot extends StatefulWidget {
-  const AppRoot({super.key});
+  final List<String> args;
+  const AppRoot({super.key, this.args = const []});
 
   @override
   State<AppRoot> createState() => _AppRootState();
@@ -114,9 +119,6 @@ class _AppRootState extends State<AppRoot> {
         setState(() {
           _initialized = true;
         });
-        // Pre-warm the system WebView after the first frame so the initial
-        // render isn't delayed. This eliminates the frame jank that occurs
-        // when the CF bypass spawns its HeadlessInAppWebView cold during search.
         if (Platform.isAndroid || Platform.isIOS) {
           Future.delayed(
             const Duration(seconds: 3),
@@ -149,9 +151,7 @@ class _AppRootState extends State<AppRoot> {
         textDirection: TextDirection.ltr,
         child: DynamicColorBuilder(
           builder: (lightDynamic, darkDynamic) {
-            final color =
-                lightDynamic?.primary ??
-                const Color(0xFF6200EE); // Default Purple/Blue
+            final color = lightDynamic?.primary ?? const Color(0xFF6200EE);
             return ColoredBox(
               color: Colors.black,
               child: Center(child: AppLoadingIndicator(color: color)),
@@ -163,13 +163,14 @@ class _AppRootState extends State<AppRoot> {
 
     return ProviderScope(
       overrides: [storageServiceProvider.overrideWithValue(_storageService)],
-      child: const ExtensionsSyncBridge(child: MyApp()),
+      child: ExtensionsSyncBridge(child: MyApp(args: widget.args)),
     );
   }
 }
 
 class MyApp extends ConsumerStatefulWidget {
-  const MyApp({super.key});
+  final List<String> args;
+  const MyApp({super.key, this.args = const []});
 
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
@@ -185,6 +186,10 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(downloadServiceProvider).init();
+
+      // Initialize Big Picture mode from args before checking updates
+      ref.read(bigPictureModeProvider.notifier).initialize(widget.args);
+
       _checkExtensionsUpdates();
       _checkAppUpdates();
     });
@@ -281,12 +286,20 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     }
   }
 
-  /// Builds a human-readable update toast message that lists plugin names.
-  /// Shows up to 5 names; any remainder is shown as "-- N more".
-  /// Examples:
-  ///   "Updated: SuperStream"
-  ///   "Updated 3 extensions: SuperStream, AniStream, StreamFlix"
-  ///   "Updated 7 extensions: A, B, C, D, E -- 2 more"
+  Future<void> _toggleFullscreen() async {
+    if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) return;
+    try {
+      final isFull = await windowManager.isFullScreen();
+      await windowManager.setFullScreen(!isFull);
+      // Upstream syncs this to general settings, kept intact
+      await ref
+          .read(generalSettingsProvider.notifier)
+          .setFullscreenEnabled(!isFull);
+    } catch (e) {
+      if (kDebugMode) debugPrint('_toggleFullscreen: $e');
+    }
+  }
+
   static String _buildUpdateMessage(List<String> names) {
     final count = names.length;
     if (count == 1) return 'Updated: ${names.first}';
@@ -297,16 +310,6 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     return 'Updated $count extensions: $namesPart';
   }
 
-  Future<void> _toggleFullscreen() async {
-    if (!(Platform.isMacOS || Platform.isWindows || Platform.isLinux)) return;
-    try {
-      final isFull = await windowManager.isFullScreen();
-      await windowManager.setFullScreen(!isFull);
-    } catch (e) {
-      if (kDebugMode) debugPrint('_toggleFullscreen: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(appThemeModeProvider);
@@ -314,33 +317,19 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     final locale = ref.watch(localeProvider);
     final profileAsync = ref.watch(deviceProfileProvider);
 
-    // Mirror the resolved device profile into TmdbConfig's static cache so
-    // pure-utility URL builders (AppImageFallbacks, TmdbDetails ctor) pick
-    // TV / desktop-class image sizes once the async profile resolves.
-    // Until then they fall back to the mobile defaults — a few cold-start
-    // frames may use w1280 backdrops on TV before snapping to original.
+    // The Master Switch Check
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+
     ref.listen<AsyncValue<DeviceProfile>>(deviceProfileProvider, (prev, next) {
       final value = next.value;
       if (value != null) TmdbConfig.setProfile(value);
     });
 
-    // Reactive Listener: Keeps UpdateController alive and handles the UI side-effect
     ref.listen<UpdateState>(updateControllerProvider, (previous, next) {
       if (next is UpdateAvailable) {
         final navContext = appRouter.routerDelegate.navigatorKey.currentContext;
         if (navContext != null && navContext.mounted) {
-          if (kDebugMode) {
-            debugPrint(
-              '[Lifecycle] State update detected: UpdateAvailable. Showing dialog.',
-            );
-          }
           UpdateDialog.show(navContext, next.release);
-        } else {
-          if (kDebugMode) {
-            debugPrint(
-              '[Lifecycle] Update available but navContext not ready/mounted.',
-            );
-          }
         }
       }
     });
@@ -373,13 +362,16 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
-            final mq = MediaQuery.of(context);
-            Widget result = child!;
+            if (child == null) return const SizedBox.shrink();
 
-            // Phase 1: Density override for TV devices
-            // Android TV often reports inflated pixel density; we clamp to 1.0 for standard scaling.
+            final mq = MediaQuery.of(context);
+            Widget result = child;
+
             final profile = profileAsync.asData?.value;
-            if (profile?.isTv == true) {
+            // Phase 1: Density override applies if TV OR Big Picture is active
+            final isTv = isBigPicture || profile?.isTv == true || context.isTv;
+
+            if (isTv) {
               result = MediaQuery(
                 data: mq.copyWith(
                   devicePixelRatio: 1.0,
@@ -389,10 +381,11 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
               );
             }
 
+            // Phase 2: Desktop Overrides (Hides TitleBar if in Big Picture!)
             if (!kIsWeb &&
                 (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
               final isMac = Platform.isMacOS;
-              if (!isMac) {
+              if (!isMac && !isBigPicture) {
                 result = Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -406,6 +399,19 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
                   ],
                 );
               }
+            }
+
+            // Phase 3: Inject Gamepad Bindings exclusively if TV/Big Picture is active
+            if (isTv) {
+              result = GamepadShortcutManager(
+                child: Actions(
+                  actions: AppActionBindings.getBindings(context),
+                  child: FocusTraversalGroup(
+                    policy: WidgetOrderTraversalPolicy(),
+                    child: result,
+                  ),
+                ),
+              );
             }
 
             return result;
@@ -639,14 +645,15 @@ class LaunchErrorApp extends StatelessWidget {
   }
 }
 
-class CustomTitleBar extends StatefulWidget {
+class CustomTitleBar extends ConsumerStatefulWidget {
   const CustomTitleBar({super.key});
 
   @override
-  State<CustomTitleBar> createState() => _CustomTitleBarState();
+  ConsumerState<CustomTitleBar> createState() => _CustomTitleBarState();
 }
 
-class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
+class _CustomTitleBarState extends ConsumerState<CustomTitleBar>
+    with WindowListener {
   bool _hovered = false;
   bool _isMaximized = false;
   bool _isFullScreen = false;
@@ -686,7 +693,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
   }
 
   Future<void> _updateStates() async {
-    // A short delay gives the OS window manager time to finalize transitions (fullscreen/maximize/etc.)
+    // A short delay gives the OS window manager time to finalize transitions
     await Future<void>.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
     final isMax = await windowManager.isMaximized();
@@ -708,10 +715,10 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
 
     final titleBarColor = isDark
         ? const Color(0xE0050505)
-        : const Color(0xD8FAF8F5); // Transparent warm off-white (85% opacity)
+        : const Color(0xD8FAF8F5);
     final iconColor = isDark
         ? Colors.white.withValues(alpha: 0.85)
-        : const Color(0xFF5C5C5C); // High contrast text/icon color
+        : const Color(0xFF5C5C5C);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -756,24 +763,43 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                   },
                 ),
               ),
-            // Pin icon on the left (visible when neither maximized nor fullscreen)
             if (_hovered && !_isFullScreen && !_isMaximized)
               Positioned(
                 left: Platform.isMacOS ? 80 : 12,
                 top: 0,
                 bottom: 0,
                 child: Center(
-                  child: _PinButton(
-                    isActive: _isAlwaysOnTop,
-                    onPressed: () async {
-                      final nextState = !_isAlwaysOnTop;
-                      await windowManager.setAlwaysOnTop(nextState);
-                      await _updateStates();
-                    },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PinButton(
+                        isActive: _isAlwaysOnTop,
+                        onPressed: () async {
+                          final nextState = !_isAlwaysOnTop;
+                          await windowManager.setAlwaysOnTop(nextState);
+                          await _updateStates();
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      _TitleBarButton(
+                        onPressed: () {
+                          final current = ref
+                              .read(bigPictureModeProvider)
+                              .isEnabled;
+                          ref
+                              .read(bigPictureModeProvider.notifier)
+                              .toggleBigPicture(!current);
+                        },
+                        child: Icon(
+                          Icons.tv_rounded,
+                          color: iconColor,
+                          size: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            // Right-side window controls (fullscreen, minimize, maximize/restore, close)
             if (!Platform.isMacOS)
               Positioned(
                 right: 12,
@@ -788,7 +814,6 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 1. Full Screen Toggle / Exit Full Screen
                           _TitleBarButton(
                             onPressed: () async {
                               await windowManager.setFullScreen(!_isFullScreen);
@@ -804,7 +829,6 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                           ),
                           if (!_isFullScreen) ...[
                             const SizedBox(width: 6),
-                            // 2. Minimize
                             _TitleBarButton(
                               onPressed: () => windowManager.minimize(),
                               child: Center(
@@ -816,7 +840,6 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            // 3. Maximize / Restore
                             _TitleBarButton(
                               onPressed: () async {
                                 if (_isMaximized) {
@@ -856,9 +879,7 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                                                 decoration: BoxDecoration(
                                                   color: isDark
                                                       ? const Color(0xFF050505)
-                                                      : const Color(
-                                                          0xFFFAF8F5,
-                                                        ), // overlap box bg matches titlebar
+                                                      : const Color(0xFFFAF8F5),
                                                   border: Border.all(
                                                     color: iconColor,
                                                     width: 1.2,
@@ -882,7 +903,6 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            // 4. Close
                             _CloseButton(
                               onPressed: () => windowManager.close(),
                             ),
@@ -917,9 +937,7 @@ class _PinButtonState extends State<_PinButton> {
     final isDark = theme.brightness == Brightness.dark;
     final hoverColor = isDark
         ? Colors.white.withValues(alpha: 0.15)
-        : const Color(
-            0xFFE4D9C8,
-          ); // Darker warm neutral tan hover background (#E4D9C8)
+        : const Color(0xFFE4D9C8);
 
     return Material(
       color: Colors.transparent,
@@ -962,9 +980,7 @@ class _TitleBarButtonState extends State<_TitleBarButton> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hoverColor = isDark
         ? Colors.white.withValues(alpha: 0.15)
-        : const Color(
-            0xFFE4D9C8,
-          ); // Darker warm neutral tan hover background (#E4D9C8)
+        : const Color(0xFFE4D9C8);
 
     return Material(
       color: Colors.transparent,
