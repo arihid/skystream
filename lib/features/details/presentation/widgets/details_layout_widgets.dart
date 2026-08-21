@@ -2,26 +2,27 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
-import '../downloaded_file_provider.dart';
-import '../../../settings/presentation/player_settings_provider.dart';
-import '../../../../core/utils/stream_quality_sorter.dart';
 
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import 'package:skystream/shared/widgets/custom_widgets.dart';
-import '../details_controller.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
-import 'package:skystream/core/services/download_service.dart';
-import '../download_launcher.dart';
-import 'download_progress_dialog.dart';
-import 'download_management_dialog.dart';
-import 'episode_card.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+
+import '../details_controller.dart';
+import '../download_launcher.dart';
+import '../downloaded_file_provider.dart';
+import '../../../settings/presentation/player_settings_provider.dart';
+import '../../../../core/utils/stream_quality_sorter.dart';
+
+import 'episode_card.dart';
+
+// Master Switch Imports
+import 'package:skystream/core/providers/device_info_provider.dart';
 
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});
@@ -102,8 +103,24 @@ class DetailsActionButtons extends HookConsumerWidget {
     final isSingleSeason = seasonMap.keys.length <= 1;
 
     final playFocusNode = useFocusNode();
+
+    // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     final isMobile = context.isMobile;
+
+    // Auto-focus the Play button when details load, but ONLY for Big Picture users
+    useEffect(() {
+      if (details != null && isBigPicture) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted && playFocusNode.canRequestFocus) {
+            playFocusNode.requestFocus();
+          }
+        });
+      }
+      return null;
+    }, [details != null]);
 
     final isWifiFuture = useMemoized(() => isOnWifi());
     final isWifiSnapshot = useFuture(isWifiFuture);
@@ -152,7 +169,7 @@ class DetailsActionButtons extends HookConsumerWidget {
     final playBtn = CustomButton(
       isPrimary: true,
       focusNode: playFocusNode,
-      autofocus: true,
+      autofocus: isBigPicture, // Only autofocus on init for Gamepads
       onPressed:
           (details != null &&
               details!.episodes != null &&
@@ -162,8 +179,8 @@ class DetailsActionButtons extends HookConsumerWidget {
                   .read(detailsControllerProvider(item.url).notifier)
                   .handlePlayPress(context, details!);
 
-              // Phase 10 Fix: TV Focus restoration on return from player
-              if (context.mounted && isTv) {
+              // TV Focus restoration on return from player
+              if (context.mounted && isBigPicture) {
                 playFocusNode.requestFocus();
               }
             }
@@ -194,7 +211,6 @@ class DetailsActionButtons extends HookConsumerWidget {
       ),
     );
 
-    // Dynamic quality preference selector button
     final settingsAsync = ref.watch(playerSettingsProvider);
     final settings = settingsAsync.asData?.value ?? const PlayerSettings();
     final currentPreference = onWifi
@@ -202,185 +218,91 @@ class DetailsActionButtons extends HookConsumerWidget {
         : settings.mobileQuality;
     final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
 
-    final qualityBtn = PopupMenuButton<QualityPreference>(
-      initialValue: currentPreference,
-      tooltip: 'Preferred Quality',
-      surfaceTintColor: Colors.transparent,
-      position: PopupMenuPosition.under, // Drops DOWN below the button!
-      onSelected: (q) {
-        final notifier = ref.read(playerSettingsProvider.notifier);
-        if (onWifi) {
-          notifier.setWifiQuality(q);
-        } else {
-          notifier.setMobileQuality(q);
-        }
-      },
-      itemBuilder: (context) => QualityPreference.values.map((q) {
-        return PopupMenuItem<QualityPreference>(
-          value: q,
-          child: Row(
-            children: [
-              if (q == currentPreference)
-                const Icon(Icons.check_rounded, color: Colors.blue, size: 18)
-              else
-                const SizedBox(width: 18),
-              const SizedBox(width: 8),
-              Text(qualityPreferenceLabel(q, l10n)),
-            ],
+    final qualityBtnKey = useMemoized(() => GlobalKey());
+    final qualityBtn = CustomButton(
+      key: qualityBtnKey,
+      isPrimary: false,
+      isOutlined: true,
+      onPressed: () {
+        final renderBox =
+            qualityBtnKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox == null) return;
+
+        final offset = renderBox.localToGlobal(Offset.zero);
+        showMenu<QualityPreference>(
+          context: context,
+          initialValue: currentPreference,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy + renderBox.size.height + 8,
+            offset.dx + renderBox.size.width,
+            0,
           ),
-        );
-      }).toList(),
-      child: IgnorePointer(
-        child: CustomButton(
-          isPrimary: false,
-          isOutlined: true,
-          onPressed: () {},
-          child: Padding(
-            padding: btnPadding,
-            child: Row(
-              children: [
-                const Icon(Icons.hd_rounded, size: 20),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Preferred Quality: $currentPrefLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          items: QualityPreference.values.map((q) {
+            return PopupMenuItem<QualityPreference>(
+              value: q,
+              child: Row(
+                children: [
+                  if (q == currentPreference)
+                    Icon(
+                      Icons.check_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    )
+                  else
+                    const SizedBox(width: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    qualityPreferenceLabel(q, l10n),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
+                ],
+              ),
+            );
+          }).toList(),
+        ).then((q) {
+          if (q != null) {
+            final notifier = ref.read(playerSettingsProvider.notifier);
+            if (onWifi) {
+              notifier.setWifiQuality(q);
+            } else {
+              notifier.setMobileQuality(q);
+            }
+          }
+        });
+      },
+      child: Padding(
+        padding: btnPadding,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hd_rounded, size: 20),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Quality: $currentPrefLabel',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          ],
         ),
       ),
     );
 
-    // Download feature: only for single episode VOD content
-    final isLivestream = item.contentType == MultimediaContentType.livestream;
-    final showDownload =
-        details?.episodes != null &&
-        details?.episodes?.length == 1 &&
-        !isLivestream;
-
-    final episodeUrl = details?.episodes?.firstOrNull?.url ?? item.url;
-    final activeDownloads = ref.watch(activeDownloadsProvider);
-    final isDownloading = activeDownloads.contains(episodeUrl);
-    final progressMap = ref.watch(downloadProgressProvider);
-    final downloadProgressData =
-        progressMap[episodeUrl] ?? progressMap[item.url];
-    final downloadProgress = downloadProgressData?.progress ?? 0.0;
-
-    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
-
-    // Check for downloaded file on load
-    useEffect(() {
-      if (details != null && !isDownloading) {
-        Future.microtask(() {
-          ref
-              .read(downloadedFilesProvider.notifier)
-              .checkFile(
-                details!,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
-        });
-      }
-      return null;
-    }, [details, episodeUrl, isDownloading]);
-
-    final downloadBtn = !showDownload
-        ? const SizedBox.shrink()
-        : downloadedFile != null
-        ? CustomButton(
-            isPrimary: false,
-            isOutlined: true,
-            onPressed: () {
-              DownloadManagementDialog.show(
-                context,
-                details ?? item,
-                downloadedFile,
-                episode: details?.episodes?.firstWhereOrNull(
-                  (e) => e.url == episodeUrl,
-                ),
-              );
-            },
-            child: Padding(
-              padding: btnPadding,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.download_done_sharp, color: Colors.green),
-                  const SizedBox(width: LayoutConstants.spacingXs),
-                  Text(AppLocalizations.of(context)!.downloaded),
-                ],
-              ),
-            ),
-          )
-        : CustomButton(
-            isPrimary: false,
-            isOutlined: true,
-            onPressed: isDownloading
-                ? () => DownloadProgressDialog.show(
-                    context,
-                    details?.title ?? item.title,
-                    episodeUrl,
-                  )
-                : () {
-                    ref
-                        .read(downloadLauncherProvider)
-                        .launch(
-                          context,
-                          details ?? item,
-                          episodeUrl: episodeUrl,
-                        );
-                  },
-            child: Padding(
-              padding: btnPadding,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: isDownloading
-                    ? [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child:
-                              downloadProgressData?.status == TaskStatus.paused
-                              ? Icon(
-                                  Icons.pause_rounded,
-                                  size: 18,
-                                  color: Theme.of(context).colorScheme.primary,
-                                )
-                              : CircularProgressIndicator(
-                                  value: downloadProgress > 0
-                                      ? downloadProgress
-                                      : null,
-                                  strokeWidth: 2,
-                                ),
-                        ),
-                        const SizedBox(width: LayoutConstants.spacingXs),
-                        Text(
-                          downloadProgressData?.status == TaskStatus.paused
-                              ? AppLocalizations.of(context)!.paused
-                              : downloadProgress > 0
-                              ? '${(downloadProgress * 100).toInt()}%'
-                              : AppLocalizations.of(context)!.starting,
-                        ),
-                      ]
-                    : [
-                        const Icon(Icons.download_rounded),
-                        const SizedBox(width: LayoutConstants.spacingXs),
-                        Text(AppLocalizations.of(context)!.download),
-                      ],
-              ),
-            ),
-          );
-
     Widget progressWidget = const SizedBox.shrink();
-    if (pos > 0 && dur > 0 && !isLivestream) {
+    if (pos > 0 &&
+        dur > 0 &&
+        item.contentType != MultimediaContentType.livestream) {
       final progress = (pos / dur).clamp(0.0, 1.0);
       progressWidget = Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 8.0, right: 8.0),
@@ -388,7 +310,7 @@ class DetailsActionButtons extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(100), // Stadium style
+              borderRadius: BorderRadius.circular(100),
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
@@ -425,26 +347,13 @@ class DetailsActionButtons extends HookConsumerWidget {
       );
     }
 
-    final actionRow = showDownload
-        ? IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: playBtn),
-                const SizedBox(width: LayoutConstants.spacingSm),
-                Expanded(child: downloadBtn),
-              ],
-            ),
-          )
-        : playBtn;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         progressWidget,
         qualityBtn,
         const SizedBox(height: LayoutConstants.spacingSm),
-        actionRow,
+        playBtn,
       ],
     );
   }
@@ -917,14 +826,16 @@ class DetailsProviderChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isDebug = false;
     String displayName = providerName;
+
     try {
       final manager = ref.read(extensionManagerProvider.notifier);
-      final p = manager.getAllProviders().firstWhere(
+      final p = manager.getAllProviders().firstWhereOrNull(
         (p) => p.packageName == providerName || p.name == providerName,
       );
-      displayName = p.name;
-      if (p.isDebug) {
-        isDebug = true;
+
+      if (p != null) {
+        displayName = p.name;
+        isDebug = p.isDebug;
       }
     } catch (e) {
       if (kDebugMode) debugPrint('DetailsProviderChip.build: $e');

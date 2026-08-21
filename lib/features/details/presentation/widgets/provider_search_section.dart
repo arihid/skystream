@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/router/app_router.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+
+import '../../../../core/router/app_router.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
 import 'package:skystream/features/search/presentation/search_provider.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
 
 import '../../../../shared/widgets/desktop_scroll_wrapper.dart';
 import '../../../../core/utils/layout_constants.dart';
@@ -15,6 +17,11 @@ import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+
+// TV/Gamepad Feature Imports
+import '../../../../core/input/gamepad_actions.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
 
 part 'provider_search_section.g.dart';
 
@@ -79,6 +86,10 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
 
     final plugins = ref.watch(extensionManagerProvider);
     final searchAsync = ref.watch(providerSearchProvider(widget.query));
+
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     Widget content;
     if (plugins.isEmpty) {
@@ -161,7 +172,8 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
                     final item = data['item'] as MultimediaItem;
                     final providerName = data['providerName'] as String;
 
-                    return CardsWrapper(
+                    return _FocusableSourceCard(
+                      isBigPicture: isBigPicture,
                       onTap: () {
                         // Enrich item with provider, content type, and metadata IDs before navigation
                         final enrichedItem = item.copyWith(
@@ -275,7 +287,7 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
           );
         },
         loading: () => const SizedBox(
-          height: 140, // Fix 2: Force height for centering
+          height: 140,
           child: Center(
             child: AppLoadingIndicator(
               constraints: BoxConstraints(
@@ -301,7 +313,7 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 180),
-      clipBehavior: Clip.hardEdge, // Fix 1: Clip content to container borders
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -336,7 +348,6 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
                   ),
                 ),
                 const SizedBox(width: LayoutConstants.spacingXs),
-                // Fix 3: Styled Beta Tag
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 4,
@@ -363,6 +374,144 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
           const SizedBox(height: LayoutConstants.spacingSm),
           content,
         ],
+      ),
+    );
+  }
+}
+
+class _FocusableSourceCard extends ConsumerStatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  final bool isBigPicture;
+
+  const _FocusableSourceCard({
+    required this.child,
+    required this.onTap,
+    required this.isBigPicture,
+  });
+
+  @override
+  ConsumerState<_FocusableSourceCard> createState() =>
+      _FocusableSourceCardState();
+}
+
+class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
+  bool _isFocused = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Semantics(
+      button: true,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          onFocusChange: (hasFocus) {
+            setState(() => _isFocused = hasFocus);
+            if (hasFocus) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+
+                // Perfect centering logic for TV UX
+                Scrollable.maybeOf(context)?.position.ensureVisible(
+                  context.findRenderObject()!,
+                  alignment: 0.5,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.fastOutSlowIn,
+                );
+
+                // Dispatch Gamepad Hints
+                if (widget.isBigPicture) {
+                  ref.read(focusedGamepadHintsProvider.notifier).state = [
+                    GamepadHint(
+                      buttonLabel: 'A',
+                      actionLabel: l10n.hintSelect,
+                      buttonColor: Colors.greenAccent.shade400,
+                    ),
+                  ];
+                }
+              });
+            } else {
+              if (widget.isBigPicture) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  final currentHints = ref.read(focusedGamepadHintsProvider);
+                  if (currentHints?.any(
+                        (h) => h.actionLabel == l10n.hintSelect,
+                      ) ==
+                      true) {
+                    ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                  }
+                });
+              }
+            }
+          },
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              child: AnimatedScale(
+                scale: _isFocused ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      14,
+                    ), // Matches inner card + 2px
+                    border: Border.all(
+                      color: (_isFocused || _isHovered) && widget.isBigPicture
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: _isFocused && widget.isBigPicture
+                        ? [
+                            BoxShadow(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: widget.child,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
