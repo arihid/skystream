@@ -40,7 +40,7 @@ import 'features/settings/presentation/big_picture_provider.dart';
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  await Hive.initFlutter(); // 🎯 Injected for Gamepad/Settings
+  await Hive.initFlutter();
 
   PaintingBinding.instance.imageCache
     ..maximumSize = 200

@@ -194,7 +194,7 @@ class DashboardHeaderBar extends ConsumerWidget {
                       ],
                     ),
                   )
-                // 🎯 Fancy HoverBorder for Desktop
+                // Fancy HoverBorder for Desktop
                 : HoverBorderGradient(
                     onTap: onShowProviderSelector,
                     child: Row(

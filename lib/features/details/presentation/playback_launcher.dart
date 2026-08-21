@@ -288,7 +288,7 @@ class PlaybackLauncher {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                       child: ListTile(
-                        // 🎯 Conditionally autofocus based on Master Switch
+                        // Conditionally autofocus based on Master Switch
                         autofocus: isBigPicture && index == 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

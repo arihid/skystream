@@ -385,7 +385,7 @@ class _DownloadItemTile extends HookConsumerWidget {
     final localNode = useFocusNode();
     final nodeToUse = focusNode ?? localNode;
 
-    // 🎯 Master Switch Evaluation
+    // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 

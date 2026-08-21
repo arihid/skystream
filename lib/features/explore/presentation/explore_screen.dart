@@ -586,7 +586,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
-                        autofocus: isBigPicture, // 🎯 TV Conditional Autofocus
+                        autofocus: isBigPicture, // TV Conditional Autofocus
                         movies: value,
                         scrollController: _scrollController,
                         onNavigateUp: () =>

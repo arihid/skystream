@@ -241,7 +241,7 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                           ),
                           child: Row(
                             children: [
-                              // 🎯 Conditionally render Gamepad Badge vs Touch Icon
+                              // Conditionally render Gamepad Badge vs Touch Icon
                               if (widget.isBigPicture)
                                 _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
                               else

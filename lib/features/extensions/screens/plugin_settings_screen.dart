@@ -485,7 +485,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               children: definition.options
                   .map(
                     (option) => ListTile(
-                      // 🎯 Conditionally autofocus selected item for Gamepad
+                      // Conditionally autofocus selected item for Gamepad
                       autofocus: isBigPicture && current == option.value,
                       title: Text(option.label),
                       leading: Radio<String>(value: option.value),
