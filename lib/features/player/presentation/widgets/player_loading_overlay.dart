@@ -51,8 +51,9 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
     super.didUpdateWidget(oldWidget);
     final oldHasActions = _hasActions(oldWidget);
     final newHasActions = _hasActions(widget);
-    
-    if ((!oldHasActions && newHasActions) || (newHasActions && !_overlayScopeNode.hasFocus)) {
+
+    if ((!oldHasActions && newHasActions) ||
+        (newHasActions && !_overlayScopeNode.hasFocus)) {
       _stealFocus();
     } else if (!newHasActions && oldHasActions) {
       _stealFocus();
@@ -67,8 +68,8 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
 
   bool _hasActions(PlayerLoadingOverlay w) {
     return (w.onSkip != null) ||
-           (w.phase.showGoLive && w.onGoLive != null) ||
-           (w.phase.kind == PlaybackUiPhaseKind.error);
+        (w.phase.showGoLive && w.onGoLive != null) ||
+        (w.phase.kind == PlaybackUiPhaseKind.error);
   }
 
   void _stealFocus() {
@@ -80,7 +81,12 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
     });
   }
 
-  Widget _buildMiniHint(BuildContext context, String btn, String label, Color color) {
+  Widget _buildMiniHint(
+    BuildContext context,
+    String btn,
+    String label,
+    Color color,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -140,7 +146,8 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
               Positioned.fill(
                 child: Stack(
                   children: [
-                    if (widget.backdropUrl != null && (!isCompact || widget.isBigPicture))
+                    if (widget.backdropUrl != null &&
+                        (!isCompact || widget.isBigPicture))
                       Positioned.fill(
                         child: CachedNetworkImage(
                           imageUrl: widget.backdropUrl!,
@@ -167,7 +174,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                   ],
                 ),
               ),
-              
+
               // Conditionally render the physical back button for Mobile/Desktop users
               if (!widget.isBigPicture)
                 Positioned(
@@ -200,7 +207,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                   ),
                 ),
               ),
-              
+
               if (widget.isBigPicture)
                 Positioned(
                   bottom: 0,
@@ -223,16 +230,38 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.onSkip != null) ...[
-                          _buildMiniHint(context, 'A', l10n.skip, Colors.greenAccent.shade400),
+                          _buildMiniHint(
+                            context,
+                            'A',
+                            l10n.skip,
+                            Colors.greenAccent.shade400,
+                          ),
                           const SizedBox(width: 16),
-                        ] else if (widget.phase.showGoLive && widget.onGoLive != null) ...[
-                          _buildMiniHint(context, 'A', l10n.goLive, Colors.greenAccent.shade400),
+                        ] else if (widget.phase.showGoLive &&
+                            widget.onGoLive != null) ...[
+                          _buildMiniHint(
+                            context,
+                            'A',
+                            l10n.goLive,
+                            Colors.greenAccent.shade400,
+                          ),
                           const SizedBox(width: 16),
-                        ] else if (widget.phase.kind == PlaybackUiPhaseKind.error) ...[
-                          _buildMiniHint(context, 'A', l10n.goBack, Colors.greenAccent.shade400),
+                        ] else if (widget.phase.kind ==
+                            PlaybackUiPhaseKind.error) ...[
+                          _buildMiniHint(
+                            context,
+                            'A',
+                            l10n.goBack,
+                            Colors.greenAccent.shade400,
+                          ),
                           const SizedBox(width: 16),
                         ],
-                        _buildMiniHint(context, 'B', l10n.cancel, Colors.redAccent.shade400),
+                        _buildMiniHint(
+                          context,
+                          'B',
+                          l10n.cancel,
+                          Colors.redAccent.shade400,
+                        ),
                       ],
                     ),
                   ),
@@ -403,7 +432,9 @@ class _LoadingCard extends StatelessWidget {
                           primary: false,
                           isBigPicture: isBigPicture,
                           autofocus:
-                              isBigPicture && onSkip == null && !phase.showGoLive,
+                              isBigPicture &&
+                              onSkip == null &&
+                              !phase.showGoLive,
                         ),
                     ],
                   ),
@@ -558,7 +589,10 @@ class _ActionButtonState extends State<_ActionButton> {
                 curve: Curves.easeOut,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: bgColor,
                     borderRadius: BorderRadius.circular(14),
@@ -574,7 +608,7 @@ class _ActionButtonState extends State<_ActionButton> {
                               color: bgColor.withValues(alpha: 0.4),
                               blurRadius: 8,
                               spreadRadius: 2,
-                            )
+                            ),
                           ]
                         : [],
                   ),
@@ -586,7 +620,7 @@ class _ActionButtonState extends State<_ActionButton> {
                       Text(
                         widget.label,
                         style: TextStyle(
-                          color: fgColor, 
+                          color: fgColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),

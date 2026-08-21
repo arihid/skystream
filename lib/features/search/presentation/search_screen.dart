@@ -39,9 +39,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   // Big Picture Nodes & State
   final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
   final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
-  
+
   bool _isKeyboardVisible = false;
-  bool _isKeyboardActiveRegion = true; 
+  bool _isKeyboardActiveRegion = true;
   bool _isFilterDialogOpen = false;
 
   @override
@@ -196,7 +196,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ref.read(searchSuggestionControllerProvider.notifier).clear();
     ref.read(searchQueryProvider.notifier).set(trimmed);
     _focusNode.unfocus();
-    
+
     // Close virtual keyboard after submitting on BigPicture
     if (mounted) {
       setState(() {
@@ -213,7 +213,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ref
         .read(searchSuggestionControllerProvider.notifier)
         .onQueryChanged(suggestion);
-        
+
     if (!isBigPicture) {
       _focusNode.requestFocus();
     } else {
@@ -269,15 +269,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (_isFilterDialogOpen) {
       Navigator.of(context, rootNavigator: true).pop();
-      return; 
+      return;
     }
-    
+
     _isFilterDialogOpen = true;
 
     final theme = Theme.of(context);
     final filter = ref.read(searchFilterProvider);
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Big Picture-Friendly Dialog for Scope Switcher (Accessible via D-Pad)
     showDialog(
       context: context,
@@ -290,9 +290,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               autofocus: filter == SearchFilter.content,
               title: Text(l10n.nonLivestreams),
               leading: const Text('🍿', style: TextStyle(fontSize: 24)),
-              trailing: filter == SearchFilter.content ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
+              trailing: filter == SearchFilter.content
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
               onTap: () {
-                ref.read(searchFilterProvider.notifier).set(SearchFilter.content);
+                ref
+                    .read(searchFilterProvider.notifier)
+                    .set(SearchFilter.content);
                 Navigator.pop(context);
               },
             ),
@@ -300,15 +304,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               autofocus: filter == SearchFilter.live,
               title: Text(l10n.liveStreams),
               leading: const Text('📺', style: TextStyle(fontSize: 24)),
-              trailing: filter == SearchFilter.live ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
+              trailing: filter == SearchFilter.live
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
               onTap: () {
                 ref.read(searchFilterProvider.notifier).set(SearchFilter.live);
                 Navigator.pop(context);
               },
             ),
           ],
-        )
-      )
+        ),
+      ),
     ).then((_) {
       if (mounted) {
         _isFilterDialogOpen = false;
@@ -321,7 +327,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
     final isTv = isBigPicture || profile?.isTv == true || context.isTv;
-    
+
     final isWidescreen = isTv || context.isTabletOrLarger;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -346,7 +352,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7), 
+                    color: Colors.black.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -372,7 +378,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 left: 0,
                 top: 0,
                 bottom: 0,
-                width: 320, 
+                width: 320,
                 child: IgnorePointer(
                   child: Container(
                     decoration: BoxDecoration(
@@ -415,7 +421,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ),
             Positioned(
-              top: 76, 
+              top: 76,
               left: 0,
               right: 0,
               height: 250,
@@ -429,16 +435,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   return IgnorePointer(
                     child: Center(
                       child: Container(
-                        width: 900, 
+                        width: 900,
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
-                            center: Alignment.topCenter, 
+                            center: Alignment.topCenter,
                             radius: 1.3,
                             colors: [
-                              spotlightColor.withValues(alpha: isDark ? 0.35 : 0.22), 
-                              spotlightColor.withValues(alpha: isDark ? 0.18 : 0.10), 
-                              spotlightColor.withValues(alpha: isDark ? 0.06 : 0.03), 
-                              spotlightColor.withValues(alpha: 0.0), 
+                              spotlightColor.withValues(
+                                alpha: isDark ? 0.35 : 0.22,
+                              ),
+                              spotlightColor.withValues(
+                                alpha: isDark ? 0.18 : 0.10,
+                              ),
+                              spotlightColor.withValues(
+                                alpha: isDark ? 0.06 : 0.03,
+                              ),
+                              spotlightColor.withValues(alpha: 0.0),
                             ],
                             stops: const [0.0, 0.35, 0.70, 1.0],
                           ),
@@ -499,13 +511,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           onInvoke: (_) {
             _toggleKeyboardAndList(isTv);
             return null;
-          }
+          },
         ),
         AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
           onInvoke: (_) {
             if (isTv) _toggleFilterMenu();
             return null;
-          }
+          },
         ),
         AppBackIntent: CallbackAction<AppBackIntent>(
           onInvoke: (_) {
@@ -513,7 +525,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               setState(() {
                 _isKeyboardVisible = false;
               });
-              return null; 
+              return null;
             }
 
             final query = _controller.text;
@@ -524,14 +536,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               });
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _keyboardProxyNode.requestFocus();
-                Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
+                Future.microtask(
+                  () => FocusManager.instance.primaryFocus?.nextFocus(),
+                );
               });
               return null;
             }
 
             Navigator.maybePop(context);
             return null;
-          }
+          },
         ),
       },
       child: content,
@@ -548,7 +562,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
-        automaticallyImplyLeading: !isTv, // Hides physical back button on BigPicture/TV
+        automaticallyImplyLeading:
+            !isTv, // Hides physical back button on BigPicture/TV
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -584,7 +599,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       const SizedBox(
                         width: 18,
                         height: 18,
-                        child: Center(child: Text('📺', style: TextStyle(fontSize: 14))),
+                        child: Center(
+                          child: Text('📺', style: TextStyle(fontSize: 14)),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(child: Text(l10n.liveStreams)),
@@ -612,7 +629,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: Center(child: Text('📺', style: TextStyle(fontSize: 14))),
+                        child: Center(
+                          child: Text('📺', style: TextStyle(fontSize: 14)),
+                        ),
                       )
                     : const Text('🍿', style: TextStyle(fontSize: 18)),
               ),
@@ -739,15 +758,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final typedLongEnough = suggestionState.query.trim().length >= 2;
     final hasSuggestionContent =
         suggestionState.isLoading || suggestionState.suggestions.isNotEmpty;
-        
+
     final forceSuggestions = isTv ? _isKeyboardVisible : _focusNode.hasFocus;
-    final showSuggestions = forceSuggestions || (typedLongEnough && hasSuggestionContent);
+    final showSuggestions =
+        forceSuggestions || (typedLongEnough && hasSuggestionContent);
     final shouldShowKeyboard = isTv && (_isKeyboardVisible || query.isEmpty);
 
     Widget content = showSuggestions
         ? ExcludeFocus(
             excluding: _isKeyboardActiveRegion && shouldShowKeyboard,
-            child: _buildSuggestionsView(context, suggestionState, shouldShowKeyboard, isTv),
+            child: _buildSuggestionsView(
+              context,
+              suggestionState,
+              shouldShowKeyboard,
+              isTv,
+            ),
           )
         : searchResultsAsync.when(
             data: (state) {
@@ -768,9 +793,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     focusNode: _listProxyNode,
                     skipTraversal: true,
                     child: ListView.builder(
-                      padding: const EdgeInsets.only(
-                        bottom: 100,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 100),
                       itemCount: state.results.length,
                       itemBuilder: (context, index) {
                         final pResult = state.results[index];
@@ -803,25 +826,43 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             excluding: !_isKeyboardActiveRegion,
             child: Focus(
               focusNode: _keyboardProxyNode,
-              skipTraversal: true, 
+              skipTraversal: true,
               canRequestFocus: true,
               onFocusChange: (hasFocus) {
                 if (hasFocus) {
                   Future.microtask(() {
                     if (mounted) {
                       ref.read(focusedGamepadHintsProvider.notifier).state = [
-                        GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintType, buttonColor: Colors.greenAccent.shade400),
-                        GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintList, buttonColor: Colors.grey.shade400),
-                        GamepadHint(buttonLabel: 'RT', actionLabel: l10n.hintFilter, buttonColor: Colors.amberAccent.shade400),
+                        GamepadHint(
+                          buttonLabel: 'A',
+                          actionLabel: l10n.hintType,
+                          buttonColor: Colors.greenAccent.shade400,
+                        ),
+                        GamepadHint(
+                          buttonLabel: 'LT',
+                          actionLabel: l10n.hintList,
+                          buttonColor: Colors.grey.shade400,
+                        ),
+                        GamepadHint(
+                          buttonLabel: 'RT',
+                          actionLabel: l10n.hintFilter,
+                          buttonColor: Colors.amberAccent.shade400,
+                        ),
                       ];
                     }
                   });
                 } else {
                   Future.microtask(() {
                     if (mounted) {
-                      final currentHints = ref.read(focusedGamepadHintsProvider);
-                      if (currentHints?.any((h) => h.actionLabel == l10n.hintType) == true) {
-                        ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                      final currentHints = ref.read(
+                        focusedGamepadHintsProvider,
+                      );
+                      if (currentHints?.any(
+                            (h) => h.actionLabel == l10n.hintType,
+                          ) ==
+                          true) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state =
+                            null;
                       }
                     }
                   });
@@ -837,7 +878,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         text: val,
                         selection: TextSelection.collapsed(offset: val.length),
                       );
-                      ref.read(searchSuggestionControllerProvider.notifier).onQueryChanged(val);
+                      ref
+                          .read(searchSuggestionControllerProvider.notifier)
+                          .onQueryChanged(val);
                     },
                     onSearch: () {
                       _submitSearch(_controller.text);
@@ -939,7 +982,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       );
     }
-    
+
     final nativeFont = Theme.of(context).textTheme.bodyLarge?.fontFamily;
     final isWidescreen = isTv || context.isTabletOrLarger;
     final imageWidth = isWidescreen ? 320.0 : 200.0;
@@ -1044,13 +1087,25 @@ class _SuggestionCardState extends State<_SuggestionCard> {
     if (widget.isBigPicture) {
       return FocusableWrapper(
         focusNode: widget.focusNode,
-        onTap: widget.onTap,          // 'A' to Search!
+        onTap: widget.onTap, // 'A' to Search!
         onSecondaryTap: widget.onFill, // 'X' to Fill Query!
         gamepadHints: [
-          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSearch, buttonColor: Colors.greenAccent.shade400),
-          GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintFillQuery, buttonColor: Colors.blueAccent.shade400),
+          GamepadHint(
+            buttonLabel: 'A',
+            actionLabel: l10n.hintSearch,
+            buttonColor: Colors.greenAccent.shade400,
+          ),
+          GamepadHint(
+            buttonLabel: 'X',
+            actionLabel: l10n.hintFillQuery,
+            buttonColor: Colors.blueAccent.shade400,
+          ),
           if (widget.shouldShowKeyboard)
-            GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintKeyboard, buttonColor: Colors.grey.shade400),
+            GamepadHint(
+              buttonLabel: 'LT',
+              actionLabel: l10n.hintKeyboard,
+              buttonColor: Colors.grey.shade400,
+            ),
         ],
         child: Container(
           decoration: BoxDecoration(
@@ -1059,7 +1114,9 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                 : theme.colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : theme.colorScheme.outlineVariant,
               width: 1.5,
             ),
           ),
@@ -1067,10 +1124,17 @@ class _SuggestionCardState extends State<_SuggestionCard> {
             children: [
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
-                      Icon(Icons.search_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                      Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
@@ -1088,7 +1152,11 @@ class _SuggestionCardState extends State<_SuggestionCard> {
                   ),
                 ),
               ),
-              Container(width: 1.0, height: 24.0, color: theme.dividerColor.withValues(alpha: 0.2)),
+              Container(
+                width: 1.0,
+                height: 24.0,
+                color: theme.dividerColor.withValues(alpha: 0.2),
+              ),
               ExcludeFocus(
                 child: IconButton(
                   icon: const Icon(Icons.north_west_rounded, size: 20),
@@ -1149,7 +1217,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: cardBgColor, 
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: isAnyHighlighted

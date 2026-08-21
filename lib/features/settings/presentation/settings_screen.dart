@@ -44,11 +44,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    
+
     // Master Switch Evaluation
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
     final isTv = isBigPicture || profile?.isTv == true || context.isTv;
-    
+
     final isWidescreen = isTv || context.isTabletOrLarger;
 
     if (isWidescreen) {
@@ -114,9 +114,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Future.microtask(() {
             if (mounted) {
               ref.read(focusedGamepadHintsProvider.notifier).state = [
-                GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Toggle', buttonColor: Colors.greenAccent.shade400),
-                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
-                GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: 'Select / Toggle',
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'B',
+                  actionLabel: 'Back',
+                  buttonColor: Colors.redAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: '≡',
+                  actionLabel: l10n.hintMenu,
+                  buttonColor: Colors.white,
+                ),
               ];
             }
           });
@@ -124,7 +136,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Future.microtask(() {
             if (mounted) {
               final currentHints = ref.read(focusedGamepadHintsProvider);
-              if (currentHints?.any((h) => h.actionLabel == 'Select / Toggle') == true) {
+              if (currentHints?.any(
+                    (h) => h.actionLabel == 'Select / Toggle',
+                  ) ==
+                  true) {
                 ref.read(focusedGamepadHintsProvider.notifier).state = null;
               }
             }
@@ -135,11 +150,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: FocusTraversalGroup(
-            policy: WidgetOrderTraversalPolicy(), 
+            policy: WidgetOrderTraversalPolicy(),
             child: ListView(
               padding: const EdgeInsets.only(bottom: 100),
               children: [
-                
                 // INJECTED: Display & TV Settings (Only on Desktop platforms)
                 if (!kIsWeb && isDesktopOS) ...[
                   const SizedBox(height: LayoutConstants.spacingXs),
@@ -153,11 +167,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         isLast: true,
                         trailing: Switch(
                           value: ref.watch(bigPictureModeProvider).isEnabled,
-                          onChanged: (val) => ref.read(bigPictureModeProvider.notifier).toggleBigPicture(val),
+                          onChanged: (val) => ref
+                              .read(bigPictureModeProvider.notifier)
+                              .toggleBigPicture(val),
                         ),
                         onTap: () {
-                          final current = ref.read(bigPictureModeProvider).isEnabled;
-                          ref.read(bigPictureModeProvider.notifier).toggleBigPicture(!current);
+                          final current = ref
+                              .read(bigPictureModeProvider)
+                              .isEnabled;
+                          ref
+                              .read(bigPictureModeProvider.notifier)
+                              .toggleBigPicture(!current);
                         },
                       ),
                     ],
@@ -176,7 +196,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       title: l10n.appTheme,
                       subtitle: themeMode == ThemeMode.system
                           ? l10n.system
-                          : (themeMode == ThemeMode.dark ? l10n.dark : l10n.light),
+                          : (themeMode == ThemeMode.dark
+                                ? l10n.dark
+                                : l10n.light),
                       onTap: () => showThemeDialog(context, ref, themeMode),
                     ),
                     SettingsTile(
@@ -257,7 +279,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       SettingsTile(
                         icon: Icons.swipe_vertical_rounded,
                         title: l10n.leftGesture,
-                        subtitle: getGestureLabel(playerSettings.leftGesture, l10n),
+                        subtitle: getGestureLabel(
+                          playerSettings.leftGesture,
+                          l10n,
+                        ),
                         onTap: () => showGestureDialog(
                           context,
                           ref,
@@ -293,7 +318,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         onTap: () => ref
                             .read(playerSettingsProvider.notifier)
-                            .setDoubleTapEnabled(!playerSettings.doubleTapEnabled),
+                            .setDoubleTapEnabled(
+                              !playerSettings.doubleTapEnabled,
+                            ),
                       ),
                       SettingsTile(
                         icon: Icons.swipe_rounded,
@@ -309,7 +336,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         onTap: () => ref
                             .read(playerSettingsProvider.notifier)
-                            .setSwipeSeekEnabled(!playerSettings.swipeSeekEnabled),
+                            .setSwipeSeekEnabled(
+                              !playerSettings.swipeSeekEnabled,
+                            ),
                       ),
                     ],
                     SettingsTile(
@@ -365,7 +394,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       onTap: () => ref
                           .read(playerSettingsProvider.notifier)
-                          .setHardwareDecoding(!playerSettings.hardwareDecoding),
+                          .setHardwareDecoding(
+                            !playerSettings.hardwareDecoding,
+                          ),
                     ),
                     SettingsTile(
                       icon: Icons.wifi_rounded,
@@ -638,7 +669,8 @@ String _formatBytes(int bytes) {
     size /= 1024;
     unitIndex++;
   }
-  final value =
-      unitIndex == 0 ? size.toStringAsFixed(0) : size.toStringAsFixed(1);
+  final value = unitIndex == 0
+      ? size.toStringAsFixed(0)
+      : size.toStringAsFixed(1);
   return '$value ${units[unitIndex]}';
 }

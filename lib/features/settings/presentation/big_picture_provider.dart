@@ -21,11 +21,13 @@ class BigPictureMode extends _$BigPictureMode {
 
   /// Initialize window state on boot (Only respects launch arguments now)
   void initialize(List<String> launchArgs) {
-    if (launchArgs.contains('--big-picture') || launchArgs.contains('--bigpicture')) {
+    if (launchArgs.contains('--big-picture') ||
+        launchArgs.contains('--bigpicture')) {
       state = BigPictureState(isEnabled: true);
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+        if (!kIsWeb &&
+            (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
           windowManager.setFullScreen(true);
         }
       });
@@ -35,7 +37,8 @@ class BigPictureMode extends _$BigPictureMode {
   Future<void> toggleBigPicture(bool enable) async {
     if (enable == state.isEnabled) return;
 
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       await windowManager.setFullScreen(enable);
       await Future.delayed(const Duration(milliseconds: 500));
     }

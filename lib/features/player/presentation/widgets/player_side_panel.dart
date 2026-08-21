@@ -1110,7 +1110,7 @@ class _EpisodeRowState extends State<_EpisodeRow> {
     final showHighlight = _focused || _hovered;
     final ring = _focused && widget.isTv;
     const accent = HotstarPlayerStyle.accent;
-    
+
     return Semantics(
       button: true,
       selected: widget.isCurrent,
@@ -1154,7 +1154,10 @@ class _EpisodeRowState extends State<_EpisodeRow> {
               child: AnimatedContainer(
                 duration: HotstarPlayerStyle.fastMotionDuration,
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 decoration: _panelRowDecoration(
                   focusedOnTv: ring,
                   selected: widget.isCurrent,
@@ -1651,7 +1654,7 @@ class _PanelOptionRowState extends State<_PanelOptionRow> {
         : (widget.selected
               ? HotstarPlayerStyle.primaryText
               : HotstarPlayerStyle.secondaryText);
-              
+
     return Semantics(
       button: true,
       enabled: enabled,
@@ -1687,7 +1690,9 @@ class _PanelOptionRowState extends State<_PanelOptionRow> {
             return KeyEventResult.ignored;
           },
           child: MouseRegion(
-            cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+            cursor: enabled
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.basic,
             onEnter: (_) => setState(() => _hovered = true),
             onExit: (_) => setState(() => _hovered = false),
             child: GestureDetector(
@@ -1696,7 +1701,10 @@ class _PanelOptionRowState extends State<_PanelOptionRow> {
               child: AnimatedContainer(
                 duration: HotstarPlayerStyle.fastMotionDuration,
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 13,
+                ),
                 decoration: _panelRowDecoration(
                   focusedOnTv: enabled && _focused && widget.isTv,
                   selected: widget.selected,

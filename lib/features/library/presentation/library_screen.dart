@@ -26,14 +26,18 @@ class LibraryScreen extends ConsumerStatefulWidget {
 class _LibraryScreenState extends ConsumerState<LibraryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final FocusNode _downloadsFocusNode = FocusNode(debugLabel: 'downloads_first_item');
-  final FocusNode _bookmarksFocusNode = FocusNode(debugLabel: 'bookmarks_first_item');
+  final FocusNode _downloadsFocusNode = FocusNode(
+    debugLabel: 'downloads_first_item',
+  );
+  final FocusNode _bookmarksFocusNode = FocusNode(
+    debugLabel: 'bookmarks_first_item',
+  );
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
+
     // Autofocus the active tab's first item on launch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -48,7 +52,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
 
   void _switchTab(int index) {
     if (_tabController.index == index) return;
-    
+
     _tabController.animateTo(index);
     // Wait for the slide animation to finish before safely requesting focus
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -72,11 +76,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    
+
     // Master Switch Evaluation
     final isTv = profile?.isTv == true || context.isTv;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     final isWidescreen = isBigPicture || context.isTabletOrLarger;
 
     Widget content;
@@ -156,13 +160,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
           onInvoke: (_) {
             _switchTab(_tabController.index == 0 ? 1 : 0);
             return null;
-          }
+          },
         ),
         AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
           onInvoke: (_) {
             _switchTab(_tabController.index == 1 ? 0 : 1);
             return null;
-          }
+          },
         ),
       },
       child: content,
@@ -209,7 +213,7 @@ class _TabChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final ThemeData theme;
-  final bool isBigPicture; 
+  final bool isBigPicture;
 
   const _TabChip({
     required this.label,

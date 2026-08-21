@@ -135,7 +135,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
 
     // Calculate aspect ratio dynamically
     final isDesktop = context.isDesktop;
-    
+
     final maxExtent = isDesktop
         ? (_isPortrait ? 240.0 : 340.0)
         : (_isPortrait ? 150.0 : 220.0);
@@ -156,10 +156,12 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         // Hide the Back button in Big Picture Mode (Use 'B' button on gamepad)
-        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-        ),
+        leading: isBigPicture
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => context.pop(),
+              ),
         elevation: 0,
       ),
       body: Column(
@@ -171,7 +173,9 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                    Theme.of(
+                      context,
+                    ).scaffoldBackgroundColor.withValues(alpha: 0.8),
                     Theme.of(context).scaffoldBackgroundColor,
                   ],
                   stops: const [0.0, 0.3],
@@ -218,8 +222,16 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                     return FocusableWrapper(
                       onTap: handleTap,
                       gamepadHints: [
-                        GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
-                        GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
+                        GamepadHint(
+                          buttonLabel: 'A',
+                          actionLabel: l10n.hintSelect,
+                          buttonColor: Colors.greenAccent.shade400,
+                        ),
+                        GamepadHint(
+                          buttonLabel: 'B',
+                          actionLabel: l10n.hintBack,
+                          buttonColor: Colors.redAccent.shade400,
+                        ),
                       ],
                       child: ExcludeFocus(
                         child: MultimediaCard(
@@ -244,8 +256,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
               ),
             ),
           ),
-          if (isBigPicture)
-            const GamepadHintsOverlay(), 
+          if (isBigPicture) const GamepadHintsOverlay(),
         ],
       ),
     );
@@ -257,7 +268,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
           onInvoke: (_) {
             context.pop();
             return null;
-          }
+          },
         ),
       },
       child: scaffold,

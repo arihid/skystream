@@ -59,7 +59,7 @@ class AppSidebar extends ConsumerStatefulWidget {
 class _AppSidebarState extends ConsumerState<AppSidebar> {
   late final ValueNotifier<double> _mouseY;
   int? _focusedIndex;
-  
+
   late final FocusNode _exitFocusNode;
 
   @override
@@ -67,7 +67,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     super.initState();
     _mouseY = ValueNotifier(double.infinity);
     _exitFocusNode = FocusNode(debugLabel: 'sidebar_exit');
-    
+
     for (int i = 0; i < widget.focusNodes.length; i++) {
       widget.focusNodes[i].addListener(_onFocusChanged);
     }
@@ -103,17 +103,17 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       int? currentFocused;
-      
+
       // Combine nodes to accurately detect focus across all 6 items
       final allNodes = [...widget.focusNodes, _exitFocusNode];
-      
+
       for (int i = 0; i < allNodes.length; i++) {
         if (allNodes[i].hasFocus) {
           currentFocused = i;
           break;
         }
       }
-      
+
       if (_focusedIndex != currentFocused) {
         setState(() {
           _focusedIndex = currentFocused;
@@ -148,7 +148,10 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                   exit(0);
                 }
               },
-              child: const Text('Exit', style: TextStyle(color: Colors.redAccent)),
+              child: const Text(
+                'Exit',
+                style: TextStyle(color: Colors.redAccent),
+              ),
             ),
           ],
         );
@@ -170,9 +173,13 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       (Icons.explore_outlined, Icons.explore, l10n.explore),
       (Icons.video_library_outlined, Icons.video_library, l10n.library),
       (Icons.settings_outlined, Icons.settings, l10n.settings),
-      (Icons.power_settings_new_outlined, Icons.power_settings_new_rounded, l10n.exitApp),
+      (
+        Icons.power_settings_new_outlined,
+        Icons.power_settings_new_rounded,
+        l10n.exitApp,
+      ),
     ];
-    
+
     // Combine Focus Nodes
     final allFocusNodes = [...widget.focusNodes, _exitFocusNode];
 
@@ -191,7 +198,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
       color: Colors.transparent,
       clipBehavior: Clip.none,
       child: Container(
-        width: LayoutConstants.sidebarWidthCompact, 
+        width: LayoutConstants.sidebarWidthCompact,
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         child: ValueListenableBuilder<double>(
@@ -209,7 +216,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 if (diff == 0) {
                   distance = 0.0;
                 } else if (diff == 1) {
-                  distance = 56.0; 
+                  distance = 56.0;
                 }
               }
               itemSizes[i] = calculateContainerSize(distance);
@@ -217,12 +224,9 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
             }
 
             final tops = List<double>.filled(destinations.length, 0.0);
-            tops[0] = 16.0; 
+            tops[0] = 16.0;
             for (int i = 1; i < destinations.length; i++) {
-              tops[i] =
-                  tops[i - 1] +
-                  itemSizes[i - 1] +
-                  16.0; 
+              tops[i] = tops[i - 1] + itemSizes[i - 1] + 16.0;
             }
             final double dynamicDockHeight =
                 tops[destinations.length - 1] +
@@ -245,7 +249,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                 duration: const Duration(milliseconds: 350),
                 curve: const _AceternitySpringCurve(),
                 width: dockWidth,
-                height: dynamicDockHeight, 
+                height: dynamicDockHeight,
                 clipBehavior: Clip.none,
                 decoration: BoxDecoration(
                   color: dockBgColor,
@@ -269,7 +273,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                   clipBehavior: Clip.none,
                   children: List.generate(destinations.length, (i) {
                     final (outlinedIcon, filledIcon, label) = destinations[i];
-                    
+
                     // The Exit button (index 5) is never technically "selected" as a route
                     final isSelected = widget.currentIndex == i && i != 5;
 
@@ -277,7 +281,7 @@ class _AppSidebarState extends ConsumerState<AppSidebar> {
                       key: ValueKey('dock_item_$i'),
                       duration: const Duration(milliseconds: 350),
                       curve: const _AceternitySpringCurve(),
-                      left: 12.0, 
+                      left: 12.0,
                       top: tops[i],
                       width: itemSizes[i],
                       height: itemSizes[i],
@@ -348,7 +352,7 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final showTooltip = _isHovered || (_isFocused && widget.isDpadMode);
 
     final itemBgColor = widget.isDestructive && showTooltip
@@ -368,7 +372,6 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
     final tooltipTextColor = isDark
         ? const Color(0xFFFFFFFF)
         : const Color(0xFF374151);
-
 
     return Focus(
       focusNode: widget.focusNode,
@@ -412,7 +415,7 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
         child: SizedBox.expand(
           child: Stack(
             clipBehavior: Clip.none,
-            alignment: Alignment.centerLeft, 
+            alignment: Alignment.centerLeft,
             children: [
               Positioned(
                 left: 0,
@@ -448,7 +451,7 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
                                   return Icon(
                                     widget.icon,
                                     color: iconColor,
-                                    size: animatedIconSize, 
+                                    size: animatedIconSize,
                                   );
                                 },
                               ),
@@ -457,9 +460,7 @@ class _SidebarDockItemState extends ConsumerState<_SidebarDockItem> {
                         );
                       },
                     ),
-                    const SizedBox(
-                      width: 12.0,
-                    ), 
+                    const SizedBox(width: 12.0),
                     IgnorePointer(
                       child: AnimatedOpacity(
                         opacity: showTooltip ? 1.0 : 0.0,

@@ -13,7 +13,7 @@ import 'stamp_in_label.dart';
 import 'bouncy_entry_animation.dart';
 
 import '../../../../core/widgets/focusable_wrapper.dart';
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 class SearchResultSection extends ConsumerStatefulWidget {
@@ -125,11 +125,25 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
                       child: BouncyEntryAnimation(
                         delay: Duration(milliseconds: rIndex * 50),
                         child: FocusableWrapper(
-                          focusNode: rIndex == 0 ? widget.firstCardFocusNode : null,
+                          focusNode: rIndex == 0
+                              ? widget.firstCardFocusNode
+                              : null,
                           gamepadHints: [
-                            GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintView, buttonColor: Colors.greenAccent.shade400),
-                            GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintKeyboard, buttonColor: Colors.grey.shade400),
-                            GamepadHint(buttonLabel: 'RT', actionLabel: l10n.hintFilter, buttonColor: Colors.amberAccent.shade400),
+                            GamepadHint(
+                              buttonLabel: 'A',
+                              actionLabel: l10n.hintView,
+                              buttonColor: Colors.greenAccent.shade400,
+                            ),
+                            GamepadHint(
+                              buttonLabel: 'LT',
+                              actionLabel: l10n.hintKeyboard,
+                              buttonColor: Colors.grey.shade400,
+                            ),
+                            GamepadHint(
+                              buttonLabel: 'RT',
+                              actionLabel: l10n.hintFilter,
+                              buttonColor: Colors.amberAccent.shade400,
+                            ),
                           ],
                           onTap: () => DetailsRoute(
                             $extra: DetailsRouteExtra(item: item),

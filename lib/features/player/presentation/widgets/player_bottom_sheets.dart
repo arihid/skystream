@@ -386,7 +386,7 @@ class PlayerBottomSheets {
     final sliderMax = maxVolume < 2.0 ? maxVolume : 2.0;
     final presets = [0.25, 0.5, 0.75, 1.0];
     if (sliderMax > 1.0) presets.addAll([1.5, 2.0]);
-    
+
     final sliderDivisions = ((sliderMax) / 0.05).round();
     double selectedVolume = currentVolume.clamp(0.0, sliderMax).toDouble();
     bool localMuted = isMuted;
@@ -416,29 +416,45 @@ class PlayerBottomSheets {
 
             final size = MediaQuery.sizeOf(context);
             final isCompact = size.shortestSide < 600;
-            final compactWidth = (size.width - 32).clamp(280.0, 360.0).toDouble();
+            final compactWidth = (size.width - 32)
+                .clamp(280.0, 360.0)
+                .toDouble();
             final maxWidth = size.width >= 900 ? 520.0 : compactWidth;
             final compactHeight = (size.height * (isCompact ? 0.58 : 0.68))
-                .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0).toDouble();
-                
-            bool anySelected = presets.any((vol) => (selectedVolume - vol).abs() < 0.01);
+                .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
+                .toDouble();
+
+            bool anySelected = presets.any(
+              (vol) => (selectedVolume - vol).abs() < 0.01,
+            );
 
             return Actions(
               actions: <Type, Action<Intent>>{
                 AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
-                  onInvoke: (_) { setVol(selectedVolume - 0.05); return null; },
+                  onInvoke: (_) {
+                    setVol(selectedVolume - 0.05);
+                    return null;
+                  },
                 ),
                 AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
-                  onInvoke: (_) { setVol(selectedVolume + 0.05); return null; },
+                  onInvoke: (_) {
+                    setVol(selectedVolume + 0.05);
+                    return null;
+                  },
                 ),
               },
               child: Shortcuts(
                 shortcuts: const <ShortcutActivator, Intent>{
-                  SingleActivator(LogicalKeyboardKey.minus): AppLeftBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadSubtract): AppLeftBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.equal): AppRightBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.add): AppRightBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadAdd): AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.minus):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadSubtract):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.equal):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.add):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadAdd):
+                      AppRightBumperIntent(),
                 },
                 child: Dialog(
                   backgroundColor: HotstarPlayerStyle.background,
@@ -483,7 +499,9 @@ class PlayerBottomSheets {
                             ),
                             SizedBox(height: isCompact ? 10 : 20),
                             Text(
-                              localMuted ? 'Muted' : '${(selectedVolume * 100).round()}%',
+                              localMuted
+                                  ? 'Muted'
+                                  : '${(selectedVolume * 100).round()}%',
                               style: TextStyle(
                                 color: HotstarPlayerStyle.primaryText,
                                 fontSize: isCompact ? 23 : 28,
@@ -495,7 +513,8 @@ class PlayerBottomSheets {
                               children: [
                                 _ModalStepButton(
                                   icon: Icons.volume_down,
-                                  onPressed: () => setVol(selectedVolume - 0.05),
+                                  onPressed: () =>
+                                      setVol(selectedVolume - 0.05),
                                   compact: isCompact,
                                   gamepadHint: "LB",
                                 ),
@@ -505,18 +524,25 @@ class PlayerBottomSheets {
                                     data: SliderThemeData(
                                       trackHeight: isCompact ? 10 : 18,
                                       activeTrackColor: Colors.white,
-                                      inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+                                      inactiveTrackColor: Colors.white
+                                          .withValues(alpha: 0.08),
                                       thumbColor: Colors.white,
-                                      overlayColor: HotstarPlayerStyle.accent.withValues(alpha: 0.12),
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-                                      trackShape: const RoundedRectSliderTrackShape(),
+                                      overlayColor: HotstarPlayerStyle.accent
+                                          .withValues(alpha: 0.12),
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 4,
+                                      ),
+                                      trackShape:
+                                          const RoundedRectSliderTrackShape(),
                                     ),
                                     child: CustomSlider(
                                       value: selectedVolume,
                                       min: 0.0,
                                       max: sliderMax,
                                       step: 0.05,
-                                      divisions: sliderDivisions > 0 ? sliderDivisions : null,
+                                      divisions: sliderDivisions > 0
+                                          ? sliderDivisions
+                                          : null,
                                       focusable: false,
                                       onChanged: setVol,
                                     ),
@@ -525,7 +551,8 @@ class PlayerBottomSheets {
                                 SizedBox(width: isCompact ? 10 : 18),
                                 _ModalStepButton(
                                   icon: Icons.volume_up,
-                                  onPressed: () => setVol(selectedVolume + 0.05),
+                                  onPressed: () =>
+                                      setVol(selectedVolume + 0.05),
                                   compact: isCompact,
                                   gamepadHint: "RB",
                                 ),
@@ -545,8 +572,12 @@ class PlayerBottomSheets {
                                   onTap: toggleMute,
                                 ),
                                 ...presets.map((vol) {
-                                  final isSelected = !localMuted && (selectedVolume - vol).abs() < 0.01;
-                                  final shouldAutofocus = isSelected || (!anySelected && vol == 1.0);
+                                  final isSelected =
+                                      !localMuted &&
+                                      (selectedVolume - vol).abs() < 0.01;
+                                  final shouldAutofocus =
+                                      isSelected ||
+                                      (!anySelected && vol == 1.0);
                                   return _ModalPresetChip(
                                     label: '${(vol * 100).round()}%',
                                     isSelected: isSelected,
@@ -582,7 +613,13 @@ class PlayerBottomSheets {
   }) {
     final l10n = AppLocalizations.of(context)!;
     final sliderMax = maxSpeed < 3.0 ? maxSpeed : 3.0;
-    final speeds = [0.25, 1.0, 1.25, 1.5, 2.0].where((speed) => speed <= sliderMax + 0.001).toList();
+    final speeds = [
+      0.25,
+      1.0,
+      1.25,
+      1.5,
+      2.0,
+    ].where((speed) => speed <= sliderMax + 0.001).toList();
     final sliderDivisions = ((sliderMax - 0.25) / 0.05).round();
     double selectedSpeed = currentSpeed.clamp(0.25, sliderMax).toDouble();
 
@@ -600,29 +637,45 @@ class PlayerBottomSheets {
 
             final size = MediaQuery.sizeOf(context);
             final isCompact = size.shortestSide < 600;
-            final compactWidth = (size.width - 32).clamp(280.0, 360.0).toDouble();
+            final compactWidth = (size.width - 32)
+                .clamp(280.0, 360.0)
+                .toDouble();
             final maxWidth = size.width >= 900 ? 520.0 : compactWidth;
             final compactHeight = (size.height * (isCompact ? 0.58 : 0.68))
-                .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0).toDouble();
-                
-            bool anySelected = speeds.any((s) => (selectedSpeed - s).abs() < 0.01);
+                .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
+                .toDouble();
+
+            bool anySelected = speeds.any(
+              (s) => (selectedSpeed - s).abs() < 0.01,
+            );
 
             return Actions(
               actions: <Type, Action<Intent>>{
                 AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
-                  onInvoke: (_) { setSpeed(selectedSpeed - 0.05); return null; },
+                  onInvoke: (_) {
+                    setSpeed(selectedSpeed - 0.05);
+                    return null;
+                  },
                 ),
                 AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
-                  onInvoke: (_) { setSpeed(selectedSpeed + 0.05); return null; },
+                  onInvoke: (_) {
+                    setSpeed(selectedSpeed + 0.05);
+                    return null;
+                  },
                 ),
               },
               child: Shortcuts(
                 shortcuts: const <ShortcutActivator, Intent>{
-                  SingleActivator(LogicalKeyboardKey.minus): AppLeftBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadSubtract): AppLeftBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.equal): AppRightBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.add): AppRightBumperIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadAdd): AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.minus):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadSubtract):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.equal):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.add):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadAdd):
+                      AppRightBumperIntent(),
                 },
                 child: Dialog(
                   backgroundColor: HotstarPlayerStyle.background,
@@ -679,7 +732,8 @@ class PlayerBottomSheets {
                               children: [
                                 _ModalStepButton(
                                   icon: Icons.remove,
-                                  onPressed: () => setSpeed(selectedSpeed - 0.05),
+                                  onPressed: () =>
+                                      setSpeed(selectedSpeed - 0.05),
                                   compact: isCompact,
                                   gamepadHint: "LB",
                                 ),
@@ -689,18 +743,25 @@ class PlayerBottomSheets {
                                     data: SliderThemeData(
                                       trackHeight: isCompact ? 10 : 18,
                                       activeTrackColor: Colors.white,
-                                      inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+                                      inactiveTrackColor: Colors.white
+                                          .withValues(alpha: 0.08),
                                       thumbColor: Colors.white,
-                                      overlayColor: HotstarPlayerStyle.accent.withValues(alpha: 0.12),
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-                                      trackShape: const RoundedRectSliderTrackShape(),
+                                      overlayColor: HotstarPlayerStyle.accent
+                                          .withValues(alpha: 0.12),
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 4,
+                                      ),
+                                      trackShape:
+                                          const RoundedRectSliderTrackShape(),
                                     ),
                                     child: CustomSlider(
                                       value: selectedSpeed,
                                       min: 0.25,
                                       max: sliderMax,
                                       step: 0.05,
-                                      divisions: sliderDivisions > 0 ? sliderDivisions : null,
+                                      divisions: sliderDivisions > 0
+                                          ? sliderDivisions
+                                          : null,
                                       focusable: false,
                                       onChanged: setSpeed,
                                     ),
@@ -709,7 +770,8 @@ class PlayerBottomSheets {
                                 SizedBox(width: isCompact ? 10 : 18),
                                 _ModalStepButton(
                                   icon: Icons.add,
-                                  onPressed: () => setSpeed(selectedSpeed + 0.05),
+                                  onPressed: () =>
+                                      setSpeed(selectedSpeed + 0.05),
                                   compact: isCompact,
                                   gamepadHint: "RB",
                                 ),
@@ -721,8 +783,11 @@ class PlayerBottomSheets {
                               spacing: isCompact ? 7 : 10,
                               runSpacing: isCompact ? 7 : 10,
                               children: speeds.map((speed) {
-                                final isSelected = (selectedSpeed - speed).abs() < 0.01;
-                                final shouldAutofocus = isSelected || (!anySelected && speed == 1.0);
+                                final isSelected =
+                                    (selectedSpeed - speed).abs() < 0.01;
+                                final shouldAutofocus =
+                                    isSelected ||
+                                    (!anySelected && speed == 1.0);
                                 return _ModalPresetChip(
                                   label: _formatSpeed(speed),
                                   isSelected: isSelected,
@@ -1311,7 +1376,7 @@ class PlayerBottomSheets {
                                     const SizedBox(height: 24),
                                     FilledButton.icon(
                                       onPressed: () {
-                                        Navigator.pop(ctx); 
+                                        Navigator.pop(ctx);
                                         if (parentContext.mounted) {
                                           ScaffoldMessenger.of(
                                             parentContext,
@@ -1386,9 +1451,7 @@ class PlayerBottomSheets {
                                 if (path != null) {
                                   ref
                                       .read(playerControllerProvider.notifier)
-                                      .loadExternalSubtitleFile(
-                                        filePath: path,
-                                      );
+                                      .loadExternalSubtitleFile(filePath: path);
                                   if (context.mounted) Navigator.pop(ctx);
                                 } else {
                                   if (context.mounted) {
@@ -2145,15 +2208,25 @@ class _ModalPresetChipState extends State<_ModalPresetChip> {
   @override
   Widget build(BuildContext context) {
     final showHighlight = _isHovered || _isFocused;
-    
+
     return Semantics(
       button: true,
       label: widget.label,
       selected: widget.isSelected,
       child: Actions(
         actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) { widget.onTap(); return null; }),
-          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) { widget.onTap(); return null; }),
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
         },
         child: Focus(
           autofocus: widget.autofocus,
@@ -2161,7 +2234,9 @@ class _ModalPresetChipState extends State<_ModalPresetChip> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             final key = event.logicalKey;
-            if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.select) {
+            if (key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.select) {
               widget.onTap();
               return KeyEventResult.handled;
             }
@@ -2181,7 +2256,9 @@ class _ModalPresetChipState extends State<_ModalPresetChip> {
                 child: AnimatedContainer(
                   duration: HotstarPlayerStyle.fastMotionDuration,
                   width: widget.isCompact ? 76 : 104,
-                  padding: EdgeInsets.symmetric(vertical: widget.isCompact ? 10 : 14),
+                  padding: EdgeInsets.symmetric(
+                    vertical: widget.isCompact ? 10 : 14,
+                  ),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: widget.isSelected
@@ -2199,7 +2276,9 @@ class _ModalPresetChipState extends State<_ModalPresetChip> {
                     boxShadow: _isFocused
                         ? [
                             BoxShadow(
-                              color: HotstarPlayerStyle.accent.withValues(alpha: 0.25),
+                              color: HotstarPlayerStyle.accent.withValues(
+                                alpha: 0.25,
+                              ),
                               blurRadius: 8,
                               spreadRadius: 1,
                             ),
@@ -2252,8 +2331,12 @@ class _ModalStepButton extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
-                gamepadHint!, 
-                style: TextStyle(color: HotstarPlayerStyle.accent.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.bold),
+                gamepadHint!,
+                style: TextStyle(
+                  color: HotstarPlayerStyle.accent.withValues(alpha: 0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           InkWell(
@@ -2266,7 +2349,11 @@ class _ModalStepButton extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(compact ? 10 : 14),
               ),
-              child: Icon(icon, size: compact ? 20 : 24, color: HotstarPlayerStyle.primaryText),
+              child: Icon(
+                icon,
+                size: compact ? 20 : 24,
+                color: HotstarPlayerStyle.primaryText,
+              ),
             ),
           ),
         ],

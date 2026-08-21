@@ -313,7 +313,7 @@ class _ProviderSearchSectionState extends ConsumerState<ProviderSearchSection> {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 180),
-      clipBehavior: Clip.hardEdge, 
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: Theme.of(
           context,
@@ -385,13 +385,14 @@ class _FocusableSourceCard extends ConsumerStatefulWidget {
   final bool isBigPicture;
 
   const _FocusableSourceCard({
-    required this.child, 
+    required this.child,
     required this.onTap,
     required this.isBigPicture,
   });
 
   @override
-  ConsumerState<_FocusableSourceCard> createState() => _FocusableSourceCardState();
+  ConsumerState<_FocusableSourceCard> createState() =>
+      _FocusableSourceCardState();
 }
 
 class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
@@ -401,7 +402,7 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Semantics(
       button: true,
       child: Actions(
@@ -425,7 +426,7 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
             if (hasFocus) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
-                
+
                 // Perfect centering logic for TV UX
                 Scrollable.maybeOf(context)?.position.ensureVisible(
                   context.findRenderObject()!,
@@ -433,11 +434,15 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.fastOutSlowIn,
                 );
-                
+
                 // Dispatch Gamepad Hints
                 if (widget.isBigPicture) {
                   ref.read(focusedGamepadHintsProvider.notifier).state = [
-                    GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
+                    GamepadHint(
+                      buttonLabel: 'A',
+                      actionLabel: l10n.hintSelect,
+                      buttonColor: Colors.greenAccent.shade400,
+                    ),
                   ];
                 }
               });
@@ -446,7 +451,10 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
                   final currentHints = ref.read(focusedGamepadHintsProvider);
-                  if (currentHints?.any((h) => h.actionLabel == l10n.hintSelect) == true) {
+                  if (currentHints?.any(
+                        (h) => h.actionLabel == l10n.hintSelect,
+                      ) ==
+                      true) {
                     ref.read(focusedGamepadHintsProvider.notifier).state = null;
                   }
                 });
@@ -477,7 +485,9 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14), // Matches inner card + 2px
+                    borderRadius: BorderRadius.circular(
+                      14,
+                    ), // Matches inner card + 2px
                     border: Border.all(
                       color: (_isFocused || _isHovered) && widget.isBigPicture
                           ? Theme.of(context).colorScheme.primary
@@ -487,13 +497,12 @@ class _FocusableSourceCardState extends ConsumerState<_FocusableSourceCard> {
                     boxShadow: _isFocused && widget.isBigPicture
                         ? [
                             BoxShadow(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.35),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.35),
                               blurRadius: 10,
                               spreadRadius: 2,
-                            )
+                            ),
                           ]
                         : null,
                   ),

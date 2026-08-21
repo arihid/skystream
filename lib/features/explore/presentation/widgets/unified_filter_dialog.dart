@@ -35,7 +35,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    
+
     _tabFocusNodes = List.generate(4, (_) => FocusNode(skipTraversal: true));
 
     // Listen to tab changes and forcefully yank focus to the selected item!
@@ -70,7 +70,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
   @override
   Widget build(BuildContext context) {
     final isAnime = ref.watch(exploreModeProvider);
-    
+
     // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
@@ -83,19 +83,19 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
             onInvoke: (_) {
               _cycleTab(-1);
               return null;
-            }
+            },
           ),
           AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
             onInvoke: (_) {
               _cycleTab(1);
               return null;
-            }
+            },
           ),
           AppBackIntent: CallbackAction<AppBackIntent>(
             onInvoke: (_) {
               Navigator.of(context).pop();
               return null;
-            }
+            },
           ),
         },
         child: Dialog(
@@ -105,9 +105,9 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
             width: double.infinity,
             constraints: const BoxConstraints(maxHeight: 650, maxWidth: 500),
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor.withValues(
-                alpha: 0.9,
-              ),
+              color: Theme.of(
+                context,
+              ).scaffoldBackgroundColor.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
                 color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
@@ -115,7 +115,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2), 
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -129,7 +129,11 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                   Container(
                     decoration: BoxDecoration(
                       border: Border(
-                        bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
+                        bottom: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.3),
+                        ),
                       ),
                     ),
                     child: Column(
@@ -147,7 +151,9 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                               Text(
                                 "Filters",
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -159,7 +165,9 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                                   onPressed: () => Navigator.of(context).pop(),
                                   icon: Icon(
                                     Icons.close,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                                   splashRadius: 24,
                                 ),
@@ -171,30 +179,55 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                           excluding: isBigPicture,
                           child: TabBar(
                             controller: _tabController,
-                            indicatorColor: Theme.of(context).colorScheme.primary,
+                            indicatorColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                             labelColor: Theme.of(context).colorScheme.primary,
-                            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            unselectedLabelColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            labelStyle: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                             tabs: [
                               if (isAnime)
-                                const Tab(text: "Title Lang", icon: Icon(Icons.title, size: 20))
+                                const Tab(
+                                  text: "Title Lang",
+                                  icon: Icon(Icons.title, size: 20),
+                                )
                               else
-                                const Tab(text: "Lang", icon: Icon(Icons.translate, size: 20)),
+                                const Tab(
+                                  text: "Lang",
+                                  icon: Icon(Icons.translate, size: 20),
+                                ),
                               Consumer(
                                 builder: (c, ref, _) {
-                                  final hasFilter = ref.watch(exploreFilterProvider).selectedGenre != null;
+                                  final hasFilter =
+                                      ref
+                                          .watch(exploreFilterProvider)
+                                          .selectedGenre !=
+                                      null;
                                   return Tab(
                                     text: "Genre",
                                     icon: Stack(
                                       clipBehavior: Clip.none,
                                       children: [
-                                        const Icon(Icons.category_outlined, size: 20),
+                                        const Icon(
+                                          Icons.category_outlined,
+                                          size: 20,
+                                        ),
                                         if (hasFilter)
                                           Positioned(
-                                            right: -2, top: -2,
+                                            right: -2,
+                                            top: -2,
                                             child: Container(
-                                              width: 8, height: 8,
-                                              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                              width: 8,
+                                              height: 8,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
                                           ),
                                       ],
@@ -204,19 +237,31 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                               ),
                               Consumer(
                                 builder: (c, ref, _) {
-                                  final hasFilter = ref.watch(exploreFilterProvider).selectedYear != null;
+                                  final hasFilter =
+                                      ref
+                                          .watch(exploreFilterProvider)
+                                          .selectedYear !=
+                                      null;
                                   return Tab(
                                     text: "Year",
                                     icon: Stack(
                                       clipBehavior: Clip.none,
                                       children: [
-                                        const Icon(Icons.calendar_today, size: 20),
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          size: 20,
+                                        ),
                                         if (hasFilter)
                                           Positioned(
-                                            right: -2, top: -2,
+                                            right: -2,
+                                            top: -2,
                                             child: Container(
-                                              width: 8, height: 8,
-                                              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                              width: 8,
+                                              height: 8,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
                                           ),
                                       ],
@@ -226,19 +271,31 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                               ),
                               Consumer(
                                 builder: (c, ref, _) {
-                                  final hasFilter = ref.watch(exploreFilterProvider).minRating != null;
+                                  final hasFilter =
+                                      ref
+                                          .watch(exploreFilterProvider)
+                                          .minRating !=
+                                      null;
                                   return Tab(
                                     text: "Rating",
                                     icon: Stack(
                                       clipBehavior: Clip.none,
                                       children: [
-                                        const Icon(Icons.star_outline, size: 20),
+                                        const Icon(
+                                          Icons.star_outline,
+                                          size: 20,
+                                        ),
                                         if (hasFilter)
                                           Positioned(
-                                            right: -2, top: -2,
+                                            right: -2,
+                                            top: -2,
                                             child: Container(
-                                              width: 8, height: 8,
-                                              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                              width: 8,
+                                              height: 8,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.redAccent,
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
                                           ),
                                       ],
@@ -258,9 +315,9 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        if (isAnime) 
-                          _TitleLanguageTab(activeNode: _tabFocusNodes[0]) 
-                        else 
+                        if (isAnime)
+                          _TitleLanguageTab(activeNode: _tabFocusNodes[0])
+                        else
                           _LanguageTab(activeNode: _tabFocusNodes[0]),
                         _GenreTab(activeNode: _tabFocusNodes[1]),
                         _YearTab(activeNode: _tabFocusNodes[2]),
@@ -271,32 +328,58 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
 
                   // Footer
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.3))),
+                      border: Border(
+                        top: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.3),
+                        ),
+                      ),
                     ),
                     child: Column(
                       children: [
                         Text(
                           "Filters are applied immediately",
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-                        
+
                         // Adaptive Bottom Action Area
                         if (isBigPicture) ...[
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildMiniHint(context, 'A', 'Select', Colors.greenAccent.shade400),
+                              _buildMiniHint(
+                                context,
+                                'A',
+                                'Select',
+                                Colors.greenAccent.shade400,
+                              ),
                               const SizedBox(width: 16),
-                              _buildMiniHint(context, 'B', 'Close', Colors.redAccent.shade400),
+                              _buildMiniHint(
+                                context,
+                                'B',
+                                'Close',
+                                Colors.redAccent.shade400,
+                              ),
                               const SizedBox(width: 16),
-                              _buildMiniHint(context, 'LB / RB', 'Switch Tab', Colors.white),
+                              _buildMiniHint(
+                                context,
+                                'LB / RB',
+                                'Switch Tab',
+                                Colors.white,
+                              ),
                             ],
                           ),
                         ] else ...[
@@ -306,7 +389,9 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                             child: ElevatedButton(
                               onPressed: () => Navigator.of(context).pop(),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: LayoutConstants.spacingMd,
@@ -337,7 +422,12 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
     );
   }
 
-  Widget _buildMiniHint(BuildContext context, String btn, String label, Color color) {
+  Widget _buildMiniHint(
+    BuildContext context,
+    String btn,
+    String label,
+    Color color,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -350,15 +440,22 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
           ),
           child: Text(
             btn,
-            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-            fontSize: 11, fontWeight: FontWeight.w600,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -378,7 +475,8 @@ class _RatingTab extends ConsumerStatefulWidget {
   ConsumerState<_RatingTab> createState() => _RatingTabState();
 }
 
-class _RatingTabState extends ConsumerState<_RatingTab> with AutomaticKeepAliveClientMixin {
+class _RatingTabState extends ConsumerState<_RatingTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -397,7 +495,9 @@ class _RatingTabState extends ConsumerState<_RatingTab> with AutomaticKeepAliveC
         final isSelected = rating == selectedRating;
 
         final label = rating == null ? "Any Rating" : "$rating+ Stars";
-        final subtitle = rating == null ? "Show all movies" : "Movies with $rating or higher (TMDB/User)";
+        final subtitle = rating == null
+            ? "Show all movies"
+            : "Movies with $rating or higher (TMDB/User)";
 
         return FocusableWrapper(
           focusNode: isSelected ? widget.activeNode : null,
@@ -409,27 +509,46 @@ class _RatingTabState extends ConsumerState<_RatingTab> with AutomaticKeepAliveC
             onTap: () {
               ref.read(exploreFilterProvider.notifier).setRating(rating);
             },
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            tileColor: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : null,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            tileColor: isSelected
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                : null,
             leading: Icon(
               Icons.star,
-              color: isSelected ? Theme.of(context).colorScheme.primary : (rating == null ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3) : Colors.amber),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : (rating == null
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.3)
+                        : Colors.amber),
             ),
             title: Text(
               label,
               style: TextStyle(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
             subtitle: Text(
               subtitle,
               style: TextStyle(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
-            trailing: isSelected ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+            trailing: isSelected
+                ? Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                  )
+                : null,
           ),
         );
       },
@@ -445,7 +564,8 @@ class _LanguageTab extends ConsumerStatefulWidget {
   ConsumerState<_LanguageTab> createState() => _LanguageTabState();
 }
 
-class _LanguageTabState extends ConsumerState<_LanguageTab> with AutomaticKeepAliveClientMixin {
+class _LanguageTabState extends ConsumerState<_LanguageTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -459,7 +579,10 @@ class _LanguageTabState extends ConsumerState<_LanguageTab> with AutomaticKeepAl
       scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
       padding: const EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, childAspectRatio: 2.5, crossAxisSpacing: 12, mainAxisSpacing: 12,
+        crossAxisCount: 2,
+        childAspectRatio: 2.5,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: languages.length,
       itemBuilder: (context, index) {
@@ -474,25 +597,43 @@ class _LanguageTabState extends ConsumerState<_LanguageTab> with AutomaticKeepAl
             ref.read(languageProvider.notifier).setLanguage(lang.code);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.spacingMd),
+            padding: const EdgeInsets.symmetric(
+              horizontal: LayoutConstants.spacingMd,
+            ),
             decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor.withValues(alpha: 0.1),
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 32, height: 32, alignment: Alignment.center,
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
                   ),
                   child: Text(
                     lang.code.split('-')[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: LayoutConstants.spacingSm),
@@ -502,23 +643,39 @@ class _LanguageTabState extends ConsumerState<_LanguageTab> with AutomaticKeepAl
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        lang.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        lang.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.bold, fontSize: 15,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
                       Text(
-                        lang.nativeName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        lang.nativeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.7) : Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: isSelected
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.7)
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (isSelected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
+                if (isSelected)
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
               ],
             ),
           ),
@@ -536,7 +693,8 @@ class _GenreTab extends ConsumerStatefulWidget {
   ConsumerState<_GenreTab> createState() => _GenreTabState();
 }
 
-class _GenreTabState extends ConsumerState<_GenreTab> with AutomaticKeepAliveClientMixin {
+class _GenreTabState extends ConsumerState<_GenreTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -564,17 +722,31 @@ class _GenreTabState extends ConsumerState<_GenreTab> with AutomaticKeepAliveCli
                 onTap: () {
                   ref.read(exploreFilterProvider.notifier).setGenre(null);
                 },
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                tileColor: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                tileColor: isSelected
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.2)
+                    : null,
                 leading: Icon(
                   Icons.category,
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white24,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white24,
                 ),
                 title: Text(
                   "All Genres",
                   style: TextStyle(
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
               ),
@@ -582,7 +754,8 @@ class _GenreTabState extends ConsumerState<_GenreTab> with AutomaticKeepAliveCli
           }
 
           final genre = genres[index - 1];
-          final isSelected = selectedGenre != null && selectedGenre.id == genre.id;
+          final isSelected =
+              selectedGenre != null && selectedGenre.id == genre.id;
           return FocusableWrapper(
             focusNode: isSelected ? widget.activeNode : null,
             useScaleEffect: false,
@@ -593,16 +766,26 @@ class _GenreTabState extends ConsumerState<_GenreTab> with AutomaticKeepAliveCli
               onTap: () {
                 ref.read(exploreFilterProvider.notifier).setGenre(genre);
               },
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              tileColor: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : null,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              tileColor: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                  : null,
               leading: Icon(
                 isSelected ? Icons.check_circle : Icons.circle_outlined,
-                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.3),
               ),
               title: Text(
                 genre.name,
                 style: TextStyle(
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -611,7 +794,12 @@ class _GenreTabState extends ConsumerState<_GenreTab> with AutomaticKeepAliveCli
         },
       ),
       loading: () => const Center(child: AppLoadingIndicator()),
-      error: (_, _) => const Center(child: Text("Failed to load genres", style: TextStyle(color: Colors.white))),
+      error: (_, _) => const Center(
+        child: Text(
+          "Failed to load genres",
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
     );
   }
 }
@@ -624,7 +812,8 @@ class _YearTab extends ConsumerStatefulWidget {
   ConsumerState<_YearTab> createState() => _YearTabState();
 }
 
-class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClientMixin {
+class _YearTabState extends ConsumerState<_YearTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -639,7 +828,10 @@ class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClien
       scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
       padding: const EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, childAspectRatio: 2.0, crossAxisSpacing: 10, mainAxisSpacing: 10,
+        crossAxisCount: 3,
+        childAspectRatio: 2.0,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
       ),
       itemCount: years.length + 1,
       itemBuilder: (context, index) {
@@ -655,9 +847,19 @@ class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClien
             child: Container(
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                color: isSelected
+                    ? Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.2)
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent),
+                border: Border.all(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -666,14 +868,24 @@ class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClien
                   Text(
                     "All",
                     style: TextStyle(
-                      color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 16,
                     ),
                   ),
                   if (isSelected) ...[
                     const SizedBox(width: 6),
-                    Icon(Icons.check_circle, size: 16, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ],
                 ],
               ),
@@ -694,9 +906,17 @@ class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClien
           child: Container(
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -705,14 +925,22 @@ class _YearTabState extends ConsumerState<_YearTab> with AutomaticKeepAliveClien
                 Text(
                   year.toString(),
                   style: TextStyle(
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: 16,
                   ),
                 ),
                 if (isSelected) ...[
                   const SizedBox(width: 6),
-                  Icon(Icons.check_circle, size: 16, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ],
               ],
             ),
@@ -731,7 +959,8 @@ class _TitleLanguageTab extends ConsumerStatefulWidget {
   ConsumerState<_TitleLanguageTab> createState() => _TitleLanguageTabState();
 }
 
-class _TitleLanguageTabState extends ConsumerState<_TitleLanguageTab> with AutomaticKeepAliveClientMixin {
+class _TitleLanguageTabState extends ConsumerState<_TitleLanguageTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -749,7 +978,10 @@ class _TitleLanguageTabState extends ConsumerState<_TitleLanguageTab> with Autom
       scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
       padding: const EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, childAspectRatio: 2.5, crossAxisSpacing: 12, mainAxisSpacing: 12,
+        crossAxisCount: 2,
+        childAspectRatio: 2.5,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
       ),
       itemCount: titleLangs.length,
       itemBuilder: (context, index) {
@@ -761,26 +993,48 @@ class _TitleLanguageTabState extends ConsumerState<_TitleLanguageTab> with Autom
           useScaleEffect: false,
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            ref.read(animeTitleLanguageProvider.notifier).setLanguage(lang['code']!);
+            ref
+                .read(animeTitleLanguageProvider.notifier)
+                .setLanguage(lang['code']!);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.spacingMd),
+            padding: const EdgeInsets.symmetric(
+              horizontal: LayoutConstants.spacingMd,
+            ),
             decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 32, height: 32, alignment: Alignment.center,
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
                   ),
                   child: Text(
                     lang['code']!.substring(0, 2).toUpperCase(),
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: LayoutConstants.spacingSm),
@@ -790,23 +1044,39 @@ class _TitleLanguageTabState extends ConsumerState<_TitleLanguageTab> with Autom
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        lang['name']!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        lang['name']!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.bold, fontSize: 15,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
                       Text(
-                        lang['native']!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        lang['native']!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.7) : Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: isSelected
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.7)
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (isSelected) Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
+                if (isSelected)
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
               ],
             ),
           ),

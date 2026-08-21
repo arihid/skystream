@@ -28,8 +28,8 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 
 // TV/Gamepad Feature Imports
 import '../../../shared/widgets/gamepad_hints_overlay.dart';
-import '../../../core/input/gamepad_actions.dart'; 
-import '../../../core/input/gamepad_shortcut_manager.dart'; 
+import '../../../core/input/gamepad_actions.dart';
+import '../../../core/input/gamepad_shortcut_manager.dart';
 import '../../../core/input/gamepad_intents.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../../core/providers/device_info_provider.dart';
@@ -96,7 +96,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             .handlePlayPress(context, item);
       });
     });
-    
+
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -105,12 +105,12 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       ),
     );
     final libraryNotifier = ref.read(libraryProvider.notifier);
-    
+
     // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     // Force large layout if Big Picture is active, regardless of window size
     final isLarge = context.isTabletOrLarger || isBigPicture;
 
@@ -132,11 +132,13 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
     void toggleBookmark() {
       final isLoading = detailsAsync is AsyncLoading || details == null;
-      if (isLoading) return; 
-      
+      if (isLoading) return;
+
       if (isBookmarked) {
         libraryNotifier.removeItem(item.url);
-        ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+        ref
+            .read(notificationServiceProvider)
+            .showSuccess(l10n.removedFromLibrary);
       } else {
         libraryNotifier.addItem(item);
         ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
@@ -164,7 +166,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ? null
             : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
         body: CustomScrollView(
-          scrollCacheExtent: const ScrollCacheExtent.pixels(99999), slivers: [
+          scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
+          slivers: [
             SliverAppBar(
               pinned: true,
               expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
@@ -269,10 +272,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                     onPressed: () {
                       if (isBookmarked) {
                         libraryNotifier.removeItem(item.url);
-                        ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+                        ref
+                            .read(notificationServiceProvider)
+                            .showSuccess(l10n.removedFromLibrary);
                       } else {
                         libraryNotifier.addItem(item);
-                        ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+                        ref
+                            .read(notificationServiceProvider)
+                            .showSuccess(l10n.addedToLibrary);
                       }
                     },
                     style: IconButton.styleFrom(
@@ -306,20 +313,20 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               onInvoke: (_) {
                 toggleBookmark();
                 return null;
-              }
+              },
             ),
             AppBackIntent: CallbackAction<AppBackIntent>(
               onInvoke: (_) {
                 context.pop();
                 return null;
-              }
+              },
             ),
           },
           child: scaffoldContent,
         ),
       );
     }
-    
+
     return scaffoldContent;
   }
 
@@ -494,14 +501,16 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         // Hide UI back button in Big Picture
-        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-          style: IconButton.styleFrom(
-            backgroundColor: isDark ? Colors.black45 : Colors.white54,
-            foregroundColor: textColor,
-          ),
-        ),
+        leading: isBigPicture
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => context.pop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: isDark ? Colors.black45 : Colors.white54,
+                  foregroundColor: textColor,
+                ),
+              ),
         actions: [
           // Hide UI bookmark button in Big Picture
           if (!isBigPicture)
@@ -517,10 +526,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
               onPressed: () {
                 if (isBookmarked) {
                   libraryNotifier.removeItem(item.url);
-                  ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+                  ref
+                      .read(notificationServiceProvider)
+                      .showSuccess(l10n.removedFromLibrary);
                 } else {
                   libraryNotifier.addItem(item);
-                  ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+                  ref
+                      .read(notificationServiceProvider)
+                      .showSuccess(l10n.addedToLibrary);
                 }
               },
               style: IconButton.styleFrom(
@@ -554,15 +567,33 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           if (isBigPicture)
             GamepadHintsOverlay(
               customHints: [
-                GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelectToggle, buttonColor: Colors.greenAccent.shade400),
-                GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
                 GamepadHint(
-                  buttonLabel: 'X', 
-                  actionLabel: isBookmarked ? l10n.hintRemoveBookmark : l10n.hintAddBookmark, 
-                  buttonColor: Colors.blueAccent.shade400
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSelectToggle,
+                  buttonColor: Colors.greenAccent.shade400,
                 ),
-                GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
-                GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+                GamepadHint(
+                  buttonLabel: 'B',
+                  actionLabel: l10n.hintBack,
+                  buttonColor: Colors.redAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'X',
+                  actionLabel: isBookmarked
+                      ? l10n.hintRemoveBookmark
+                      : l10n.hintAddBookmark,
+                  buttonColor: Colors.blueAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'RS',
+                  actionLabel: l10n.hintScroll,
+                  buttonColor: Colors.grey.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: '≡',
+                  actionLabel: l10n.hintMenu,
+                  buttonColor: Colors.white,
+                ),
               ],
             ),
         ],

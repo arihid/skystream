@@ -8,7 +8,7 @@ import 'package:skystream/core/utils/layout_constants.dart';
 
 // Gamepad Imports
 import '../../../../core/widgets/focusable_wrapper.dart';
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class WaveformEqualizer extends StatefulWidget {
   final bool isActive;
@@ -305,10 +305,10 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
   final FocusNode liveTvFocusNode;
   final ValueChanged<String> onSubmitted;
   final ValueChanged<String> onChanged;
-  
+
   // BigPicture Layout Flags
   final bool isCompact;
-  final bool isBigPicture; 
+  final bool isBigPicture;
   final VoidCallback onTapFakeInput;
 
   const SearchHeaderBar({
@@ -364,14 +364,18 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                       builder: (context, child) {
                         final hasFocus = widget.searchFocusNode.hasFocus;
                         return FocusableWrapper(
-                          focusNode: widget.searchFocusNode, 
+                          focusNode: widget.searchFocusNode,
                           useScaleEffect: true,
-                          borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            LayoutConstants.radiusPill,
+                          ),
                           onTap: widget.onTapFakeInput,
                           gamepadHints: [
                             GamepadHint(
-                              buttonLabel: 'A', 
-                              actionLabel: query.isEmpty ? l10n.searchHint : 'Edit Search', 
+                              buttonLabel: 'A',
+                              actionLabel: query.isEmpty
+                                  ? l10n.searchHint
+                                  : 'Edit Search',
                               buttonColor: Colors.greenAccent.shade400,
                             ),
                           ],
@@ -379,23 +383,34 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                             duration: const Duration(milliseconds: 150),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: hasFocus ? 0.8 : 0.5),
-                              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: hasFocus ? 0.8 : 0.5),
+                              borderRadius: BorderRadius.circular(
+                                LayoutConstants.radiusPill,
+                              ),
                               border: Border.all(
-                                color: hasFocus ? theme.colorScheme.primary : Colors.transparent, 
-                                width: 2.5
-                              ), 
+                                color: hasFocus
+                                    ? theme.colorScheme.primary
+                                    : Colors.transparent,
+                                width: 2.5,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                                Icon(
+                                  Icons.search,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     query.isEmpty ? l10n.searchHint : query,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: query.isEmpty ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
+                                      color: query.isEmpty
+                                          ? theme.colorScheme.onSurfaceVariant
+                                          : theme.colorScheme.onSurface,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -404,13 +419,17 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                                 if (query.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(left: 8.0),
-                                    child: Icon(Icons.edit_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                                    child: Icon(
+                                      Icons.edit_rounded,
+                                      size: 16,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                               ],
                             ),
                           ),
                         );
-                      }
+                      },
                     );
                   },
                 ),
@@ -426,7 +445,8 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
               child: PopupMenuButton<SearchFilter>(
                 key: _popupKey,
                 tooltip: 'Search scope',
-                onSelected: (value) => ref.read(searchFilterProvider.notifier).set(value),
+                onSelected: (value) =>
+                    ref.read(searchFilterProvider.notifier).set(value),
                 offset: const Offset(0, 48),
                 itemBuilder: (_) => [
                   PopupMenuItem(
@@ -437,7 +457,11 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                         const SizedBox(width: 12),
                         const Expanded(child: Text('Non Livestreams')),
                         if (!isLive)
-                          Icon(Icons.check, size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                       ],
                     ),
                   ),
@@ -449,7 +473,11 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                         const SizedBox(width: 12),
                         const Expanded(child: Text('Livestreams')),
                         if (isLive)
-                          Icon(Icons.check, size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                       ],
                     ),
                   ),
@@ -460,7 +488,9 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
                   ),
                   child: Text(
                     isLive ? '📺' : '🍿',
@@ -542,8 +572,8 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                               color: isFocused
                                   ? theme.colorScheme.primary
                                   : (isDark
-                                      ? Colors.white70
-                                      : theme.colorScheme.onSurfaceVariant),
+                                        ? Colors.white70
+                                        : theme.colorScheme.onSurfaceVariant),
                             ),
                             style: IconButton.styleFrom(
                               backgroundColor: isFocused

@@ -37,7 +37,8 @@ class HomeSearchDelegate extends SearchDelegate<void> {
 
   bool _isBigPicture(BuildContext context) {
     final container = ProviderScope.containerOf(context);
-    final isTv = container.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isTv =
+        container.read(deviceProfileProvider).asData?.value.isTv ?? false;
     return container.read(bigPictureModeProvider).isEnabled || isTv;
   }
 
@@ -86,7 +87,12 @@ class HomeSearchDelegate extends SearchDelegate<void> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(LayoutConstants.dashboardContentPadding, 24, LayoutConstants.dashboardContentPadding, 8),
+      padding: const EdgeInsets.fromLTRB(
+        LayoutConstants.dashboardContentPadding,
+        24,
+        LayoutConstants.dashboardContentPadding,
+        8,
+      ),
       child: Row(
         children: [
           Icon(Icons.search, size: 28, color: theme.colorScheme.primary),
@@ -98,8 +104,8 @@ class HomeSearchDelegate extends SearchDelegate<void> {
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5,
-                color: query.isEmpty 
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5) 
+                color: query.isEmpty
+                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                     : theme.colorScheme.onSurface,
               ),
               maxLines: 1,
@@ -141,7 +147,7 @@ class HomeSearchDelegate extends SearchDelegate<void> {
     final isBigPicture = _isBigPicture(context);
     Widget content = _HomeSearchResults(
       query: query,
-      onBack: () => showSuggestions(context), 
+      onBack: () => showSuggestions(context),
     );
 
     if (isBigPicture) {
@@ -151,7 +157,7 @@ class HomeSearchDelegate extends SearchDelegate<void> {
             onInvoke: (_) {
               showSuggestions(context);
               return null;
-            }
+            },
           ),
         },
         child: Column(
@@ -222,7 +228,8 @@ class _HomeSearchKeyboardAndList extends ConsumerStatefulWidget {
       _HomeSearchKeyboardAndListState();
 }
 
-class _HomeSearchKeyboardAndListState extends ConsumerState<_HomeSearchKeyboardAndList> {
+class _HomeSearchKeyboardAndListState
+    extends ConsumerState<_HomeSearchKeyboardAndList> {
   final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
   final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
   DateTime _lastLTTime = DateTime.now();
@@ -274,7 +281,7 @@ class _HomeSearchKeyboardAndListState extends ConsumerState<_HomeSearchKeyboardA
           onInvoke: (_) {
             Navigator.maybePop(context);
             return null;
-          }
+          },
         ),
         AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
           onInvoke: (_) {
@@ -284,7 +291,7 @@ class _HomeSearchKeyboardAndListState extends ConsumerState<_HomeSearchKeyboardA
               _toggleKeyboardAndList();
             }
             return null;
-          }
+          },
         ),
       },
       child: Column(
@@ -301,7 +308,10 @@ class _HomeSearchKeyboardAndListState extends ConsumerState<_HomeSearchKeyboardA
                         child: Text(
                           l10n.searchSubtitleNameHint,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.5),
                             fontSize: 18,
                           ),
                         ),
@@ -325,17 +335,31 @@ class _HomeSearchKeyboardAndListState extends ConsumerState<_HomeSearchKeyboardA
                     Future.microtask(() {
                       if (mounted) {
                         ref.read(focusedGamepadHintsProvider.notifier).state = [
-                          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintType, buttonColor: Colors.greenAccent.shade400),
-                          GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintList, buttonColor: Colors.grey.shade400),
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: l10n.hintType,
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'LT',
+                            actionLabel: l10n.hintList,
+                            buttonColor: Colors.grey.shade400,
+                          ),
                         ];
                       }
                     });
                   } else {
                     Future.microtask(() {
                       if (mounted) {
-                        final currentHints = ref.read(focusedGamepadHintsProvider);
-                        if (currentHints?.any((h) => h.actionLabel == l10n.hintType) == true) {
-                          ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                        final currentHints = ref.read(
+                          focusedGamepadHintsProvider,
+                        );
+                        if (currentHints?.any(
+                              (h) => h.actionLabel == l10n.hintType,
+                            ) ==
+                            true) {
+                          ref.read(focusedGamepadHintsProvider.notifier).state =
+                              null;
                         }
                       }
                     });
@@ -360,7 +384,7 @@ class _HomeSearchSuggestions extends ConsumerStatefulWidget {
   final bool isKeyboardActiveRegion;
 
   const _HomeSearchSuggestions({
-    required this.query, 
+    required this.query,
     required this.onSelect,
     this.isKeyboardActiveRegion = false,
   });
@@ -452,8 +476,18 @@ class _HomeSearchSuggestionsState
               child: FocusableWrapper(
                 useScaleEffect: false,
                 gamepadHints: [
-                  GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSearch, buttonColor: Colors.greenAccent.shade400),
-                  GamepadHint(buttonLabel: 'LT', actionLabel: widget.isKeyboardActiveRegion ? l10n.hintList : l10n.hintKeyboard, buttonColor: Colors.grey.shade400),
+                  GamepadHint(
+                    buttonLabel: 'A',
+                    actionLabel: l10n.hintSearch,
+                    buttonColor: Colors.greenAccent.shade400,
+                  ),
+                  GamepadHint(
+                    buttonLabel: 'LT',
+                    actionLabel: widget.isKeyboardActiveRegion
+                        ? l10n.hintList
+                        : l10n.hintKeyboard,
+                    buttonColor: Colors.grey.shade400,
+                  ),
                 ],
                 onTap: () => widget.onSelect(suggestion),
                 child: tile,
@@ -462,10 +496,7 @@ class _HomeSearchSuggestionsState
           );
         }
 
-        return Material(
-          type: MaterialType.transparency,
-          child: tile,
-        );
+        return Material(type: MaterialType.transparency, child: tile);
       },
     );
   }
@@ -536,7 +567,7 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     if (isLoading) {
       return const Center(child: AppLoadingIndicator());
     }
@@ -597,15 +628,26 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
           return FocusableWrapper(
             autofocus: index == 0,
             gamepadHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintView, buttonColor: Colors.greenAccent.shade400),
-              GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintSearchField, buttonColor: Colors.grey.shade400),
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: l10n.hintView,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+              GamepadHint(
+                buttonLabel: 'LT',
+                actionLabel: l10n.hintSearchField,
+                buttonColor: Colors.grey.shade400,
+              ),
             ],
             onTap: () => DetailsRoute(
               $extra: DetailsRouteExtra(item: item),
             ).push<void>(context),
             child: MultimediaCard(
               key: ValueKey(item.url),
-              imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title),
+              imageUrl: AppImageFallbacks.poster(
+                item.posterUrl,
+                label: item.title,
+              ),
               title: item.title,
               heroTag: uniqueTag,
               onTap: () => DetailsRoute(
@@ -631,19 +673,19 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
       actions: <Type, Action<Intent>>{
         AppBackIntent: CallbackAction<AppBackIntent>(
           onInvoke: (_) {
-            if (widget.onBack != null) widget.onBack!(); 
+            if (widget.onBack != null) widget.onBack!();
             return null;
-          }
+          },
         ),
         AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
           onInvoke: (_) {
             // Debounce to prevent analog trigger spam
             if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
               _lastLTTime = DateTime.now();
-              if (widget.onBack != null) widget.onBack!(); 
+              if (widget.onBack != null) widget.onBack!();
             }
             return null;
-          }
+          },
         ),
       },
       child: content,

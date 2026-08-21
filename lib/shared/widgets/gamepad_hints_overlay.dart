@@ -10,7 +10,9 @@ import 'package:skystream/core/input/gamepad_intents.dart';
 final showGamepadHintsProvider = StateProvider<bool>((ref) => true);
 
 // Global provider for context-aware focused widget overrides
-final focusedGamepadHintsProvider = StateProvider<List<GamepadHint>?>((ref) => null);
+final focusedGamepadHintsProvider = StateProvider<List<GamepadHint>?>(
+  (ref) => null,
+);
 
 class GamepadHint {
   final String buttonLabel;
@@ -31,16 +33,26 @@ class GamepadHintsOverlay extends ConsumerWidget {
 
   Intent? _getIntentForButton(String label) {
     switch (label.toUpperCase()) {
-      case 'A': return const ActivateIntent(); // Mapped to primary action
-      case 'B': return const AppBackIntent();
-      case 'X': return const AppSecondaryIntent();
-      case 'Y': return const AppTertiaryIntent();
-      case '≡': return const AppMenuIntent();
-      case 'LB': return const AppLeftBumperIntent();
-      case 'RB': return const AppRightBumperIntent();
-      case 'LT': return const AppLeftTriggerIntent();
-      case 'RT': return const AppRightTriggerIntent();
-      default: return null;
+      case 'A':
+        return const ActivateIntent(); // Mapped to primary action
+      case 'B':
+        return const AppBackIntent();
+      case 'X':
+        return const AppSecondaryIntent();
+      case 'Y':
+        return const AppTertiaryIntent();
+      case '≡':
+        return const AppMenuIntent();
+      case 'LB':
+        return const AppLeftBumperIntent();
+      case 'RB':
+        return const AppRightBumperIntent();
+      case 'LT':
+        return const AppLeftTriggerIntent();
+      case 'RT':
+        return const AppRightTriggerIntent();
+      default:
+        return null;
     }
   }
 
@@ -51,14 +63,26 @@ class GamepadHintsOverlay extends ConsumerWidget {
 
     // Priority: 1. Focused Widget -> 2. Screen-Level Overlay -> 3. Global Defaults
     final focusedHints = ref.watch(focusedGamepadHintsProvider);
-    
+
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
     final defaultHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'B', actionLabel: l10n?.cancel ?? 'Back', buttonColor: Colors.redAccent.shade400),
-      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+      GamepadHint(
+        buttonLabel: 'A',
+        actionLabel: 'Select',
+        buttonColor: Colors.greenAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'B',
+        actionLabel: l10n?.cancel ?? 'Back',
+        buttonColor: Colors.redAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: '≡',
+        actionLabel: 'Menu',
+        buttonColor: Colors.white,
+      ),
     ];
 
     final hintsToDisplay = focusedHints ?? customHints ?? defaultHints;
@@ -98,7 +122,7 @@ class GamepadHintsOverlay extends ConsumerWidget {
 
   Widget _buildHintItem(BuildContext context, GamepadHint hint) {
     final intent = _getIntentForButton(hint.buttonLabel);
-    
+
     Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -127,7 +151,9 @@ class GamepadHintsOverlay extends ConsumerWidget {
         Text(
           hint.actionLabel,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
@@ -143,7 +169,8 @@ class GamepadHintsOverlay extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: () {
             // Dispatch the action to whatever is currently holding focus on the screen
-            final targetContext = FocusManager.instance.primaryFocus?.context ?? context;
+            final targetContext =
+                FocusManager.instance.primaryFocus?.context ?? context;
             Actions.maybeInvoke(targetContext, intent);
           },
           child: Padding(

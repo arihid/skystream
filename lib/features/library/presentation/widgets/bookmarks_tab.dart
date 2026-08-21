@@ -16,8 +16,8 @@ import '../library_state.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 
 // TV/Gamepad Feature Imports
-import '../../../../core/widgets/focusable_wrapper.dart'; 
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class BookmarksTab extends ConsumerStatefulWidget {
   final FocusNode? firstItemFocusNode;
@@ -44,7 +44,7 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
       LibraryError(message: final msg) => Center(child: Text(msg)),
       LibraryEmpty() => _buildEmpty(context),
       LibrarySuccess(items: final items) => GridView.builder(
-        scrollCacheExtent: const ScrollCacheExtent.pixels(99999), 
+        scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
         padding: const EdgeInsets.fromLTRB(
           LayoutConstants.spacingMd,
           LayoutConstants.spacingMd,
@@ -114,7 +114,7 @@ class _BookmarkCard extends HookConsumerWidget {
       await DetailsRoute(
         $extra: DetailsRouteExtra(item: item),
       ).push<void>(context);
-      
+
       // 2. Instantly reclaim focus!
       if (context.mounted) {
         nodeToUse.requestFocus();
@@ -126,18 +126,35 @@ class _BookmarkCard extends HookConsumerWidget {
       onTap: handleTap,
       useScaleEffect: true,
       gamepadHints: [
-        GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
-        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+        GamepadHint(
+          buttonLabel: 'A',
+          actionLabel: l10n.hintSelect,
+          buttonColor: Colors.greenAccent.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: 'LB',
+          actionLabel: l10n.hintPrevTab,
+          buttonColor: Colors.white,
+        ),
+        GamepadHint(
+          buttonLabel: 'RB',
+          actionLabel: l10n.hintNextTab,
+          buttonColor: Colors.white,
+        ),
+        GamepadHint(
+          buttonLabel: '≡',
+          actionLabel: l10n.hintMenu,
+          buttonColor: Colors.white,
+        ),
       ],
       child: ExcludeFocus(
         child: MultimediaCard(
           key: ValueKey(item.url),
-          imageUrl: AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
+          imageUrl:
+              AppImageFallbacks.poster(item.posterUrl, label: item.title) ?? '',
           title: item.title,
           heroTag: 'lib_bookmark_${item.url}_$index',
-          onTap: handleTap, 
+          onTap: handleTap,
         ),
       ),
     );

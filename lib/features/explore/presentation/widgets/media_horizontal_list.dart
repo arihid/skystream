@@ -39,7 +39,8 @@ class MediaHorizontalList extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<MediaHorizontalList> createState() => _MediaHorizontalListState();
+  ConsumerState<MediaHorizontalList> createState() =>
+      _MediaHorizontalListState();
 }
 
 class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
@@ -151,13 +152,13 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
     if (widget.mediaList.isEmpty) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     final isDesktop = context.isDesktop;
-    
+
     // Limit inline items and show the physical "View All" card in Big Picture
     const int maxItems = 15;
     final displayList = widget.mediaList.take(maxItems).toList();
@@ -278,7 +279,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
           ),
         ),
 
-        // List 
+        // List
         SizedBox(
           height: listHeight, // Adjusted for 2:3 ratio within list
           child: Builder(
@@ -309,15 +310,12 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                   itemCount: totalCount,
                   itemExtent: cardWidth + spacing,
                   itemBuilder: (context, index) {
-                    
                     // The physical "View All" card at the end of the list for Gamepads
                     // The physical "View All" card at the end of the list
                     if (index == displayList.length) {
                       return Padding(
                         padding: EdgeInsets.only(right: spacing),
-                        child: _ViewAllCard(
-                          onTap: _navigateToViewAll,
-                        ),
+                        child: _ViewAllCard(onTap: _navigateToViewAll),
                       );
                     }
 
@@ -338,7 +336,8 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                           mediaType: item.tmdbMediaType,
                           heroTag: uniqueTag,
                           placeholderPoster: imageUrl,
-                          source: item.source, // Ensure source gets passed downstream
+                          source: item
+                              .source, // Ensure source gets passed downstream
                         ).push<void>(context);
                       }
                     };
@@ -348,8 +347,16 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                       child: FocusableWrapper(
                         onTap: handleTap,
                         gamepadHints: [
-                          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
-                          GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: l10n.hintSelect,
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: '≡',
+                            actionLabel: l10n.hintMenu,
+                            buttonColor: Colors.white,
+                          ),
                         ],
                         child: ExcludeFocus(
                           child: MultimediaCard(
@@ -431,7 +438,9 @@ class _ViewAllCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: theme.dividerColor.withValues(alpha: 0.1),

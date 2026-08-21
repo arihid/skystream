@@ -10,7 +10,7 @@ import '../../core/input/gamepad_intents.dart';
 
 class GlobalSystemMenu extends StatelessWidget {
   final String currentLocation;
-  
+
   const GlobalSystemMenu({super.key, this.currentLocation = '/'});
 
   static bool _isOpen = false;
@@ -32,16 +32,16 @@ class GlobalSystemMenu extends StatelessWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
         return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(-1.0, 0.0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          )),
+          position:
+              Tween<Offset>(
+                begin: const Offset(-1.0, 0.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              ),
           child: FadeTransition(
             opacity: animation,
-            child: GlobalSystemMenu(currentLocation: location), 
+            child: GlobalSystemMenu(currentLocation: location),
           ),
         );
       },
@@ -61,14 +61,14 @@ class GlobalSystemMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Actions(
       actions: <Type, Action<Intent>>{
         AppBackIntent: CallbackAction<AppBackIntent>(
           onInvoke: (_) {
             Navigator.of(context, rootNavigator: true).pop();
             return null;
-          }
+          },
         ),
       },
       child: Align(
@@ -79,12 +79,21 @@ class GlobalSystemMenu extends StatelessWidget {
             width: 320,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.95),
+              color: theme.colorScheme.surfaceContainerLowest.withValues(
+                alpha: 0.95,
+              ),
               border: Border(
-                right: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
+                right: BorderSide(
+                  color: theme.dividerColor.withValues(alpha: 0.2),
+                  width: 1,
+                ),
               ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40, spreadRadius: 10),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 40,
+                  spreadRadius: 10,
+                ),
               ],
             ),
             child: ClipRRect(
@@ -92,11 +101,15 @@ class GlobalSystemMenu extends StatelessWidget {
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 32.0,
+                      horizontal: 24.0,
+                    ),
                     child: Focus(
                       canRequestFocus: false,
                       onKeyEvent: (node, event) {
-                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.arrowRight) {
                           Navigator.of(context, rootNavigator: true).pop();
                           return KeyEventResult.handled;
                         }
@@ -108,7 +121,10 @@ class GlobalSystemMenu extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(left: 12.0, bottom: 48.0),
+                              padding: const EdgeInsets.only(
+                                left: 12.0,
+                                bottom: 48.0,
+                              ),
                               child: Row(
                                 children: [
                                   ClipRRect(
@@ -117,25 +133,35 @@ class GlobalSystemMenu extends StatelessWidget {
                                       'assets/images/ic_launcher_foreground.png',
                                       width: 36,
                                       height: 36,
-                                      errorBuilder: (context, error, stack) => Icon(
-                                        Icons.videogame_asset_rounded, 
-                                        color: theme.colorScheme.primary, 
-                                        size: 36,
-                                      ),
+                                      errorBuilder: (context, error, stack) =>
+                                          Icon(
+                                            Icons.videogame_asset_rounded,
+                                            color: theme.colorScheme.primary,
+                                            size: 36,
+                                          ),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-                                  Text('SkyStream', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                                  Text(
+                                    'SkyStream',
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
                                 ],
                               ),
                             ),
-                            
+
                             _MenuButton(
                               icon: Icons.home_rounded,
                               label: 'Home',
-                              autofocus: currentLocation == '/' || currentLocation.startsWith('/home'),
+                              autofocus:
+                                  currentLocation == '/' ||
+                                  currentLocation.startsWith('/home'),
                               onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop(); 
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
                                 const HomeRoute().go(context);
                               },
                             ),
@@ -145,7 +171,10 @@ class GlobalSystemMenu extends StatelessWidget {
                               label: 'Search',
                               autofocus: currentLocation.startsWith('/search'),
                               onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop(); 
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
                                 const SearchRoute().go(context);
                               },
                             ),
@@ -155,7 +184,10 @@ class GlobalSystemMenu extends StatelessWidget {
                               label: 'Explore',
                               autofocus: currentLocation.startsWith('/explore'),
                               onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop(); 
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
                                 const ExploreRoute().go(context);
                               },
                             ),
@@ -165,20 +197,28 @@ class GlobalSystemMenu extends StatelessWidget {
                               label: 'Library',
                               autofocus: currentLocation.startsWith('/library'),
                               onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop(); 
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
                                 const LibraryRoute().go(context);
                               },
                             ),
-                            
+
                             const Spacer(),
                             const Divider(height: 32),
-                            
+
                             _MenuButton(
                               icon: Icons.settings_rounded,
                               label: 'Settings',
-                              autofocus: currentLocation.startsWith('/settings'),
+                              autofocus: currentLocation.startsWith(
+                                '/settings',
+                              ),
                               onTap: () {
-                                Navigator.of(context, rootNavigator: true).pop(); 
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
                                 const SettingsRoute().push<void>(context);
                               },
                             ),
@@ -193,23 +233,32 @@ class GlobalSystemMenu extends StatelessWidget {
                                   builder: (dialogContext) {
                                     return AlertDialog(
                                       title: const Text('Exit SkyStream?'),
-                                      content: const Text('Are you sure you want to exit the app?'),
+                                      content: const Text(
+                                        'Are you sure you want to exit the app?',
+                                      ),
                                       actions: [
                                         TextButton(
-                                          autofocus: true, 
-                                          onPressed: () => Navigator.pop(dialogContext),
+                                          autofocus: true,
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext),
                                           child: const Text('Cancel'),
                                         ),
                                         TextButton(
                                           onPressed: () {
                                             Navigator.pop(dialogContext);
-                                            if (Platform.isAndroid || Platform.isIOS) {
+                                            if (Platform.isAndroid ||
+                                                Platform.isIOS) {
                                               SystemNavigator.pop();
                                             } else {
                                               exit(0);
                                             }
                                           },
-                                          child: const Text('Exit', style: TextStyle(color: Colors.redAccent)),
+                                          child: const Text(
+                                            'Exit',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     );
@@ -276,8 +325,12 @@ class _MenuButtonState extends State<_MenuButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = widget.isDestructive ? theme.colorScheme.error : theme.colorScheme.primary;
-    final onColor = widget.isDestructive ? theme.colorScheme.onError : theme.colorScheme.onPrimary;
+    final color = widget.isDestructive
+        ? theme.colorScheme.error
+        : theme.colorScheme.primary;
+    final onColor = widget.isDestructive
+        ? theme.colorScheme.onError
+        : theme.colorScheme.onPrimary;
 
     return FocusableWrapper(
       focusNode: _focusNode,
@@ -303,7 +356,9 @@ class _MenuButtonState extends State<_MenuButton> {
                 children: [
                   Icon(
                     widget.icon,
-                    color: isActive ? onColor : theme.colorScheme.onSurfaceVariant,
+                    color: isActive
+                        ? onColor
+                        : theme.colorScheme.onSurfaceVariant,
                     size: 26,
                   ),
                   const SizedBox(width: 20),

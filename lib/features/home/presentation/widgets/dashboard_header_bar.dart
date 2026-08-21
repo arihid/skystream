@@ -114,7 +114,9 @@ class DashboardHeaderBar extends ConsumerWidget {
                   color: theme.colorScheme.surfaceContainerHighest.withValues(
                     alpha: 0.5,
                   ),
-                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                  borderRadius: BorderRadius.circular(
+                    LayoutConstants.radiusPill,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -175,13 +177,20 @@ class DashboardHeaderBar extends ConsumerWidget {
                     height: 36,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(
+                        LayoutConstants.radiusPill,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.extension, color: theme.colorScheme.primary, size: 16),
+                        Icon(
+                          Icons.extension,
+                          color: theme.colorScheme.primary,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           activeProvider?.name ?? l10n.none,
@@ -211,7 +220,8 @@ class DashboardHeaderBar extends ConsumerWidget {
                         Text(
                           activeProvider?.name ?? l10n.none,
                           style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
                                 ? Colors.white
                                 : Colors.black,
                             fontSize: 12,

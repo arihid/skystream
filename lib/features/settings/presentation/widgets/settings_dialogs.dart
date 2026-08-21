@@ -166,7 +166,12 @@ void showTitlePositionDialog(
 }
 
 // Must be used inside a RadioGroup<ThemeMode> ancestor.
-Widget _buildThemeOption(String title, ThemeMode value, ThemeMode currentTheme, VoidCallback onSelect) {
+Widget _buildThemeOption(
+  String title,
+  ThemeMode value,
+  ThemeMode currentTheme,
+  VoidCallback onSelect,
+) {
   return ListTile(
     autofocus: currentTheme == value,
     title: Text(title),
@@ -198,12 +203,17 @@ void showThemeDialog(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildThemeOption(l10n.system, ThemeMode.system, currentTheme, () {
-                ref
-                    .read(appThemeModeProvider.notifier)
-                    .setThemeMode(ThemeMode.system);
-                Navigator.pop<void>(context);
-              }),
+              _buildThemeOption(
+                l10n.system,
+                ThemeMode.system,
+                currentTheme,
+                () {
+                  ref
+                      .read(appThemeModeProvider.notifier)
+                      .setThemeMode(ThemeMode.system);
+                  Navigator.pop<void>(context);
+                },
+              ),
               _buildThemeOption(l10n.dark, ThemeMode.dark, currentTheme, () {
                 ref
                     .read(appThemeModeProvider.notifier)
@@ -1398,8 +1408,8 @@ void showSubDlAuthDialog(
                             style: TextStyle(
                               color:
                                   fetchError != null || verifyKeyResult == false
-                                      ? Colors.red
-                                      : Colors.green,
+                                  ? Colors.red
+                                  : Colors.green,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1573,9 +1583,7 @@ void showSubSourceAuthDialog(
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          verifyResult!
-                              ? l10n.keyVerified
-                              : l10n.invalidApiKey,
+                          verifyResult! ? l10n.keyVerified : l10n.invalidApiKey,
                           style: TextStyle(
                             color: verifyResult! ? Colors.green : Colors.red,
                             fontSize: 13,
@@ -1782,9 +1790,9 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
             await ref.read(settingsRepositoryProvider).clearImageVideoCache();
             ref.invalidate(cacheSizeProvider);
             if (callerContext.mounted) {
-              ScaffoldMessenger.of(callerContext).showSnackBar(
-                SnackBar(content: Text(l10n.cacheCleared)),
-              );
+              ScaffoldMessenger.of(
+                callerContext,
+              ).showSnackBar(SnackBar(content: Text(l10n.cacheCleared)));
             }
           },
           style: TextButton.styleFrom(
@@ -1930,9 +1938,7 @@ void showDeveloperDialog(BuildContext context) {
                 _SocialButton(
                   svgUrl:
                       'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
-                  color: const Color(
-                    0xFF909692,
-                  ), 
+                  color: const Color(0xFF909692),
                   onTap: () => launchUrl(
                     Uri.parse('https://github.com/akashdh11'),
                     mode: LaunchMode.externalApplication,
@@ -1941,7 +1947,7 @@ void showDeveloperDialog(BuildContext context) {
                 _SocialButton(
                   svgUrl:
                       'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg',
-                  color: const Color(0xFF2d65bc), 
+                  color: const Color(0xFF2d65bc),
                   onTap: () => launchUrl(
                     Uri.parse('https://www.linkedin.com/in/akashdh11'),
                     mode: LaunchMode.externalApplication,
@@ -1950,7 +1956,7 @@ void showDeveloperDialog(BuildContext context) {
                 _SocialButton(
                   svgUrl:
                       'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg',
-                  color: const Color(0xFF5865F2), 
+                  color: const Color(0xFF5865F2),
                   onTap: () => launchUrl(
                     Uri.parse('https://discord.gg/73XGA8Mxn9'),
                     mode: LaunchMode.externalApplication,
@@ -1959,7 +1965,7 @@ void showDeveloperDialog(BuildContext context) {
                 _SocialButton(
                   svgUrl:
                       'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg',
-                  color: const Color(0xFF5baae3), 
+                  color: const Color(0xFF5baae3),
                   onTap: () => launchUrl(
                     Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'),
                     mode: LaunchMode.externalApplication,

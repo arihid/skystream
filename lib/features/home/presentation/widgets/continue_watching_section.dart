@@ -92,13 +92,15 @@ class _ContinueWatchingSectionState
                   ],
                 ),
               ),
-              
+
               // Conditionally render the Clear All button for Touch/Mouse users
               if (!isBigPicture)
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(LayoutConstants.radiusMd),
+                    borderRadius: BorderRadius.circular(
+                      LayoutConstants.radiusMd,
+                    ),
                     hoverColor: Colors.red.withValues(alpha: 0.15),
                     onTap: () {
                       final l10n = AppLocalizations.of(context)!;

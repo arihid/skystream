@@ -290,9 +290,9 @@ class DpadColorCircle extends StatelessWidget {
       child: DpadFocusable(
         onSelect: onTap,
         builder: (context, focusState, child) {
-          final isFocused = Focus.of(context).hasFocus; 
+          final isFocused = Focus.of(context).hasFocus;
           final size = isFocused ? 38.0 : 28.0;
-          
+
           return AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -353,8 +353,8 @@ class DpadButton extends StatelessWidget {
     return DpadFocusable(
       onSelect: onPressed,
       builder: (context, focusState, child) {
-        final isFocused = Focus.of(context).hasFocus; 
-        
+        final isFocused = Focus.of(context).hasFocus;
+
         final baseColor = isPrimary
             ? HotstarPlayerStyle.accent
             : Colors.transparent;
@@ -364,8 +364,8 @@ class DpadButton extends StatelessWidget {
         final textColor = isPrimary
             ? (isFocused ? Colors.black : Colors.white)
             : (isFocused
-                ? HotstarPlayerStyle.accent
-                : HotstarPlayerStyle.secondaryText);
+                  ? HotstarPlayerStyle.accent
+                  : HotstarPlayerStyle.secondaryText);
 
         return Material(
           color: Colors.transparent,
@@ -606,12 +606,15 @@ class _SubtitleAppearanceDialogState
             fontWeight: FontWeight.bold,
           ),
         ),
-        leading: isTv 
-          ? null 
-          : IconButton(
-              icon: const Icon(Icons.close, color: HotstarPlayerStyle.primaryText),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+        leading: isTv
+            ? null
+            : IconButton(
+                icon: const Icon(
+                  Icons.close,
+                  color: HotstarPlayerStyle.primaryText,
+                ),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -989,7 +992,9 @@ class _SubtitleAppearanceDialogState
                 ListTile(
                   title: Text(
                     l10n.fileDefault,
-                    style: const TextStyle(color: HotstarPlayerStyle.primaryText),
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subFixedTextSize == null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1089,7 +1094,9 @@ class _SubtitleAppearanceDialogState
                 ListTile(
                   title: Text(
                     l10n.customFontFile,
-                    style: const TextStyle(color: HotstarPlayerStyle.primaryText),
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subTypefaceFilePath != null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1228,7 +1235,13 @@ class _SubtitleAppearanceDialogState
   }
 
   void _showEdgeTypePicker(AppLocalizations l10n) {
-    final edgeTypes = [l10n.none, l10n.edgeOutline, l10n.edgeDepressed, l10n.edgeDropShadow, l10n.edgeRaised];
+    final edgeTypes = [
+      l10n.none,
+      l10n.edgeOutline,
+      l10n.edgeDepressed,
+      l10n.edgeDropShadow,
+      l10n.edgeRaised,
+    ];
 
     showDialog<void>(
       context: context,
@@ -1453,7 +1466,9 @@ class _SubtitleAppearanceDialogState
                 ListTile(
                   title: Text(
                     l10n.noneSharp,
-                    style: const TextStyle(color: HotstarPlayerStyle.primaryText),
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subBackgroundRadius == null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1584,7 +1599,9 @@ class _SubtitleAppearanceDialogState
                 ListTile(
                   title: Text(
                     l10n.autoExoAssDefault,
-                    style: const TextStyle(color: HotstarPlayerStyle.primaryText),
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subAlignment == null,
                   selectedColor: HotstarPlayerStyle.accent,

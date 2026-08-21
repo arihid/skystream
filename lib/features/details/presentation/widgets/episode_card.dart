@@ -46,12 +46,12 @@ class EpisodeCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     final historyRepo = ref.watch(historyRepositoryProvider);
     final historyItem = ref.watch(
       watchHistoryProvider.select(
@@ -118,7 +118,7 @@ class EpisodeCard extends HookConsumerWidget {
     final downloadProgress = downloadProgressData?.progress ?? 0.0;
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episode.url];
-    
+
     // Live Bookmark Status
     final isBookmarked = ref.watch(
       libraryProvider.select(
@@ -202,28 +202,46 @@ class EpisodeCard extends HookConsumerWidget {
 
     final selectKeyDown = useRef(false);
     final longPressTriggered = useRef(false);
-    
+
     // Dynamic Contextual Gamepad Hints
     final playHints = [
       GamepadHint(
-        buttonLabel: 'A', 
-        actionLabel: (isSelectionMode ? (isSelected ? l10n.hintDeselect : l10n.hintSelect) : l10n.hintPlay), 
+        buttonLabel: 'A',
+        actionLabel: (isSelectionMode
+            ? (isSelected ? l10n.hintDeselect : l10n.hintSelect)
+            : l10n.hintPlay),
         buttonColor: Colors.greenAccent.shade400,
       ),
-      GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
       GamepadHint(
-        buttonLabel: 'X', 
-        actionLabel: (isBookmarked ? l10n.hintRemoveBookmark : l10n.hintAddBookmark), 
+        buttonLabel: 'B',
+        actionLabel: l10n.hintBack,
+        buttonColor: Colors.redAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'X',
+        actionLabel: (isBookmarked
+            ? l10n.hintRemoveBookmark
+            : l10n.hintAddBookmark),
         buttonColor: Colors.blueAccent.shade400,
       ),
       if (parentItem.contentType != MultimediaContentType.livestream)
         GamepadHint(
-          buttonLabel: 'Y', 
-          actionLabel: (downloadedFile != null ? l10n.hintManageDownload : (isDownloading ? l10n.hintDownloading : l10n.hintDownload) ), 
+          buttonLabel: 'Y',
+          actionLabel: (downloadedFile != null
+              ? l10n.hintManageDownload
+              : (isDownloading ? l10n.hintDownloading : l10n.hintDownload)),
           buttonColor: Colors.yellowAccent.shade700,
         ),
-      GamepadHint(buttonLabel: 'LS', actionLabel: l10n.hintScroll, buttonColor: Colors.white),
-      GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+      GamepadHint(
+        buttonLabel: 'LS',
+        actionLabel: l10n.hintScroll,
+        buttonColor: Colors.white,
+      ),
+      GamepadHint(
+        buttonLabel: '≡',
+        actionLabel: l10n.hintMenu,
+        buttonColor: Colors.white,
+      ),
     ];
 
     return Focus(
@@ -259,8 +277,14 @@ class EpisodeCard extends HookConsumerWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (ref.context.mounted && isBigPicture) {
               final currentHints = ref.read(focusedGamepadHintsProvider);
-              if (currentHints?.any((h) => h.actionLabel == l10n.hintScroll || h.actionLabel == l10n.hintPlay || h.actionLabel == l10n.hintSelect) == true) {
-                 ref.read(focusedGamepadHintsProvider.notifier).state = null;
+              if (currentHints?.any(
+                    (h) =>
+                        h.actionLabel == l10n.hintScroll ||
+                        h.actionLabel == l10n.hintPlay ||
+                        h.actionLabel == l10n.hintSelect,
+                  ) ==
+                  true) {
+                ref.read(focusedGamepadHintsProvider.notifier).state = null;
               }
             }
           });
@@ -273,13 +297,13 @@ class EpisodeCard extends HookConsumerWidget {
             onInvoke: (_) {
               handleEpisodeTap();
               return null;
-            }
+            },
           ),
           AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
             onInvoke: (_) {
               handleEpisodeTap();
               return null;
-            }
+            },
           ),
           AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
             onInvoke: (_) {
@@ -287,20 +311,24 @@ class EpisodeCard extends HookConsumerWidget {
                 triggerDownload();
               }
               return null;
-            }
+            },
           ),
           AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
             onInvoke: (_) {
               // Fixed: Properly toggle the bookmark state for the Parent Series!
               if (isBookmarked) {
                 ref.read(libraryProvider.notifier).removeItem(parentItem.url);
-                ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+                ref
+                    .read(notificationServiceProvider)
+                    .showSuccess(l10n.removedFromLibrary);
               } else {
                 ref.read(libraryProvider.notifier).addItem(parentItem);
-                ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+                ref
+                    .read(notificationServiceProvider)
+                    .showSuccess(l10n.addedToLibrary);
               }
               return null;
-            }
+            },
           ),
         },
         child: Focus(
@@ -390,7 +418,8 @@ class EpisodeCard extends HookConsumerWidget {
                       Expanded(
                         child: Text(
                           "${episode.episode}. ${episode.name.toUpperCase()}",
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isWatched
                                     ? theme.colorScheme.onSurface.withValues(
@@ -437,12 +466,11 @@ class EpisodeCard extends HookConsumerWidget {
                       child: Text(
                         episode.description!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withValues(alpha: 0.8),
-                              height: 1.4,
-                            ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          height: 1.4,
+                        ),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -549,7 +577,7 @@ class EpisodeCard extends HookConsumerWidget {
                         strokeWidth: 2,
                       ),
                       Text(
-                        "${(downloadProgress * 100).toInt()}%", 
+                        "${(downloadProgress * 100).toInt()}%",
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -645,10 +673,9 @@ class EpisodeCard extends HookConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.9),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -673,8 +700,8 @@ class EpisodeCard extends HookConsumerWidget {
               child: Icon(
                 isSelectionMode
                     ? isSelected
-                        ? Icons.check_rounded
-                        : Icons.add_rounded
+                          ? Icons.check_rounded
+                          : Icons.add_rounded
                     : Icons.play_arrow_rounded,
                 color: Colors.white,
                 size: 24,

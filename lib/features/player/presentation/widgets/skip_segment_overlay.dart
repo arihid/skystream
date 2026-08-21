@@ -19,10 +19,10 @@ class SkipSegmentOverlay extends ConsumerStatefulWidget {
   final Player player;
   final vv.VideoController? videoViewController;
   final List<SkipSegment> skipSegments;
-  
+
   // Renamed to reflect our Master Switch architecture
-  final bool isBigPicture; 
-  
+  final bool isBigPicture;
+
   final bool controlsVisible;
   final VoidCallback? onFocusReturned;
   final FocusNode? focusNode;
@@ -299,7 +299,11 @@ class _SkipPill extends StatelessWidget {
                             children: [
                               // Show Gamepad 'Y' Badge on Big Picture, otherwise standard Icon
                               if (isBigPicture)
-                                _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
+                                _buildGamepadBadge(
+                                  'Y',
+                                  Colors.amberAccent.shade400,
+                                  isCompact,
+                                )
                               else
                                 const Icon(
                                   Icons.skip_next_rounded,

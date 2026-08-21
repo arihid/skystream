@@ -88,7 +88,7 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
     await repository.setTitlePosition(position);
     state = state.copyWith(titlePosition: position);
   }
-  
+
   Future<void> setFullscreenEnabled(bool enabled) async {
     state = state.copyWith(isFullscreenEnabled: enabled);
   }
@@ -96,5 +96,4 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
   Future<void> setTargetDisplayId(String? displayId) async {
     state = state.copyWith(targetDisplayId: displayId);
   }
-  
 }

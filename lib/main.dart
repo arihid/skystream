@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
-import 'package:flutter/foundation.dart'; 
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
@@ -59,7 +59,7 @@ void main(List<String> args) async {
       size: const Size(1280, 720),
       minimumSize: const Size(360, 640),
       center: true,
-      backgroundColor: Colors.black, 
+      backgroundColor: Colors.black,
       skipTaskbar: false,
       titleBarStyle: Platform.isMacOS
           ? TitleBarStyle.normal
@@ -151,9 +151,7 @@ class _AppRootState extends State<AppRoot> {
         textDirection: TextDirection.ltr,
         child: DynamicColorBuilder(
           builder: (lightDynamic, darkDynamic) {
-            final color =
-                lightDynamic?.primary ??
-                const Color(0xFF6200EE); 
+            final color = lightDynamic?.primary ?? const Color(0xFF6200EE);
             return ColoredBox(
               color: Colors.black,
               child: Center(child: AppLoadingIndicator(color: color)),
@@ -188,10 +186,10 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(downloadServiceProvider).init();
-      
+
       // Initialize Big Picture mode from args before checking updates
       ref.read(bigPictureModeProvider.notifier).initialize(widget.args);
-      
+
       _checkExtensionsUpdates();
       _checkAppUpdates();
     });
@@ -294,7 +292,9 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
       final isFull = await windowManager.isFullScreen();
       await windowManager.setFullScreen(!isFull);
       // Upstream syncs this to general settings, kept intact
-      await ref.read(generalSettingsProvider.notifier).setFullscreenEnabled(!isFull);
+      await ref
+          .read(generalSettingsProvider.notifier)
+          .setFullscreenEnabled(!isFull);
     } catch (e) {
       if (kDebugMode) debugPrint('_toggleFullscreen: $e');
     }
@@ -330,7 +330,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
         final navContext = appRouter.routerDelegate.navigatorKey.currentContext;
         if (navContext != null && navContext.mounted) {
           UpdateDialog.show(navContext, next.release);
-        } 
+        }
       }
     });
 
@@ -363,7 +363,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) {
             if (child == null) return const SizedBox.shrink();
-            
+
             final mq = MediaQuery.of(context);
             Widget result = child;
 
@@ -407,8 +407,8 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
                 child: Actions(
                   actions: AppActionBindings.getBindings(context),
                   child: FocusTraversalGroup(
-                    policy: WidgetOrderTraversalPolicy(), 
-                    child: result, 
+                    policy: WidgetOrderTraversalPolicy(),
+                    child: result,
                   ),
                 ),
               );
@@ -652,7 +652,8 @@ class CustomTitleBar extends ConsumerStatefulWidget {
   ConsumerState<CustomTitleBar> createState() => _CustomTitleBarState();
 }
 
-class _CustomTitleBarState extends ConsumerState<CustomTitleBar> with WindowListener {
+class _CustomTitleBarState extends ConsumerState<CustomTitleBar>
+    with WindowListener {
   bool _hovered = false;
   bool _isMaximized = false;
   bool _isFullScreen = false;
@@ -714,10 +715,10 @@ class _CustomTitleBarState extends ConsumerState<CustomTitleBar> with WindowList
 
     final titleBarColor = isDark
         ? const Color(0xE0050505)
-        : const Color(0xD8FAF8F5); 
+        : const Color(0xD8FAF8F5);
     final iconColor = isDark
         ? Colors.white.withValues(alpha: 0.85)
-        : const Color(0xFF5C5C5C); 
+        : const Color(0xFF5C5C5C);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -782,11 +783,15 @@ class _CustomTitleBarState extends ConsumerState<CustomTitleBar> with WindowList
                       const SizedBox(width: 6),
                       _TitleBarButton(
                         onPressed: () {
-                          final current = ref.read(bigPictureModeProvider).isEnabled;
-                          ref.read(bigPictureModeProvider.notifier).toggleBigPicture(!current);
+                          final current = ref
+                              .read(bigPictureModeProvider)
+                              .isEnabled;
+                          ref
+                              .read(bigPictureModeProvider.notifier)
+                              .toggleBigPicture(!current);
                         },
                         child: Icon(
-                          Icons.tv_rounded, 
+                          Icons.tv_rounded,
                           color: iconColor,
                           size: 16,
                         ),
@@ -932,7 +937,7 @@ class _PinButtonState extends State<_PinButton> {
     final isDark = theme.brightness == Brightness.dark;
     final hoverColor = isDark
         ? Colors.white.withValues(alpha: 0.15)
-        : const Color(0xFFE4D9C8); 
+        : const Color(0xFFE4D9C8);
 
     return Material(
       color: Colors.transparent,
@@ -975,7 +980,7 @@ class _TitleBarButtonState extends State<_TitleBarButton> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hoverColor = isDark
         ? Colors.white.withValues(alpha: 0.15)
-        : const Color(0xFFE4D9C8); 
+        : const Color(0xFFE4D9C8);
 
     return Material(
       color: Colors.transparent,

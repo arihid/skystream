@@ -23,7 +23,7 @@ class AnilistExploreScreen extends ConsumerStatefulWidget {
     super.key,
     required this.scrollController,
     required this.firstActionFocusNode,
-    this.onControllerReady, 
+    this.onControllerReady,
     required this.autofocus,
   });
 
@@ -59,7 +59,9 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
-                        autofocus: widget.autofocus && isBigPicture, // TV Conditional Autofocus
+                        autofocus:
+                            widget.autofocus &&
+                            isBigPicture, // TV Conditional Autofocus
                         movies: value,
                         scrollController: widget.scrollController,
                         onNavigateUp: () =>

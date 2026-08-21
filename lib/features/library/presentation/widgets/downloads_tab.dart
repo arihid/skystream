@@ -124,7 +124,7 @@ class _GroupedDownloadTile extends ConsumerStatefulWidget {
   final List<DownloadItem> items;
   final Map<String, DownloadProgressData> activeProgress;
   final FocusNode? focusNode;
-  
+
   const _GroupedDownloadTile({
     required this.items,
     required this.activeProgress,
@@ -132,7 +132,8 @@ class _GroupedDownloadTile extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_GroupedDownloadTile> createState() => _GroupedDownloadTileState();
+  ConsumerState<_GroupedDownloadTile> createState() =>
+      _GroupedDownloadTileState();
 }
 
 class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
@@ -185,15 +186,35 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
         children: [
           FocusableWrapper(
             focusNode: nodeToUse,
-            useScaleEffect: false, 
+            useScaleEffect: false,
             onTap: _toggleExpand,
             onSecondaryTap: () => _confirmDeleteAll(context, ref, nodeToUse),
             gamepadHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: _isExpanded ? l10n.hintCollapse : l10n.hintExpand, buttonColor: Colors.greenAccent.shade400),
-              GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintDeleteAll, buttonColor: Colors.redAccent.shade400),
-              GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
-              GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
-              GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: _isExpanded ? l10n.hintCollapse : l10n.hintExpand,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+              GamepadHint(
+                buttonLabel: 'X',
+                actionLabel: l10n.hintDeleteAll,
+                buttonColor: Colors.redAccent.shade400,
+              ),
+              GamepadHint(
+                buttonLabel: 'LB',
+                actionLabel: l10n.hintPrevTab,
+                buttonColor: Colors.white,
+              ),
+              GamepadHint(
+                buttonLabel: 'RB',
+                actionLabel: l10n.hintNextTab,
+                buttonColor: Colors.white,
+              ),
+              GamepadHint(
+                buttonLabel: '≡',
+                actionLabel: l10n.hintMenu,
+                buttonColor: Colors.white,
+              ),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -203,12 +224,16 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
               child: Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(LayoutConstants.radiusMd),
+                    borderRadius: BorderRadius.circular(
+                      LayoutConstants.radiusMd,
+                    ),
                     child: CachedNetworkImage(
-                      imageUrl: AppImageFallbacks.poster(
+                      imageUrl:
+                          AppImageFallbacks.poster(
                             firstItem.item.posterUrl,
                             label: firstItem.item.title,
-                          ) ?? '',
+                          ) ??
+                          '',
                       width: 60,
                       height: 90,
                       fit: BoxFit.cover,
@@ -244,7 +269,10 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              l10n.episodesCount(widget.items.length, completedCount),
+                              l10n.episodesCount(
+                                widget.items.length,
+                                completedCount,
+                              ),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -255,7 +283,7 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                     ),
                   ),
                   const SizedBox(width: LayoutConstants.spacingSm),
-                  
+
                   // Hide inline touch actions in Big Picture Mode
                   if (!isBigPicture)
                     ExcludeFocus(
@@ -264,12 +292,19 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.delete_outline_rounded),
-                            onPressed: () => _confirmDeleteAll(context, ref, nodeToUse),
-                            color: theme.colorScheme.error.withValues(alpha: 0.8),
+                            onPressed: () =>
+                                _confirmDeleteAll(context, ref, nodeToUse),
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.8,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
                           IconButton(
-                            icon: Icon(_isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded),
+                            icon: Icon(
+                              _isExpanded
+                                  ? Icons.expand_less_rounded
+                                  : Icons.expand_more_rounded,
+                            ),
                             onPressed: _toggleExpand,
                             color: theme.colorScheme.onSurfaceVariant,
                             visualDensity: VisualDensity.compact,
@@ -294,8 +329,10 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
 
                       final trackingUrl = download.task.metaData;
                       final progressData = widget.activeProgress[trackingUrl];
-                      final double displayProgress = progressData?.progress ?? download.progress;
-                      final TaskStatus displayStatus = progressData?.status ?? download.status;
+                      final double displayProgress =
+                          progressData?.progress ?? download.progress;
+                      final TaskStatus displayStatus =
+                          progressData?.status ?? download.status;
 
                       return Column(
                         children: [
@@ -326,14 +363,21 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
     );
   }
 
-  void _confirmDeleteAll(BuildContext context, WidgetRef ref, FocusNode nodeToUse) {
+  void _confirmDeleteAll(
+    BuildContext context,
+    WidgetRef ref,
+    FocusNode nodeToUse,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteAllEpisodes),
         content: Text(
-          l10n.confirmDeleteAllEpisodes(widget.items.length, widget.items.first.item.title),
+          l10n.confirmDeleteAllEpisodes(
+            widget.items.length,
+            widget.items.first.item.title,
+          ),
         ),
         actions: [
           TextButton(
@@ -343,7 +387,9 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(downloadsProvider.notifier).removeDownloads(widget.items);
+              ref
+                  .read(downloadsProvider.notifier)
+                  .removeDownloads(widget.items);
             },
             child: Text(
               l10n.deleteAll,
@@ -381,7 +427,7 @@ class _DownloadItemTile extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    
+
     final localNode = useFocusNode();
     final nodeToUse = focusNode ?? localNode;
 
@@ -390,7 +436,8 @@ class _DownloadItemTile extends HookConsumerWidget {
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     final isDone = status == TaskStatus.complete;
-    final isWorking = status == TaskStatus.running || status == TaskStatus.enqueued;
+    final isWorking =
+        status == TaskStatus.running || status == TaskStatus.enqueued;
     final isPaused = status == TaskStatus.paused;
 
     VoidCallback? primaryAction;
@@ -400,10 +447,12 @@ class _DownloadItemTile extends HookConsumerWidget {
       primaryAction = () => _playLocalFile(context, ref, l10n, nodeToUse);
       primaryActionLabel = l10n.hintPlay;
     } else if (isPaused) {
-      primaryAction = () => ref.read(downloadsProvider.notifier).resumeDownload(item.task.taskId);
+      primaryAction = () =>
+          ref.read(downloadsProvider.notifier).resumeDownload(item.task.taskId);
       primaryActionLabel = l10n.hintResume;
     } else if (isWorking) {
-      primaryAction = () => ref.read(downloadsProvider.notifier).pauseDownload(item.task.taskId);
+      primaryAction = () =>
+          ref.read(downloadsProvider.notifier).pauseDownload(item.task.taskId);
       primaryActionLabel = l10n.hintPause;
     }
 
@@ -413,10 +462,12 @@ class _DownloadItemTile extends HookConsumerWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(LayoutConstants.radiusMd),
           child: CachedNetworkImage(
-            imageUrl: AppImageFallbacks.poster(
+            imageUrl:
+                AppImageFallbacks.poster(
                   item.item.posterUrl,
                   label: item.item.title,
-                ) ?? '',
+                ) ??
+                '',
             width: 80,
             height: 120,
             fit: BoxFit.cover,
@@ -463,15 +514,21 @@ class _DownloadItemTile extends HookConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    isDone ? Icons.check_circle_rounded : Icons.download_rounded,
+                    isDone
+                        ? Icons.check_circle_rounded
+                        : Icons.download_rounded,
                     size: 14,
-                    color: isDone ? Colors.green : theme.colorScheme.onSurfaceVariant,
+                    color: isDone
+                        ? Colors.green
+                        : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     isDone ? l10n.completed : _getStatusText(status, l10n),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDone ? Colors.green : theme.colorScheme.onSurfaceVariant,
+                      color: isDone
+                          ? Colors.green
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -522,7 +579,7 @@ class _DownloadItemTile extends HookConsumerWidget {
                     ),
                   ),
               ],
-              
+
               // Hide inline touch actions in Big Picture Mode
               if (!isBigPicture)
                 Row(
@@ -555,8 +612,11 @@ class _DownloadItemTile extends HookConsumerWidget {
                             ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline_rounded),
-                            onPressed: () => _confirmDelete(context, ref, l10n, nodeToUse),
-                            color: theme.colorScheme.error.withValues(alpha: 0.8),
+                            onPressed: () =>
+                                _confirmDelete(context, ref, l10n, nodeToUse),
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.8,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
                         ],
@@ -572,26 +632,52 @@ class _DownloadItemTile extends HookConsumerWidget {
 
     return FocusableWrapper(
       focusNode: nodeToUse,
-      useScaleEffect: false, 
+      useScaleEffect: false,
       onTap: primaryAction ?? () {},
       onSecondaryTap: () => _confirmDelete(context, ref, l10n, nodeToUse),
       gamepadHints: [
         if (primaryActionLabel.isNotEmpty)
-          GamepadHint(buttonLabel: 'A', actionLabel: primaryActionLabel, buttonColor: Colors.greenAccent.shade400),
-        GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintDelete, buttonColor: Colors.redAccent.shade400),
-        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
+          GamepadHint(
+            buttonLabel: 'A',
+            actionLabel: primaryActionLabel,
+            buttonColor: Colors.greenAccent.shade400,
+          ),
+        GamepadHint(
+          buttonLabel: 'X',
+          actionLabel: l10n.hintDelete,
+          buttonColor: Colors.redAccent.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: 'LB',
+          actionLabel: l10n.hintPrevTab,
+          buttonColor: Colors.white,
+        ),
+        GamepadHint(
+          buttonLabel: 'RB',
+          actionLabel: l10n.hintNextTab,
+          buttonColor: Colors.white,
+        ),
+        GamepadHint(
+          buttonLabel: '≡',
+          actionLabel: l10n.hintMenu,
+          buttonColor: Colors.white,
+        ),
       ],
       child: Container(
-        padding: EdgeInsets.all(isInsideGroup ? LayoutConstants.spacingSm : LayoutConstants.spacingMd),
-        decoration: isInsideGroup 
-           ? null 
-           : BoxDecoration(
-               color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-               borderRadius: BorderRadius.circular(LayoutConstants.radiusXl),
-               border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
-             ),
+        padding: EdgeInsets.all(
+          isInsideGroup ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
+        ),
+        decoration: isInsideGroup
+            ? null
+            : BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.2,
+                ),
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusXl),
+                border: Border.all(
+                  color: theme.dividerColor.withValues(alpha: 0.5),
+                ),
+              ),
         child: content,
       ),
     );
@@ -650,13 +736,8 @@ class _DownloadItemTile extends HookConsumerWidget {
       // 1. Await the player returning
       await ref
           .read(playbackLauncherProvider)
-          .play(
-              context,
-              file.path,
-              baseItem: item.item,
-              episode: item.episode,
-            );
-          
+          .play(context, file.path, baseItem: item.item, episode: item.episode);
+
       // 2. Reclaim focus instantly!
       if (context.mounted) {
         nodeToUse.requestFocus();
@@ -690,9 +771,9 @@ class _DownloadItemTile extends HookConsumerWidget {
         ],
       ),
     ).then((_) {
-       if (context.mounted) {
-         nodeToUse.requestFocus();
-       }
+      if (context.mounted) {
+        nodeToUse.requestFocus();
+      }
     });
   }
 }

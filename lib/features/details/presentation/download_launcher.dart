@@ -93,7 +93,7 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Master Switch Evaluation
     final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
@@ -168,7 +168,7 @@ class DownloadLauncher {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final downloadService = _ref.read(downloadServiceProvider);
-    
+
     // Master Switch Evaluation
     final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
@@ -271,7 +271,7 @@ class DownloadLauncher {
               ),
               ElevatedButton(
                 // Conditionally autofocus based on Master Switch
-                autofocus: isBigPicture, 
+                autofocus: isBigPicture,
                 onPressed: () async {
                   Navigator.pop(ctx);
 
@@ -346,7 +346,7 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Master Switch Evaluation
     final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;

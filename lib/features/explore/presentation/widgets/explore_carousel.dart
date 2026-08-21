@@ -116,13 +116,14 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
     _fillController.forward();
 
-    // Defer focus requests so we don't yank focus away from the user 
+    // Defer focus requests so we don't yank focus away from the user
     // if they already started navigating before the carousel loaded.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.autofocus) return;
       final currentFocus = FocusManager.instance.primaryFocus;
-      
-      if (currentFocus == null || currentFocus == FocusManager.instance.rootScope) {
+
+      if (currentFocus == null ||
+          currentFocus == FocusManager.instance.rootScope) {
         _carouselFocusNode.requestFocus();
       }
     });
@@ -216,7 +217,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
         autofocus: false, // Managed by initState
-        descendantsAreFocusable: false, 
+        descendantsAreFocusable: false,
         mouseCursor: SystemMouseCursors.click,
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
@@ -241,12 +242,16 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                 if (widget.onNavigateUp != null) {
                   widget.onNavigateUp!.call();
                 } else {
-                  FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                  FocusManager.instance.primaryFocus?.focusInDirection(
+                    TraversalDirection.up,
+                  );
                 }
               } else if (intent.direction == TraversalDirection.down) {
-                FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
+                FocusManager.instance.primaryFocus?.focusInDirection(
+                  TraversalDirection.down,
+                );
               }
-              return null; 
+              return null;
             },
           ),
           DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
@@ -259,24 +264,30 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                 if (widget.onNavigateUp != null) {
                   widget.onNavigateUp!.call();
                 } else {
-                  FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                  FocusManager.instance.primaryFocus?.focusInDirection(
+                    TraversalDirection.up,
+                  );
                 }
               } else if (intent.direction == TraversalDirection.down) {
-                FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down);
+                FocusManager.instance.primaryFocus?.focusInDirection(
+                  TraversalDirection.down,
+                );
               }
-              return null; 
+              return null;
             },
           ),
         },
         onShowFocusHighlight: (show) {
           setState(() => _isFocusHighlighted = show);
           // Force the screen to scroll to the top if the carousel gets focus
-          if (show && widget.scrollController != null && widget.scrollController!.hasClients) {
-             widget.scrollController!.animateTo(
-               0.0,
-               duration: const Duration(milliseconds: 300),
-               curve: Curves.easeOut,
-             );
+          if (show &&
+              widget.scrollController != null &&
+              widget.scrollController!.hasClients) {
+            widget.scrollController!.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
           }
         },
         child: GestureDetector(

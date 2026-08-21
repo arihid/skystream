@@ -294,7 +294,10 @@ class PlaybackLauncher {
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 2.0,
+                      ),
                       child: ListTile(
                         // Conditionally autofocus based on Master Switch
                         autofocus: isBigPicture && index == 0,

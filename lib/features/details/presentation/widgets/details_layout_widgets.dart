@@ -103,11 +103,11 @@ class DetailsActionButtons extends HookConsumerWidget {
     final isSingleSeason = seasonMap.keys.length <= 1;
 
     final playFocusNode = useFocusNode();
-    
+
     // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     final isMobile = context.isMobile;
 
     // Auto-focus the Play button when details load, but ONLY for Big Picture users
@@ -224,9 +224,10 @@ class DetailsActionButtons extends HookConsumerWidget {
       isPrimary: false,
       isOutlined: true,
       onPressed: () {
-        final renderBox = qualityBtnKey.currentContext?.findRenderObject() as RenderBox?;
+        final renderBox =
+            qualityBtnKey.currentContext?.findRenderObject() as RenderBox?;
         if (renderBox == null) return;
-        
+
         final offset = renderBox.localToGlobal(Offset.zero);
         showMenu<QualityPreference>(
           context: context,
@@ -240,14 +241,20 @@ class DetailsActionButtons extends HookConsumerWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           surfaceTintColor: Colors.transparent,
           elevation: 8,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           items: QualityPreference.values.map((q) {
             return PopupMenuItem<QualityPreference>(
               value: q,
               child: Row(
                 children: [
                   if (q == currentPreference)
-                    Icon(Icons.check_rounded, color: Theme.of(context).colorScheme.primary, size: 20)
+                    Icon(
+                      Icons.check_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    )
                   else
                     const SizedBox(width: 20),
                   const SizedBox(width: 12),
@@ -293,7 +300,9 @@ class DetailsActionButtons extends HookConsumerWidget {
     );
 
     Widget progressWidget = const SizedBox.shrink();
-    if (pos > 0 && dur > 0 && item.contentType != MultimediaContentType.livestream) {
+    if (pos > 0 &&
+        dur > 0 &&
+        item.contentType != MultimediaContentType.livestream) {
       final progress = (pos / dur).clamp(0.0, 1.0);
       progressWidget = Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 8.0, right: 8.0),
@@ -301,7 +310,7 @@ class DetailsActionButtons extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(100), 
+              borderRadius: BorderRadius.circular(100),
               child: LinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
@@ -817,13 +826,13 @@ class DetailsProviderChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isDebug = false;
     String displayName = providerName;
-    
+
     try {
       final manager = ref.read(extensionManagerProvider.notifier);
       final p = manager.getAllProviders().firstWhereOrNull(
         (p) => p.packageName == providerName || p.name == providerName,
       );
-      
+
       if (p != null) {
         displayName = p.name;
         isDebug = p.isDebug;

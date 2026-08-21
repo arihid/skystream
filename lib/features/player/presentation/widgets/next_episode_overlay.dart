@@ -65,7 +65,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     )..forward();
-    
+
     _entranceController.addStatusListener((status) {
       if (status == AnimationStatus.dismissed && _completed) {
         widget.onDismiss();
@@ -730,7 +730,11 @@ class _PlayNowButtonState extends State<_PlayNowButton>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (widget.isBigPicture)
-                                _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
+                                _buildGamepadBadge(
+                                  'Y',
+                                  Colors.amberAccent.shade400,
+                                  isCompact,
+                                )
                               else
                                 Icon(
                                   Icons.play_arrow_rounded,
@@ -916,7 +920,11 @@ class _CancelButtonState extends State<_CancelButton> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (widget.isBigPicture)
-                                _buildGamepadBadge('X', Colors.blueAccent.shade400, isCompact)
+                                _buildGamepadBadge(
+                                  'X',
+                                  Colors.blueAccent.shade400,
+                                  isCompact,
+                                )
                               else
                                 AnimatedRotation(
                                   turns: _isActive ? 0.25 : 0.0,

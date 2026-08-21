@@ -37,7 +37,8 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
   bool _isHovered = false;
 
   // Safely grab the external node, or create an internal one if null. No late variables!
-  FocusNode get _effectiveNode => widget.focusNode ?? (_internalNode ??= FocusNode());
+  FocusNode get _effectiveNode =>
+      widget.focusNode ?? (_internalNode ??= FocusNode());
 
   @override
   void dispose() {
@@ -83,7 +84,8 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
               if (hasFocus && widget.gamepadHints != null) {
                 Future.microtask(() {
                   if (mounted) {
-                    ref.read(focusedGamepadHintsProvider.notifier).state = widget.gamepadHints;
+                    ref.read(focusedGamepadHintsProvider.notifier).state =
+                        widget.gamepadHints;
                   }
                 });
               } else if (!hasFocus && widget.gamepadHints != null) {
@@ -91,7 +93,8 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                   if (mounted) {
                     final currentHints = ref.read(focusedGamepadHintsProvider);
                     if (currentHints == widget.gamepadHints) {
-                      ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                      ref.read(focusedGamepadHintsProvider.notifier).state =
+                          null;
                     }
                   }
                 });
@@ -109,19 +112,26 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutCubic,
                     decoration: BoxDecoration(
-                      borderRadius: widget.borderRadius ?? BorderRadius.circular(12),
+                      borderRadius:
+                          widget.borderRadius ?? BorderRadius.circular(12),
                       border: Border.all(
-                        color: isFocused ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                        color: isFocused
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
                         width: 3,
                         strokeAlign: BorderSide.strokeAlignOutside,
                       ),
-                      boxShadow: isFocused ? [
-                        BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        )
-                      ] : [],
+                      boxShadow: isFocused
+                          ? [
+                              BoxShadow(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : [],
                     ),
                     child: widget.child,
                   ),

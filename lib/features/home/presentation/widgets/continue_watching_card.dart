@@ -137,7 +137,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(watchHistoryProvider.notifier).clearAllHistory();
-              ref.read(notificationServiceProvider).showSuccess(l10n.watchHistoryCleared);
+              ref
+                  .read(notificationServiceProvider)
+                  .showSuccess(l10n.watchHistoryCleared);
             },
             child: Text(l10n.clearAll),
           ),
@@ -149,11 +151,11 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
-    
+
     final item = widget.historyItem.item;
     final double progress = (widget.historyItem.duration > 0)
         ? (widget.historyItem.position / widget.historyItem.duration).clamp(
@@ -224,31 +226,55 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     };
 
     final playHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintResume, buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintRemove, buttonColor: Colors.blueAccent.shade400),
-      GamepadHint(buttonLabel: 'Y', actionLabel: l10n.hintClearAll, buttonColor: Colors.yellowAccent.shade700),
+      GamepadHint(
+        buttonLabel: 'A',
+        actionLabel: l10n.hintResume,
+        buttonColor: Colors.greenAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'X',
+        actionLabel: l10n.hintRemove,
+        buttonColor: Colors.blueAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'Y',
+        actionLabel: l10n.hintClearAll,
+        buttonColor: Colors.yellowAccent.shade700,
+      ),
     ];
 
     return Semantics(
       button: true,
       child: Actions(
         actions: <Type, Action<Intent>>{
-          ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) { actionFn(); return null; }),
-          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(onInvoke: (_) { actionFn(); return null; }),
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              actionFn();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              actionFn();
+              return null;
+            },
+          ),
           AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
             onInvoke: (_) {
-              ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url);
-              ref.read(notificationServiceProvider).showSuccess(
-                l10n.removedFromHistory(item.title)
-              );
+              ref
+                  .read(watchHistoryProvider.notifier)
+                  .removeFromHistory(item.url);
+              ref
+                  .read(notificationServiceProvider)
+                  .showSuccess(l10n.removedFromHistory(item.title));
               return null;
-            }
+            },
           ),
           AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
             onInvoke: (_) {
               _showClearAllConfirmation(context, ref);
               return null;
-            }
+            },
           ),
         },
         child: Focus(
@@ -257,7 +283,8 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (ref.context.mounted) {
                 if (f && isBigPicture) {
-                  ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
+                  ref.read(focusedGamepadHintsProvider.notifier).state =
+                      playHints;
                 } else {
                   // Clear hints when focus is lost to prevent them from getting stuck!
                   ref.read(focusedGamepadHintsProvider.notifier).state = [];
@@ -287,7 +314,10 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.title, style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        item.title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 8),
                       ListTile(
                         leading: const Icon(Icons.info_outline),
@@ -319,14 +349,12 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                           Navigator.pop(context);
                           ref
                               .read(notificationServiceProvider)
-                              .showSuccess(
-                                l10n.removedFromHistory(item.title),
-                              );
+                              .showSuccess(l10n.removedFromHistory(item.title));
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.delete_sweep_rounded),
-                        title: Text(l10n.clearAllHistory), 
+                        title: Text(l10n.clearAllHistory),
                         onTap: () {
                           Navigator.pop(context);
                           _showClearAllConfirmation(context, ref);
@@ -347,25 +375,31 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
               onEnter: (_) => setState(() => _isHovered = true),
               onExit: (_) => setState(() => _isHovered = false),
               child: AnimatedScale(
-                scale: _isHovered ? 1.05 : 1.0, 
+                scale: _isHovered ? 1.05 : 1.0,
                 duration: const Duration(milliseconds: 150),
                 curve: Curves.easeOut,
                 child: SizedBox(
                   width: widget.width,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(
+                      LayoutConstants.radiusLg,
+                    ),
                     child: Stack(
                       children: [
                         // Banner background
                         Positioned.fill(
                           child: Container(
-                            color: Theme.of(context).colorScheme.surfaceContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
                             child: bannerUrl != null
                                 ? CachedNetworkImage(
                                     imageUrl: bannerUrl,
                                     fit: BoxFit.cover,
-                                    placeholder: (_, _) => const SizedBox.shrink(),
-                                    errorWidget: (_, _, _) => const SizedBox.shrink(),
+                                    placeholder: (_, _) =>
+                                        const SizedBox.shrink(),
+                                    errorWidget: (_, _, _) =>
+                                        const SizedBox.shrink(),
                                   )
                                 : null,
                           ),
@@ -514,7 +548,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                           Positioned.fill(
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(LayoutConstants.radiusLg),
+                                borderRadius: BorderRadius.circular(
+                                  LayoutConstants.radiusLg,
+                                ),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.primary,
                                   width: 2.5,

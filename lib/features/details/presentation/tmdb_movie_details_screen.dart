@@ -150,7 +150,9 @@ class _TmdbMovieDetailsScreenState
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   // Hide UI back button in Big Picture
-                  leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
+                  leading: isBigPicture
+                      ? const SizedBox.shrink()
+                      : const BackButton(),
                 ),
                 body: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -198,7 +200,9 @@ class _TmdbMovieDetailsScreenState
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 // Hide UI back button in Big Picture
-                leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
+                leading: isBigPicture
+                    ? const SizedBox.shrink()
+                    : const BackButton(),
               ),
               body: Center(
                 child: Column(
@@ -235,16 +239,18 @@ class _TmdbMovieDetailsScreenState
           onInvoke: (_) {
             context.pop();
             return null;
-          }
+          },
         ),
       },
-      child: isBigPicture 
-          ? RightStickScroller(child: scaffold)
-          : scaffold,
+      child: isBigPicture ? RightStickScroller(child: scaffold) : scaffold,
     );
   }
 
-  Widget _buildDesktopLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
+  Widget _buildDesktopLayout(
+    TmdbDetails data,
+    bool isHeavyLoading,
+    bool isBigPicture,
+  ) {
     final isMovie = widget.mediaType == 'movie';
     final seasons = data.seasons;
     final cast = data.tmdbCast;
@@ -263,14 +269,16 @@ class _TmdbMovieDetailsScreenState
         backgroundColor: Colors.transparent,
         elevation: 0,
         // Hide UI back button in Big Picture
-        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
-          style: IconButton.styleFrom(
-            backgroundColor: isDark ? Colors.black45 : Colors.white54,
-            foregroundColor: textColor,
-          ),
-        ),
+        leading: isBigPicture
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => context.pop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: isDark ? Colors.black45 : Colors.white54,
+                  foregroundColor: textColor,
+                ),
+              ),
       ),
       extendBodyBehindAppBar: true,
       body: Column(
@@ -324,9 +332,21 @@ class _TmdbMovieDetailsScreenState
           if (isBigPicture)
             GamepadHintsOverlay(
               customHints: [
-                GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
-                GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
-                GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSelect,
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'B',
+                  actionLabel: l10n.hintBack,
+                  buttonColor: Colors.redAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'RS',
+                  actionLabel: l10n.hintScroll,
+                  buttonColor: Colors.grey.shade400,
+                ),
               ],
             ),
         ],
@@ -334,7 +354,11 @@ class _TmdbMovieDetailsScreenState
     );
   }
 
-  Widget _buildMobileLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
+  Widget _buildMobileLayout(
+    TmdbDetails data,
+    bool isHeavyLoading,
+    bool isBigPicture,
+  ) {
     final isMovie = widget.mediaType == 'movie';
 
     final backdropImageUrl = data.backdropImageUrl;
@@ -375,26 +399,28 @@ class _TmdbMovieDetailsScreenState
         SliverAppBar(
           expandedHeight: expandedHeaderHeight,
           pinned: true,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           // Hide UI back button in Big Picture
-          leading: isBigPicture ? const SizedBox.shrink() : Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.1),
-              radius: 18,
-              child: IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Theme.of(context).colorScheme.onSurface,
-                  size: 20,
+          leading: isBigPicture
+              ? const SizedBox.shrink()
+              : Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircleAvatar(
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.1),
+                    radius: 18,
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                onPressed: () => context.pop(),
-              ),
-            ),
-          ),
           title: ValueListenableBuilder<double>(
             valueListenable: _titleOpacity,
             builder: (context, opacity, child) {
@@ -463,10 +489,18 @@ class _TmdbMovieDetailsScreenState
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.15),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.45),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.15),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.45),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.8),
                             Theme.of(context).scaffoldBackgroundColor,
                           ],
                           stops: const [0.0, 0.5, 0.75, 0.9, 1.0],
@@ -498,7 +532,9 @@ class _TmdbMovieDetailsScreenState
                                           title.toUpperCase(),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
                                             fontSize: 40,
                                             fontFamily: 'RobotoCondensed',
                                             fontWeight: FontWeight.w900,
@@ -517,7 +553,9 @@ class _TmdbMovieDetailsScreenState
                                           title.toUpperCase(),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
                                             fontSize: 40,
                                             fontFamily: 'RobotoCondensed',
                                             fontWeight: FontWeight.w900,
@@ -530,7 +568,9 @@ class _TmdbMovieDetailsScreenState
                                       title.toUpperCase(),
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface,
                                         fontSize: 40,
                                         fontFamily: 'RobotoCondensed',
                                         fontWeight: FontWeight.w900,
@@ -833,15 +873,27 @@ class _TmdbMovieDetailsScreenState
           Expanded(child: scrollView),
           GamepadHintsOverlay(
             customHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
-              GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
-              GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: l10n.hintSelect,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+              GamepadHint(
+                buttonLabel: 'B',
+                actionLabel: l10n.hintBack,
+                buttonColor: Colors.redAccent.shade400,
+              ),
+              GamepadHint(
+                buttonLabel: 'RS',
+                actionLabel: l10n.hintScroll,
+                buttonColor: Colors.grey.shade400,
+              ),
             ],
           ),
         ],
       );
     }
-    
+
     return scrollView;
   }
 

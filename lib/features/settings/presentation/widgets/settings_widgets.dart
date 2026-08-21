@@ -20,9 +20,9 @@ class SettingsGroup extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Container(
@@ -118,7 +118,8 @@ class _SettingsTileState extends State<SettingsTile> {
             child: Material(
               type: MaterialType.transparency,
               child: ListTile(
-                autofocus: widget.autofocus, // Passes focus request to the actual interactable
+                autofocus: widget
+                    .autofocus, // Passes focus request to the actual interactable
                 focusColor: Colors.transparent,
                 hoverColor: primary.withValues(alpha: 0.10),
                 leading: Container(

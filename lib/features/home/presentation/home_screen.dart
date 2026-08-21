@@ -79,11 +79,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    
+
     // Master Switch Evaluation
     final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
-    
-    return isBigPicture || profile?.isLargeScreen == true || context.isTabletOrLarger;
+
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -134,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    
+
     // Master Switch Evaluation
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
@@ -142,7 +144,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // decision even when the HomeScreen's context width is narrowed
     // by the sidebar (e.g. iPad portrait).
     final isWidescreen =
-        isBigPicture || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     // On widescreen: no AppBar, no FAB — we use the DashboardHeaderBar instead.
     // The header lives outside the scroll view in a plain Column so there is
@@ -369,12 +373,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
-                    autofocus: isBigPicture, // Conditionally seed focus for D-Pad
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data['Trending']!.take(7).toList(),
                     scrollController: _scrollController,
                     onNavigateUp: () {
                       _firstActionFocusNode.requestFocus();
-                      FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
                     },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
@@ -388,12 +395,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               else if (data.isNotEmpty)
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
-                    autofocus: isBigPicture, // Conditionally seed focus for D-Pad
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data.values.first.take(7).toList(),
                     scrollController: _scrollController,
                     onNavigateUp: () {
                       _firstActionFocusNode.requestFocus();
-                      FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.up);
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
                     },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),

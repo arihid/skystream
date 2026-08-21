@@ -54,7 +54,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   final ValueNotifier<bool> _isScrolledNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<double> _appBarOpacityNotifier = ValueNotifier<double>(0);
   final ValueNotifier<bool> _showBottomFade = ValueNotifier(false);
-  final FocusNode _firstActionFocusNode = FocusNode(debugLabel: 'explore_header_search');
+  final FocusNode _firstActionFocusNode = FocusNode(
+    debugLabel: 'explore_header_search',
+  );
 
   /// Carousel controller exposed by ExploreCarousel via [onControllerReady].
   HeroCarouselController? _carouselController;
@@ -72,10 +74,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    
+
     // Master Switch Evaluation
     final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
-    return isBigPicture || profile?.isLargeScreen == true || context.isTabletOrLarger;
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -127,7 +131,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     // decision even when the ExploreScreen's context width is narrowed
     // by the sidebar (e.g. iPad portrait). BigPicture explicitly forces widescreen.
     final isWidescreen =
-        isBigPicture || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     if (isWidescreen) {
       return Scaffold(
@@ -232,16 +238,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                             ? l10n.exploreMovies
                             : l10n.exploreAnime,
                         child: CircleAvatar(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.1),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
                           radius: 18,
                           child: isAnime
                               ? Icon(
                                   Icons.movie,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                   size: 18,
                                 )
                               : SizedBox(
@@ -249,9 +255,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                                   height: 16,
                                   child: CustomPaint(
                                     painter: AnimeLogoPainter(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -279,9 +285,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   borderRadius: BorderRadius.circular(50),
                   child: Consumer(
                     builder: (context, ref, _) {
-                      final filters = ref.watch(
-                        exploreFilterProvider,
-                      );
+                      final filters = ref.watch(exploreFilterProvider);
                       // Language exclusion: Only highlight for content filters
                       final hasActiveFilter =
                           filters.selectedGenre != null ||
@@ -367,7 +371,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
 
     return Container(
       height: LayoutConstants.dashboardHeaderHeight,
-      padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.dashboardContentPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.dashboardContentPadding,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -375,7 +381,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               focusNode: _firstActionFocusNode,
               useScaleEffect: false,
               gamepadHints: [
-                GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSearch, buttonColor: Colors.greenAccent.shade400)
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSearch,
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
               ],
               onTap: () {
                 unawaited(
@@ -392,17 +402,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 constraints: const BoxConstraints(maxWidth: 500),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    LayoutConstants.radiusPill,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.search,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${l10n.search}...',
-                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -411,12 +432,16 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
           ),
           const SizedBox(width: 16),
-          
+
           FocusableWrapper(
             borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
             useScaleEffect: true,
             gamepadHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: isAnime ? l10n.exploreMovies : l10n.exploreAnime, buttonColor: Colors.greenAccent.shade400)
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: isAnime ? l10n.exploreMovies : l10n.exploreAnime,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
             ],
             onTap: () {
               ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
@@ -425,19 +450,23 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               height: 36,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: isAnime 
-                    ? theme.colorScheme.primary 
-                    : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: isAnime
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
                 borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isAnime ? Icons.arrow_back_rounded : Icons.animation_rounded,
+                    isAnime
+                        ? Icons.arrow_back_rounded
+                        : Icons.animation_rounded,
                     size: 18,
-                    color: isAnime 
-                        ? theme.colorScheme.onPrimary 
+                    color: isAnime
+                        ? theme.colorScheme.onPrimary
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 8),
@@ -446,8 +475,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: isAnime 
-                          ? theme.colorScheme.onPrimary 
+                      color: isAnime
+                          ? theme.colorScheme.onPrimary
                           : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -461,7 +490,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             borderRadius: BorderRadius.circular(18),
             useScaleEffect: true,
             gamepadHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintFilters, buttonColor: Colors.greenAccent.shade400)
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: l10n.hintFilters,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
             ],
             onTap: () {
               unawaited(
@@ -477,12 +510,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
               ),
               child: Consumer(
                 builder: (context, ref, _) {
                   final filters = ref.watch(exploreFilterProvider);
-                  final hasActiveFilter = filters.selectedGenre != null ||
+                  final hasActiveFilter =
+                      filters.selectedGenre != null ||
                       filters.selectedYear != null ||
                       filters.minRating != null;
 
@@ -701,9 +737,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           ViewAllCategory.airingTodayTV,
         ),
       ),
-      const SliverPadding(
-        padding: EdgeInsets.only(bottom: 100),
-      ),
+      const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
     ];
   }
 

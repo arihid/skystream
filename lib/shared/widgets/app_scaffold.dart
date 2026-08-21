@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,7 @@ import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/shared/widgets/custom_bottom_nav.dart';
 import 'package:skystream/shared/widgets/app_sidebar.dart';
-import 'package:dpad/dpad.dart'; 
+import 'package:dpad/dpad.dart';
 
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/shared/widgets/global_system_menu.dart';
@@ -48,7 +49,6 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
-    // Hide menu after selection on TV
     setState(() {
       _isGlobalMenuVisible = false;
     });
@@ -90,19 +90,19 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     if (moved) {
       return KeyEventResult.handled;
     }
-    
+
     final isBigPicture = ref.read(bigPictureModeProvider).isEnabled;
-    
+
     if (isBigPicture) {
       GlobalSystemMenu.toggle(context);
       return KeyEventResult.handled;
     } else {
       final idx = widget.navigationShell.currentIndex;
       if (idx < 0 || idx >= _sidebarNodes.length) return KeyEventResult.ignored;
-      
+
       final target = _sidebarNodes[idx];
       if (!target.canRequestFocus) return KeyEventResult.ignored;
-      
+
       target.requestFocus();
       return KeyEventResult.handled;
     }
@@ -116,7 +116,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     );
     final defaultIndex = _getRouteIndex(defaultHome);
     final isAtDefaultHome = widget.navigationShell.currentIndex == defaultIndex;
-    
+
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
 
     return deviceProfileAsync.when(
@@ -129,16 +129,16 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                 onInvoke: (_) {
                   _toggleMenu(isBigPicture);
                   return null;
-                }
+                },
               ),
               AppBackIntent: CallbackAction<AppBackIntent>(
                 onInvoke: (_) {
                   if (_isGlobalMenuVisible) {
                     setState(() => _isGlobalMenuVisible = false);
-                    return null; 
+                    return null;
                   }
-                  return null; // Bubble up back intent
-                }
+                  return null;
+                },
               ),
             },
             child: PopScope(
@@ -152,37 +152,41 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                   }
                 }
               },
-              child: Scaffold(
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                body: SafeArea(
-                  bottom: false,
-                  child: Stack(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: FocusTraversalGroup(
-                              policy: WidgetOrderTraversalPolicy(),
-                              child: Focus(
-                                canRequestFocus: false,
-                                skipTraversal: true,
-                                onKeyEvent: _onContentKeyEvent,
-                                child: widget.navigationShell,
+              child: _BigPictureCursorManager(
+                child: Scaffold(
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  body: SafeArea(
+                    bottom: false,
+                    child: Stack(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: FocusTraversalGroup(
+                                policy: WidgetOrderTraversalPolicy(),
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  skipTraversal: true,
+                                  onKeyEvent: _onContentKeyEvent,
+                                  child: widget.navigationShell,
+                                ),
                               ),
                             ),
-                          ),
-                          const GamepadHintsOverlay(),
-                        ],
-                      ),
-                      
-                      if (_isGlobalMenuVisible)
-                        Positioned.fill(
-                          child: GlobalSystemMenu(
-                            currentLocation: GoRouterState.of(context).uri.path,
-                          ),
+                            const GamepadHintsOverlay(),
+                          ],
                         ),
-                    ],
+
+                        if (_isGlobalMenuVisible)
+                          Positioned.fill(
+                            child: GlobalSystemMenu(
+                              currentLocation: GoRouterState.of(
+                                context,
+                              ).uri.path,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -190,7 +194,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
           );
         }
 
-        // FORK 2: Classic Upstream Desktop / Tablet Layout (Dock is always visible here)
+        // FORK 2: Classic Upstream Desktop / Tablet Layout
         if (profile.isTv || context.isTabletOrLarger) {
           return PopScope(
             canPop: isAtDefaultHome,
@@ -281,7 +285,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
           );
         }
 
-        // FORK 3: Classic Upstream Mobile Layout (Bottom Navigation)
+        // FORK 3: Classic Upstream Mobile Layout
         return PopScope(
           canPop: isAtDefaultHome,
           onPopInvokedWithResult: (didPop, result) {
@@ -314,6 +318,68 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
             AppLocalizations.of(context)!.errorPrefix(err.toString()),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BigPictureCursorManager extends StatefulWidget {
+  final Widget child;
+  const _BigPictureCursorManager({required this.child});
+
+  @override
+  State<_BigPictureCursorManager> createState() =>
+      _BigPictureCursorManagerState();
+}
+
+class _BigPictureCursorManagerState extends State<_BigPictureCursorManager> {
+  Timer? _hideTimer;
+  bool _isHidden = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer(); // Start countdown as soon as Big Picture opens
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    // If the mouse was hidden, instantly reveal it and restore interaction
+    if (_isHidden && mounted) {
+      setState(() => _isHidden = false);
+    }
+
+    // Reset the 3-second countdown
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _isHidden = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerHover: (_) => _startTimer(), // Catches mouse movement
+      onPointerDown: (_) =>
+          _startTimer(), // Catches mouse clicks / screen touches
+      onPointerMove: (_) => _startTimer(), // Catches touch dragging
+      child: Stack(
+        children: [
+          IgnorePointer(ignoring: _isHidden, child: widget.child),
+          Positioned.fill(
+            child: MouseRegion(
+              cursor: _isHidden ? SystemMouseCursors.none : MouseCursor.defer,
+              hitTestBehavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ],
       ),
     );
   }
