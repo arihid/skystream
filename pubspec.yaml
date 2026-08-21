@@ -78,7 +78,7 @@ dependencies:
   flutter_displaymode: ^0.7.0
   intl: ^0.20.2
   flutter_svg: ^2.2.3
-  dpad: ^2.0.2
+  dpad: ^3.0.0
   shimmer: ^3.0.0
   video_view:
     path: packages/video_view
@@ -100,6 +100,8 @@ dependencies:
   # Platform keychain/keystore for OAuth tokens (Trakt/Simkl/MAL/AniList).
   # Falls back to encrypted Hive on Linux/Windows where libsecret is missing.
   flutter_secure_storage: ^10.3.1
+  gamepads: ^0.1.10+5
+  screen_retriever: ^0.2.2
 
 
 dev_dependencies:
