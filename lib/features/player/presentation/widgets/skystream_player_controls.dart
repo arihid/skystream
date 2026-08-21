@@ -1070,7 +1070,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
               label: AppLocalizations.of(context)!.unlock, 
               onTap: _toggleLock, 
               highlight: false, 
-              isBigPicture: isBigPicture, // 🎯 Use the passed variable
+              isBigPicture: isBigPicture,
             ),
           ),
         ),

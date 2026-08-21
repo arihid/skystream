@@ -16,11 +16,10 @@ class LoadingDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // We block the default pop so we can execute our custom cancel logic first
+      canPop: false, // We block the default pop so we can execute custom cancel logic first
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        // GAMEPAD 'B' / HARDWARE BACK BUTTON FIX:
-        // Automatically trigger the cancel callback and close the dialog
+        // Universally handles Hardware Back Button / ESC Key / Gamepad 'B'
         onCancel();
         Navigator.of(context).pop();
       },
@@ -35,16 +34,16 @@ class LoadingDialog extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),
         actions: [
           CustomButton(
             isPrimary: false,
-            autofocus: true,
+            autofocus: true, // Ensures Keyboard/Gamepad users can immediately click it
             onPressed: () {
               onCancel();
               Navigator.of(context).pop();
@@ -67,7 +66,10 @@ class LoadingDialog extends StatelessWidget {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => LoadingDialog(message: message, onCancel: onCancel),
+      builder: (context) => LoadingDialog(
+        message: message,
+        onCancel: onCancel,
+      ),
     );
   }
 }
