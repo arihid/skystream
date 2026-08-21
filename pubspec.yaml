@@ -101,6 +101,7 @@ dependencies:
   # Falls back to encrypted Hive on Linux/Windows where libsecret is missing.
   flutter_secure_storage: ^10.3.1
   gamepads: ^0.1.10+5
+  screen_retriever: ^0.2.2
 
 
 dev_dependencies:
