@@ -24,12 +24,6 @@ class AppLocalizationsBe extends AppLocalizations {
   String get explore => 'Даследаваць';
 
   @override
-  String get exploreAnime => 'Explore Anime';
-
-  @override
-  String get exploreMovies => 'Explore Movies';
-
-  @override
   String get library => 'Бібліятэка';
 
   @override
@@ -39,142 +33,10 @@ class AppLocalizationsBe extends AppLocalizations {
   String get extensions => 'Пашырэнні';
 
   @override
-  String get updateAvailable => 'Даступна абнаўленне';
+  String get downloads => 'Загрузкі';
 
   @override
-  String get retry => 'Паўтарыць';
-
-  @override
-  String get factoryReset => 'Скід да заводскіх налад';
-
-  @override
-  String get startupError => 'Памылка запуску';
-
-  @override
-  String get general => 'Агульныя';
-
-  @override
-  String get appTheme => 'Тэма праграмы';
-
-  @override
-  String get recordWatchHistory => 'Запісваць гісторыю праглядаў';
-
-  @override
-  String get defaultHomeScreen => 'Галоўны экран па змаўчанні';
-
-  @override
-  String get titlePosition => 'Title Position';
-
-  @override
-  String get titlePositionBelowPoster => 'Below Poster';
-
-  @override
-  String get titlePositionInsidePoster => 'Inside Poster';
-
-  @override
-  String get player => 'Плэер';
-
-  @override
-  String get defaultPlayer => 'Плэер па змаўчанні';
-
-  @override
-  String get leftGesture => 'Левы жэст';
-
-  @override
-  String get rightGesture => 'Правы жэст';
-
-  @override
-  String get doubleTapToSeek => 'Двайная заклаца для перамоткі';
-
-  @override
-  String get swipeToSeek => 'Жэст для перамоткі';
-
-  @override
-  String get seekDuration => 'Працягласць перамоткі';
-
-  @override
-  String get bufferDepth => 'Глыбіня буфера';
-
-  @override
-  String get defaultResizeMode => 'Рэжым маштабавання па змаўчанні';
-
-  @override
-  String get hardwareDecoding => 'Апаратнае дэкадаванне';
-
-  @override
-  String get network => 'Сетка';
-
-  @override
-  String get dnsOverHttps => 'DNS праз HTTPS';
-
-  @override
-  String get dohProvider => 'Провайдэр DoH';
-
-  @override
-  String get githubProxy => 'GitHub Proxy';
-
-  @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
-
-  @override
-  String get manageExtensions => 'Кіраванне пашырэннямі';
-
-  @override
-  String get appData => 'Даныя праграмы';
-
-  @override
-  String get resetDataKeepExtensions => 'Скінуць даныя (захаваць пашырэнні)';
-
-  @override
-  String get developer => 'Распрацоўшчык';
-
-  @override
-  String get developerOptions => 'Опцыі распрацоўшчыка';
-
-  @override
-  String get about => 'Пра праграму';
-
-  @override
-  String get version => 'Версія';
-
-  @override
-  String get enabled => 'Уключана';
-
-  @override
-  String get disabled => 'Выключана';
-
-  @override
-  String get discord => 'Discord';
-
-  @override
-  String get discordSubtitle => 'Далучайцеся да нашага сервера';
-
-  @override
-  String get telegram => 'Telegram';
-
-  @override
-  String get telegramSubtitle => 'Далучайцеся да нашага канала';
-
-  @override
-  String developedBy(String name) {
-    return 'Developed by $name';
-  }
-
-  @override
-  String get system => 'Сістэмная';
-
-  @override
-  String get dark => 'Цёмная';
-
-  @override
-  String get light => 'Светлая';
-
-  @override
-  String get later => 'Пазней';
-
-  @override
-  String get updateNow => 'Абнавіць зараз';
+  String get bookmarks => 'Закладкі';
 
   @override
   String get save => 'Захаваць';
@@ -189,13 +51,10 @@ class AppLocalizationsBe extends AppLocalizations {
   String get delete => 'Выдаліць';
 
   @override
-  String get viewDetails => 'Падрабязнасці';
+  String get retry => 'Паўтарыць';
 
   @override
-  String get clearAll => 'Ачысціць усё';
-
-  @override
-  String get clearAllHistory => 'Ачысціць усю гісторыю';
+  String get ok => 'OK';
 
   @override
   String get all => 'Усе';
@@ -204,83 +63,189 @@ class AppLocalizationsBe extends AppLocalizations {
   String get none => 'Няма';
 
   @override
-  String get confirmDownload => 'Пацвердзіць загрузку';
+  String get on => 'Укл';
 
   @override
-  String get downloadNow => 'Загрузіць зараз';
+  String get off => 'Выкл';
 
   @override
-  String get selectSource => 'Выбраць крыніцу';
+  String get yesDelete => 'Так, выдаліць';
 
   @override
-  String get downloadUnavailable => 'Загрузка недаступная';
+  String get no => 'Не';
 
   @override
-  String get selectAnotherSource => 'Выбраць іншую крыніцу';
+  String get viewDetails => 'Падрабязнасці';
 
   @override
-  String get watchHistoryCleared => 'Гісторыя праглядаў ачышчана';
+  String get viewAll => 'Усе';
 
   @override
-  String get downloadingUpdate => 'Загрузка абнаўлення...';
+  String get clearAll => 'Ачысціць усё';
 
   @override
-  String errorPrefix(String message) {
-    return 'Памылка: $message';
+  String get startOver => 'Пачаць спачатку';
+
+  @override
+  String get goBack => 'Назад';
+
+  @override
+  String get showMore => 'Больш';
+
+  @override
+  String get showLess => 'Менш';
+
+  @override
+  String get install => 'Усталяваць';
+
+  @override
+  String get updateNow => 'Абнавіць зараз';
+
+  @override
+  String get later => 'Пазней';
+
+  @override
+  String get enabled => 'Уключана';
+
+  @override
+  String get disabled => 'Выключана';
+
+  @override
+  String get recommended => 'Рэкамендавана';
+
+  @override
+  String get loading => 'Загрузка...';
+
+  @override
+  String get hintSelect => 'Select';
+
+  @override
+  String get hintBack => 'Back';
+
+  @override
+  String get hintExit => 'Exit';
+
+  @override
+  String get hintMenu => 'Menu';
+
+  @override
+  String get hintView => 'View';
+
+  @override
+  String get hintKeyboard => 'Keyboard';
+
+  @override
+  String get hintFilter => 'Filter';
+
+  @override
+  String get hintFilters => 'Filters';
+
+  @override
+  String get hintSearch => 'Search';
+
+  @override
+  String get hintFillQuery => 'Fill Query';
+
+  @override
+  String get hintType => 'Type';
+
+  @override
+  String get hintList => 'List';
+
+  @override
+  String get hintExpand => 'Expand';
+
+  @override
+  String get hintCollapse => 'Collapse';
+
+  @override
+  String get hintDeleteAll => 'Delete All';
+
+  @override
+  String get hintDelete => 'Delete';
+
+  @override
+  String get hintPrevTab => 'Prev Tab';
+
+  @override
+  String get hintNextTab => 'Next Tab';
+
+  @override
+  String get hintPlay => 'Play';
+
+  @override
+  String get hintPause => 'Pause';
+
+  @override
+  String get hintResume => 'Resume';
+
+  @override
+  String get hintRemove => 'Remove';
+
+  @override
+  String get hintClearAll => 'Clear All';
+
+  @override
+  String get hintSearchField => 'Search field';
+
+  @override
+  String get hintSelectToggle => 'Select / Toggle';
+
+  @override
+  String get hintBrowse => 'Browse';
+
+  @override
+  String get hintAddRepo => 'Add Repo';
+
+  @override
+  String get hintDownloadAll => 'Download All';
+
+  @override
+  String get hintDeleteRepo => 'Delete Repo';
+
+  @override
+  String get hintSettings => 'Settings';
+
+  @override
+  String get hintInstall => 'Install';
+
+  @override
+  String get hintUpdate => 'Update';
+
+  @override
+  String get hintViewAll => 'View All';
+
+  @override
+  String get hintDeselect => 'Deselect';
+
+  @override
+  String get hintRemoveBookmark => 'Remove Bookmark';
+
+  @override
+  String get hintAddBookmark => 'Add Bookmark';
+
+  @override
+  String get hintManageDownload => 'Manage Download';
+
+  @override
+  String get hintDownloading => 'Downloading...';
+
+  @override
+  String get hintDownload => 'Download';
+
+  @override
+  String get hintScroll => 'Scroll';
+
+  @override
+  String hintSeek(Object seconds) {
+    return 'Seek ${seconds}s';
   }
 
   @override
-  String updateAvailableTag(String tag) {
-    return 'Даступна абнаўленне: $tag';
-  }
+  String get exploreAnime => 'Explore Anime';
 
   @override
-  String get selectProviderToStart => 'Выберыце правайдэра, каб пачаць';
-
-  @override
-  String get tapExtensionIcon => 'Націсніце на значок пашырэння ў куце';
-
-  @override
-  String get continueWatching => 'Працягнуць прагляд';
-
-  @override
-  String get noInternetConnection => 'Няма падключэння да інтэрнэту';
-
-  @override
-  String get siteNotReachable => 'Сайт недаступны';
-
-  @override
-  String get checkConnectionOrDownloads =>
-      'Праверце падключэнне або паглядзіце загрузкі.';
-
-  @override
-  String get tryVpnOrConnection => 'Паспрабуйце VPN або праверце інтэрнэт.';
-
-  @override
-  String errorDetails(String error) {
-    return 'Дэталі памылкі: $error';
-  }
-
-  @override
-  String get goToDownloads => 'Перайсці да загрузак';
-
-  @override
-  String get selectProvider => 'Выбраць правайдэра';
-
-  @override
-  String get searchHint => 'Пошук фільмаў, серыялаў...';
-
-  @override
-  String get searchFavoriteContent => 'Шукайце любімы кантэнт';
-
-  @override
-  String get pressSearchOrEnter => 'Націсніце Пошук або Enter, каб пачаць';
-
-  @override
-  String get noResultsFound => 'Вынікаў не знойдзено.';
-
-  @override
-  String get couldNotLoadTrending => 'Не ўдалося загрузіць папулярнае';
+  String get exploreMovies => 'Explore Movies';
 
   @override
   String get popularMovies => 'Папулярныя фільмы';
@@ -304,178 +269,55 @@ class AppLocalizationsBe extends AppLocalizations {
   String get lastVideosTVShows => 'Апошнія серыялы';
 
   @override
-  String get downloads => 'Загрузкі';
+  String get continueWatching => 'Працягнуць прагляд';
 
   @override
-  String get bookmarks => 'Закладкі';
+  String get couldNotLoadTrending => 'Не ўдалося загрузіць папулярнае';
 
   @override
-  String get noDownloadsYet => 'Загрузак пакуль няма';
+  String get selectProviderToStart => 'Выберыце правайдэра, каб пачаць';
 
   @override
-  String episodesCount(int count, int done) {
-    return 'Эпізодаў: $count • Скончана: $done';
-  }
+  String get tapExtensionIcon => 'Націсніце на значок пашырэння ў куце';
 
   @override
-  String get deleteAllEpisodes => 'Выдаліць усе эпізоды';
+  String get searchFavoriteContent => 'Шукайце любімы кантэнт';
 
   @override
-  String confirmDeleteAllEpisodes(int count, String title) {
-    return 'Вы сапраўды хочаце выдаліць усе $count эпізоды \"$title\" і іх файлы?';
-  }
+  String get pressSearchOrEnter => 'Націсніце Пошук або Enter, каб пачаць';
 
   @override
-  String get deleteAll => 'Выдаліць усё';
+  String get noResultsFound => 'Вынікаў не знойдзено.';
 
   @override
-  String get completed => 'Скончана';
+  String get searchHint => 'Пошук фільмаў, серыялаў...';
 
   @override
-  String get statusQueued => 'У чарзе...';
+  String get searchScope => 'Search Scope';
 
   @override
-  String get statusDownloading => 'Загрузка...';
+  String get nonLivestreams => 'Non Livestreams';
 
   @override
-  String get statusFinished => 'Завершана';
+  String get movies => 'Фільмы';
 
   @override
-  String get statusFailed => 'Памылка';
+  String get series => 'Серыялы';
 
   @override
-  String get statusCanceled => 'Адменена';
+  String get anime => 'Анімэ';
 
   @override
-  String get statusPaused => 'Прыпынена';
+  String get liveStreams => 'Жывыя эфіры';
 
   @override
-  String get statusWaiting => 'Чаканне...';
+  String get live => 'ЖЫВЫ ЭФІР';
 
   @override
-  String get fileNotFoundRemoving => 'Файл не знойдзены. Выдаленне запісу.';
+  String get movieDetails => 'Дэталі фільма';
 
   @override
-  String get fileNotFound => 'Файл не знойдзены';
-
-  @override
-  String get deleteDownload => 'Выдаліць загрузку';
-
-  @override
-  String get confirmDeleteDownload =>
-      'Вы сапраўды хочаце выдаліць гэтую загрузку і яе файл?';
-
-  @override
-  String get libraryEmpty => 'Бібліятэка пустая';
-
-  @override
-  String get language => 'Мова';
-
-  @override
-  String get english => 'Англійская';
-
-  @override
-  String get hindi => 'Хіндзі';
-
-  @override
-  String get kannada => 'Канада';
-
-  @override
-  String get unknown => 'Невядома';
-
-  @override
-  String get recommended => 'Рэкамендавана';
-
-  @override
-  String get on => 'Укл';
-
-  @override
-  String get off => 'Выкл';
-
-  @override
-  String get installRemoveProviders => 'Усталяваць/выдаліць правайдэраў';
-
-  @override
-  String get resetDataSubtitle => 'Ачысціць налады і БД, захаваць плагіны';
-
-  @override
-  String get factoryResetSubtitle => 'Выдаліць усе даныя, налады і пашырэнні';
-
-  @override
-  String get developerOptionsSubtitle =>
-      'Інструменты адладкі і лакальны прагляд';
-
-  @override
-  String get loading => 'Загрузка...';
-
-  @override
-  String get sec => 'с';
-
-  @override
-  String get min => 'мін';
-
-  @override
-  String get internalPlayer => 'Унутраны (media_kit)';
-
-  @override
-  String get builtInPlayer => 'Убудаваны плэер';
-
-  @override
-  String get customNotSet => 'Іншае (не вызначана)';
-
-  @override
-  String selectGesture(String side) {
-    return 'Выбраць жэст ($side)';
-  }
-
-  @override
-  String get left => 'левы';
-
-  @override
-  String get right => 'правы';
-
-  @override
-  String get selectSeekDuration => 'Выбраць працягласць перамоткі';
-
-  @override
-  String get selectBufferDepth => 'Выбраць глыбіню буфера';
-
-  @override
-  String get subtitleSettings => 'Налады субтытраў';
-
-  @override
-  String size(int size) {
-    return 'Памер: $size';
-  }
-
-  @override
-  String get background => 'Фон';
-
-  @override
-  String get customDohUrlLabel => 'Уласны DoH URL';
-
-  @override
-  String get enterCustomDohUrl => 'Увядзіце свой DoH URL';
-
-  @override
-  String get chooseTheme => 'Выбраць тэму';
-
-  @override
-  String get resetDataDialogTitle => 'Скінуць даныя?';
-
-  @override
-  String get resetDataDialogContent =>
-      'Гэта выдаліць Налады, Выбранае і Гісторыю. Усталяваныя пашырэнні ЗАСТАНУЦЦА.';
-
-  @override
-  String get factoryResetDialogTitle => 'Скід да заводскіх налад?';
-
-  @override
-  String get factoryResetDialogContent =>
-      'Гэта выдаліць УСЁ: Выбранае, Гісторыю, Налады і ЎСЕ пашырэнні. Нельга адмяніць.';
-
-  @override
-  String get selectLanguage => 'Выбраць мову';
+  String get showDetails => 'Паказаць дэталі';
 
   @override
   String get synopsis => 'Сінопсіс';
@@ -484,45 +326,311 @@ class AppLocalizationsBe extends AppLocalizations {
   String get noDescription => 'Апісанне адсутнічае.';
 
   @override
-  String get videoAlreadyDownloadedPrompt =>
-      'Відэа ўжо загружана. Што вы хочаце зрабіць?';
+  String get director => 'Рэжысёр';
+
+  @override
+  String get creator => 'Стваральнік';
+
+  @override
+  String get tagline => 'Тэглайн';
+
+  @override
+  String get status => 'Статус';
+
+  @override
+  String get releaseDate => 'Дата выхаду';
+
+  @override
+  String get firstAirDate => 'Першы эфір';
+
+  @override
+  String get originalLanguage => 'Арыгінальная мова';
+
+  @override
+  String get originCountry => 'Краіна паходжання';
+
+  @override
+  String get budgetLabel => 'Бюджэт';
+
+  @override
+  String get revenueLabel => 'Зборы';
+
+  @override
+  String get seasons => 'Сезоны';
+
+  @override
+  String get episodes => 'Эпізоды';
+
+  @override
+  String get noEpisodesFound => 'Эпізоды не знойдзены';
+
+  @override
+  String seasonWithNumber(Object number) {
+    return 'Сезон $number';
+  }
+
+  @override
+  String seasonsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count сезона',
+      many: '$count сезонаў',
+      few: '$count сезоны',
+      one: '1 сезон',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seasonWithEpisodes(Object number, int count) {
+    return 'Сезон $number ($count эп.)';
+  }
+
+  @override
+  String episodesCount(int count, int done) {
+    return 'Эпізодаў: $count • Скончана: $done';
+  }
+
+  @override
+  String episodeCountOnly(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count эпізода',
+      many: '$count эпізодаў',
+      few: '$count эпізоды',
+      one: '1 эпізод',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String titleWithParam(String title) {
+    return 'Назва: $title';
+  }
+
+  @override
+  String sourceWithParam(String source) {
+    return 'Крыніца: $source';
+  }
+
+  @override
+  String sizeWithParam(String size) {
+    return 'Памер: $size';
+  }
+
+  @override
+  String get play => 'Глядзець';
 
   @override
   String get playNow => 'Глядзець зараз';
 
   @override
-  String get upNext => 'Up Next';
-
-  @override
-  String get deleteDownloadPrompt => 'Выдаліць загрузку?';
-
-  @override
-  String get deleteDownloadConfirmation =>
-      'Вы сапраўды хочаце выдаліць гэты файл? Нельга адмяніць.';
-
-  @override
-  String get no => 'Не';
-
-  @override
-  String get yesDelete => 'Так, выдаліць';
-
-  @override
-  String get downloadPaused => 'Загрузка прыпынена';
-
-  @override
-  String get downloading => 'Загрузка';
-
-  @override
-  String get speed => 'Скорасць';
-
-  @override
-  String get remaining => 'Засталося';
-
-  @override
   String get resume => 'Працягнуць';
 
   @override
+  String get resumeNow => 'Глядзець зараз';
+
+  @override
   String get pause => 'Паўза';
+
+  @override
+  String get watching => 'Гляджу';
+
+  @override
+  String get watched => 'Прагледжана';
+
+  @override
+  String get lastWatched => 'Апошні прагляд';
+
+  @override
+  String get resumingPlayback => 'Аднаўленне прайгравання';
+
+  @override
+  String pausedAt(String time) {
+    return 'Прыпынена на $time';
+  }
+
+  @override
+  String resumesAutomatically(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Аўтаматычны старт праз $count секунды',
+      many: 'Аўтаматычны старт праз $count секунд',
+      few: 'Аўтаматычны старт праз $count секунды',
+      one: 'Аўтаматычны старт праз 1 секунду',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String percentWatched(int percent) {
+    return 'Прагледжана: $percent%';
+  }
+
+  @override
+  String playEpisode(String label, Object season, Object episode) {
+    return '$label С$season Э$episode';
+  }
+
+  @override
+  String playEpisodeOnly(String label, int episode) {
+    return '$label E$episode';
+  }
+
+  @override
+  String get skip => 'Прапусціць';
+
+  @override
+  String get skipIntro => 'Skip Intro';
+
+  @override
+  String get skipOutro => 'Skip Outro';
+
+  @override
+  String get skipRecap => 'Skip Recap';
+
+  @override
+  String get goLive => 'У эфір';
+
+  @override
+  String get dismiss => 'Закрыць';
+
+  @override
+  String get nextUp => 'Далей';
+
+  @override
+  String get playing => 'Прайграванне';
+
+  @override
+  String get playbackSpeed => 'Скорасць прайгравання';
+
+  @override
+  String get volume => 'Гучнасць';
+
+  @override
+  String get brightness => 'Яркасць';
+
+  @override
+  String get fit => 'Запоўніць';
+
+  @override
+  String get zoom => 'Зум';
+
+  @override
+  String get stretch => 'Расцягнуць';
+
+  @override
+  String get resize => 'Памер';
+
+  @override
+  String get next => 'Наступны';
+
+  @override
+  String get pip => 'PiP';
+
+  @override
+  String get rotate => 'Павярнуць';
+
+  @override
+  String get windowed => 'У акне';
+
+  @override
+  String get fullscreen => 'На ўвесь экран';
+
+  @override
+  String sourceAttempt(int index, int total) {
+    return 'Крыніца $index з $total';
+  }
+
+  @override
+  String get unlock => 'Разблакіраваць';
+
+  @override
+  String get lock => 'Заблакіраваць';
+
+  @override
+  String get resolving => 'Пошук спасылак...';
+
+  @override
+  String get trying => 'Спроба';
+
+  @override
+  String get failed => 'Памылка';
+
+  @override
+  String get selected => 'Выбрана';
+
+  @override
+  String get pending => 'Чакае';
+
+  @override
+  String get local => 'Лакальная';
+
+  @override
+  String get remote => 'Аддаленая';
+
+  @override
+  String get torrent => 'Торэнт';
+
+  @override
+  String get sources => 'Крыніцы';
+
+  @override
+  String get tracks => 'Дарожкі';
+
+  @override
+  String get content => 'Кантэнт';
+
+  @override
+  String get stats => 'Статыстыка';
+
+  @override
+  String get selectSource => 'Выбраць крыніцу';
+
+  @override
+  String get selectAnotherSource => 'Выбраць іншую крыніцу';
+
+  @override
+  String get selectSourceToPlay =>
+      'Выберыце крыніцу вышэй, каб пачаць прагляд.';
+
+  @override
+  String selectSourceForPlayer(String playerName) {
+    return 'Выбраць крыніцу для $playerName';
+  }
+
+  @override
+  String get availableSources => 'Даступныя крыніцы';
+
+  @override
+  String get refreshingLiveStream => 'Абнаўленне эфіру...';
+
+  @override
+  String get playLocalVideo => 'Лакальнае відэа';
+
+  @override
+  String get playLocalVideoSubtitle => 'Глядзець відэа з прылады';
+
+  @override
+  String get streamUrl => 'URL патоку';
+
+  @override
+  String get streamUrlSubtitle => 'Глядзець па URL';
+
+  @override
+  String get streamTorrent => 'Сторыміць торэнт';
+
+  @override
+  String get streamTorrentSubtitle => 'Выберыце торэнт-файл';
+
+  @override
+  String get enterVideoUrlHint => 'URL відэа (http, magnet і г.д.)';
+
+  @override
+  String get networkStream => 'Сеткавы паток';
 
   @override
   String get torrentContent => 'Змест торэнта';
@@ -534,6 +642,17 @@ class AppLocalizationsBe extends AppLocalizations {
   String get noAudioTracks => 'Аўдыядарожкі не знойдзены';
 
   @override
+  String get qualityNotGuaranteed =>
+      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
+
+  @override
+  String get keepSourcesOriginalOrder => 'Keep sources in original order';
+
+  @override
+  String get noSourcesQualityFilterFallback =>
+      'No sources matched your quality filter — showing all sources.';
+
+  @override
   String get subtitles => 'Субтытры';
 
   @override
@@ -541,9 +660,6 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get noSubtitlesFound => 'Субтытры не знойдзены';
-
-  @override
-  String get playbackSpeed => 'Скорасць прайгравання';
 
   @override
   String get subtitleOptions => 'Опцыі субтытраў';
@@ -582,24 +698,6 @@ class AppLocalizationsBe extends AppLocalizations {
       'Стылізацыя субтытраў пакуль даступная толькі ў media_kit.';
 
   @override
-  String get resetToDefault => 'Па змаўчанні';
-
-  @override
-  String get fontSize => 'Памер шрыфта';
-
-  @override
-  String get verticalPosition => 'Вертыкальнае становішча';
-
-  @override
-  String get textColor => 'Колер тэксту';
-
-  @override
-  String get backgroundColor => 'Колер фону';
-
-  @override
-  String get backgroundOpacity => 'Празрыстасць фону';
-
-  @override
   String get subtitleSearch => 'Пошук субтытраў';
 
   @override
@@ -624,141 +722,94 @@ class AppLocalizationsBe extends AppLocalizations {
       'Не ўдалося загрузіць субтытры. Паспрабуйце зноў.';
 
   @override
-  String get noReposFound => 'Рэпазіторыі або плагіны не знойдзены';
+  String get sub => 'Суб';
 
   @override
-  String get downloadAllProviders => 'Спампаваць усё';
-
-  @override
-  String get removeRepository => 'Выдаліць рэпазіторый';
-
-  @override
-  String get addRepo => 'Дадаць рэпазіторый';
-
-  @override
-  String get extensionsNotInRepos => 'Пашырэнні не з рэпазіторыяў';
-
-  @override
-  String get noLongerInRepo => 'Больш не значыцца ў рэпазіторыях';
-
-  @override
-  String get addRepoToBrowse => 'Дадайце рэпазіторый, каб бачыць плагіны';
-
-  @override
-  String get debugExtensions => 'Адладка пашырэнняў';
-
-  @override
-  String removeRepoConfirm(String repoName) {
-    return 'Выдаліць $repoName?';
-  }
-
-  @override
-  String get removeRepoWarning =>
-      'Гэта выдаліць рэпазіторый і ЎСЕ яго плагіны.';
-
-  @override
-  String get addRepository => 'Дадаць рэпазіторый';
-
-  @override
-  String get repoUrlOrShortcode => 'URL рэпазіторыя або шорткод';
-
-  @override
-  String get assetPlugin => 'Убудаваны плагін';
-
-  @override
-  String get installed => 'Усталявана';
-
-  @override
-  String get repositories => 'Repositories';
-
-  @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
-
-  @override
-  String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
-
-  @override
-  String get browseRepositories => 'Browse Repositories';
-
-  @override
-  String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
-
-  @override
-  String updateTo(String version) {
-    return 'Абнавіць да $version';
-  }
-
-  @override
-  String get install => 'Усталяваць';
-
-  @override
-  String get error => 'Памылка';
-
-  @override
-  String get ok => 'OK';
-
-  @override
-  String pluginSettings(String pluginName) {
-    return 'Налады $pluginName';
-  }
-
-  @override
-  String get movies => 'Фільмы';
-
-  @override
-  String get series => 'Серыялы';
-
-  @override
-  String get anime => 'Анімэ';
-
-  @override
-  String get liveStreams => 'Жывыя эфіры';
-
-  @override
-  String get debug => 'DEBUG';
-
-  @override
-  String extensionsUpdated(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count пашырэння абноўлена',
-      many: '$count пашырэнняў абноўлена',
-      few: '$count пашырэнні абноўлена',
-      one: '1 пашырэнне абноўлена',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get invalidNavigation => 'Памылка навігацыі. Вярніцеся назад.';
-
-  @override
-  String get startOver => 'Пачаць спачатку';
-
-  @override
-  String get goBack => 'Назад';
-
-  @override
-  String get resolving => 'Пошук спасылак...';
-
-  @override
-  String get downloaded => 'Загружана';
+  String get dub => 'Дуб';
 
   @override
   String get download => 'Спампаваць';
 
   @override
-  String get debugOnlyFeature =>
-      'Гэтая функцыя даступная толькі ў рэжыме адладкі';
+  String get downloading => 'Загрузка';
 
   @override
-  String get streamUrl => 'URL патоку';
+  String get downloaded => 'Загружана';
 
   @override
-  String get play => 'Глядзець';
+  String get downloadNow => 'Загрузіць зараз';
+
+  @override
+  String get confirmDownload => 'Пацвердзіць загрузку';
+
+  @override
+  String get downloadUnavailable => 'Загрузка недаступная';
+
+  @override
+  String get downloadPaused => 'Загрузка прыпынена';
+
+  @override
+  String get downloadingUpdate => 'Загрузка абнаўлення...';
+
+  @override
+  String get manageExtensions => 'Кіраванне пашырэннямі';
+
+  @override
+  String get deleteDownload => 'Выдаліць загрузку';
+
+  @override
+  String get deleteDownloadPrompt => 'Выдаліць загрузку?';
+
+  @override
+  String get deleteDownloadConfirmation =>
+      'Вы сапраўды хочаце выдаліць гэты файл? Нельга адмяніць.';
+
+  @override
+  String get deleteAllEpisodes => 'Выдаліць усе эпізоды';
+
+  @override
+  String confirmDeleteAllEpisodes(int count, String title) {
+    return 'Вы сапраўды хочаце выдаліць усе $count эпізоды \"$title\" і іх файлы?';
+  }
+
+  @override
+  String get noDownloadsYet => 'Загрузак пакуль няма';
+
+  @override
+  String get goToDownloads => 'Перайсці да загрузак';
+
+  @override
+  String get speed => 'Скорасць';
+
+  @override
+  String get remaining => 'Засталося';
+
+  @override
+  String get statusQueued => 'У чарзе...';
+
+  @override
+  String get statusDownloading => 'Загрузка...';
+
+  @override
+  String get statusFinished => 'Завершана';
+
+  @override
+  String get statusFailed => 'Памылка';
+
+  @override
+  String get statusCanceled => 'Адменена';
+
+  @override
+  String get statusPaused => 'Прыпынена';
+
+  @override
+  String get statusWaiting => 'Чаканне...';
+
+  @override
+  String get fileNotFoundRemoving => 'Файл не знойдзены. Выдаленне запісу.';
+
+  @override
+  String get fileNotFound => 'Файл не знойдзены';
 
   @override
   String get verifyingSourceSize => 'Праверка крыніцы і памеру...';
@@ -768,90 +819,35 @@ class AppLocalizationsBe extends AppLocalizations {
       'Файл будзе захаваны ў папку загрузак.';
 
   @override
-  String get resumingPlayback => 'Аднаўленне прайгравання';
+  String get videoAlreadyDownloadedPrompt =>
+      'Відэа ўжо загружана. Што вы хочаце зрабіць?';
 
   @override
-  String pausedAt(String time) {
-    return 'Прыпынена на $time';
+  String size(int size) {
+    return 'Памер: $size';
   }
 
   @override
-  String resumesAutomatically(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Аўтаматычны старт праз $count секунды',
-      many: 'Аўтаматычны старт праз $count секунд',
-      few: 'Аўтаматычны старт праз $count секунды',
-      one: 'Аўтаматычны старт праз 1 секунду',
-    );
-    return '$_temp0';
-  }
+  String get deleteAll => 'Выдаліць усё';
 
   @override
-  String get resumeNow => 'Глядзець зараз';
+  String get completed => 'Скончана';
 
   @override
-  String get playbackError => 'Памылка прайгравання';
+  String get confirmDeleteDownload =>
+      'Вы сапраўды хочаце выдаліць гэтую загрузку і яе файл?';
 
   @override
-  String get confirmClearHistory => 'Вы сапраўды хочаце ачысціць усю гісторыю?';
+  String get libraryEmpty => 'Бібліятэка пустая';
 
   @override
-  String seasonWithNumber(Object number) {
-    return 'Сезон $number';
-  }
+  String get addedToLibrary => 'Added to library';
 
   @override
-  String get starting => 'Запуск...';
+  String get removedFromLibrary => 'Removed from library';
 
   @override
-  String percentWatched(int percent) {
-    return 'Прагледжана: $percent%';
-  }
-
-  @override
-  String get sub => 'Суб';
-
-  @override
-  String get dub => 'Дуб';
-
-  @override
-  String playEpisode(String label, Object season, Object episode) {
-    return '$label С$season Э$episode';
-  }
-
-  @override
-  String playEpisodeOnly(String label, int episode) {
-    return '$label E$episode';
-  }
-
-  @override
-  String get debugTools => 'Інструменты адладкі';
-
-  @override
-  String get playLocalVideo => 'Лакальнае відэа';
-
-  @override
-  String get playLocalVideoSubtitle => 'Глядзець відэа з прылады';
-
-  @override
-  String get streamUrlSubtitle => 'Глядзець па URL';
-
-  @override
-  String get streamTorrent => 'Сторыміць торэнт';
-
-  @override
-  String get streamTorrentSubtitle => 'Выберыце торэнт-файл';
-
-  @override
-  String get loadPluginFromAssets => 'Загрузіць плагін з рэсурсаў';
-
-  @override
-  String get enterVideoUrlHint => 'URL відэа (http, magnet і г.д.)';
-
-  @override
-  String get networkStream => 'Сеткавы паток';
+  String get removeFromHistory => 'Выдаліць з гісторыі';
 
   @override
   String removedFromHistory(String title) {
@@ -859,61 +855,198 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get custom => 'Уласнае';
+  String get clearAllHistory => 'Ачысціць усю гісторыю';
 
   @override
-  String get refreshingLiveStream => 'Абнаўленне эфіру...';
+  String get watchHistoryCleared => 'Гісторыя праглядаў ачышчана';
 
   @override
-  String get removeFromHistory => 'Выдаліць з гісторыі';
+  String get confirmClearHistory => 'Вы сапраўды хочаце ачысціць усю гісторыю?';
 
   @override
-  String get live => 'ЖЫВЫ ЭФІР';
-
-  @override
-  String get volume => 'Гучнасць';
-
-  @override
-  String get brightness => 'Яркасць';
-
-  @override
-  String get fit => 'Запоўніць';
-
-  @override
-  String get zoom => 'Зум';
-
-  @override
-  String get stretch => 'Расцягнуць';
-
-  @override
-  String titleWithParam(String title) {
-    return 'Назва: $title';
+  String syncedProgress(String percentage) {
+    return 'Synced progress: $percentage%';
   }
 
   @override
-  String sourceWithParam(String source) {
-    return 'Крыніца: $source';
+  String get general => 'Агульныя';
+
+  @override
+  String get player => 'Плэер';
+
+  @override
+  String get network => 'Сетка';
+
+  @override
+  String get appData => 'Даныя праграмы';
+
+  @override
+  String get developer => 'Распрацоўшчык';
+
+  @override
+  String get about => 'Пра праграму';
+
+  @override
+  String get system => 'Сістэмная';
+
+  @override
+  String get saveSettings => 'Save settings';
+
+  @override
+  String get applySettings => 'Apply Settings';
+
+  @override
+  String get resetToDefault => 'Па змаўчанні';
+
+  @override
+  String get appTheme => 'Тэма праграмы';
+
+  @override
+  String get dark => 'Цёмная';
+
+  @override
+  String get light => 'Светлая';
+
+  @override
+  String get chooseTheme => 'Выбраць тэму';
+
+  @override
+  String get recordWatchHistory => 'Запісваць гісторыю праглядаў';
+
+  @override
+  String get defaultHomeScreen => 'Галоўны экран па змаўчанні';
+
+  @override
+  String get titlePosition => 'Title Position';
+
+  @override
+  String get titlePositionBelowPoster => 'Below Poster';
+
+  @override
+  String get titlePositionInsidePoster => 'Inside Poster';
+
+  @override
+  String get bigPictureMode => 'Experimental: Big Picture Mode';
+
+  @override
+  String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
+
+  @override
+  String get targetDisplay => 'Preferred Display';
+
+  @override
+  String get whichMonitorShouldBigPictureUse =>
+      'Which monitor should Big Picture use?';
+
+  @override
+  String get language => 'Мова';
+
+  @override
+  String get selectLanguage => 'Выбраць мову';
+
+  @override
+  String get english => 'Англійская';
+
+  @override
+  String get hindi => 'Хіндзі';
+
+  @override
+  String get kannada => 'Канада';
+
+  @override
+  String get unknown => 'Невядома';
+
+  @override
+  String get defaultPlayer => 'Плэер па змаўчанні';
+
+  @override
+  String get internalPlayer => 'Унутраны (media_kit)';
+
+  @override
+  String get builtInPlayer => 'Убудаваны плэер';
+
+  @override
+  String get customNotSet => 'Іншае (не вызначана)';
+
+  @override
+  String get leftGesture => 'Левы жэст';
+
+  @override
+  String get rightGesture => 'Правы жэст';
+
+  @override
+  String selectGesture(String side) {
+    return 'Выбраць жэст ($side)';
   }
 
   @override
-  String sizeWithParam(String size) {
-    return 'Памер: $size';
-  }
+  String get left => 'левы';
 
   @override
-  String usingInternalPlayerError(String error) {
-    return 'Памылка: $error. Выкарыстоўваецца ўнутраны плэер.';
-  }
+  String get right => 'правы';
 
   @override
-  String playerNotDetected(String playerName) {
-    return '$playerName не знойдзены. Запуск унутранага плэера.';
-  }
+  String get doubleTapToSeek => 'Двайная заклаца для перамоткі';
 
   @override
-  String seasonWithEpisodes(Object number, int count) {
-    return 'Сезон $number ($count эп.)';
-  }
+  String get swipeToSeek => 'Жэст для перамоткі';
+
+  @override
+  String get seekDuration => 'Працягласць перамоткі';
+
+  @override
+  String get selectSeekDuration => 'Выбраць працягласць перамоткі';
+
+  @override
+  String get min => 'мін';
+
+  @override
+  String get sec => 'с';
+
+  @override
+  String get bufferDepth => 'Глыбіня буфера';
+
+  @override
+  String get selectBufferDepth => 'Выбраць глыбіню буфера';
+
+  @override
+  String get defaultResizeMode => 'Рэжым маштабавання па змаўчанні';
+
+  @override
+  String get hardwareDecoding => 'Апаратнае дэкадаванне';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
+
+  @override
+  String get dnsOverHttps => 'DNS праз HTTPS';
+
+  @override
+  String get dohProvider => 'Провайдэр DoH';
+
+  @override
+  String get customDohUrlLabel => 'Уласны DoH URL';
+
+  @override
+  String get enterCustomDohUrl => 'Увядзіце свой DoH URL';
 
   @override
   String get cloudflare => 'Cloudflare';
@@ -937,246 +1070,11 @@ class AppLocalizationsBe extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get tmdb => 'TMDB';
+  String get githubProxy => 'GitHub Proxy';
 
   @override
-  String selectSourceForPlayer(String playerName) {
-    return 'Выбраць крыніцу для $playerName';
-  }
-
-  @override
-  String get noPluginsInstalled => 'Няма ўсталяваных плагінаў';
-
-  @override
-  String get noPluginsMessage =>
-      'Усталюйце пашырэнні для прагляду і трансляцыі кантэнту.';
-
-  @override
-  String get goToExtensions => 'Перайсці да пашырэнняў';
-
-  @override
-  String get availableSources => 'Даступныя крыніцы';
-
-  @override
-  String get seasons => 'Сезоны';
-
-  @override
-  String get episodes => 'Эпізоды';
-
-  @override
-  String get selectSourceToPlay =>
-      'Выберыце крыніцу вышэй, каб пачаць прагляд.';
-
-  @override
-  String episodeCountOnly(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count эпізода',
-      many: '$count эпізодаў',
-      few: '$count эпізоды',
-      one: '1 эпізод',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noEpisodesFound => 'Эпізоды не знойдзены';
-
-  @override
-  String get local => 'Лакальная';
-
-  @override
-  String get remote => 'Аддаленая';
-
-  @override
-  String get torrent => 'Торэнт';
-
-  @override
-  String get unlock => 'Разблакіраваць';
-
-  @override
-  String get lock => 'Заблакіраваць';
-
-  @override
-  String get sources => 'Крыніцы';
-
-  @override
-  String get tracks => 'Дарожкі';
-
-  @override
-  String get content => 'Кантэнт';
-
-  @override
-  String get stats => 'Статыстыка';
-
-  @override
-  String get resize => 'Памер';
-
-  @override
-  String get next => 'Наступны';
-
-  @override
-  String get pip => 'PiP';
-
-  @override
-  String get rotate => 'Павярнуць';
-
-  @override
-  String get windowed => 'У акне';
-
-  @override
-  String get fullscreen => 'На ўвесь экран';
-
-  @override
-  String get movieDetails => 'Дэталі фільма';
-
-  @override
-  String get showDetails => 'Паказаць дэталі';
-
-  @override
-  String get tagline => 'Тэглайн';
-
-  @override
-  String get status => 'Статус';
-
-  @override
-  String get releaseDate => 'Дата выхаду';
-
-  @override
-  String get firstAirDate => 'Першы эфір';
-
-  @override
-  String get originalLanguage => 'Арыгінальная мова';
-
-  @override
-  String get originCountry => 'Краіна паходжання';
-
-  @override
-  String get budgetLabel => 'Бюджэт';
-
-  @override
-  String get revenueLabel => 'Зборы';
-
-  @override
-  String get paused => 'Прыпынена';
-
-  @override
-  String get watched => 'Прагледжана';
-
-  @override
-  String get watching => 'Гляджу';
-
-  @override
-  String get lastWatched => 'Апошні прагляд';
-
-  @override
-  String get movie => 'Фільм';
-
-  @override
-  String get tvShow => 'Серыял';
-
-  @override
-  String get failedToLoadContent => 'Не ўдалося загрузіць кантэнт';
-
-  @override
-  String get director => 'Рэжысёр';
-
-  @override
-  String get creator => 'Стваральнік';
-
-  @override
-  String get showMore => 'Больш';
-
-  @override
-  String get showLess => 'Менш';
-
-  @override
-  String get viewAll => 'Усе';
-
-  @override
-  String seasonsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count сезона',
-      many: '$count сезонаў',
-      few: '$count сезоны',
-      one: '1 сезон',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noInternetError => 'Няма інтэрнэту';
-
-  @override
-  String get timeoutError => 'Час чакання выйшаў.';
-
-  @override
-  String get serverError => 'Памылка сервера.';
-
-  @override
-  String get contentNotFoundError => 'Кантэнт не знойдзены.';
-
-  @override
-  String get accessDeniedError => 'Доступ забаронены.';
-
-  @override
-  String get serviceUnavailableError => 'Сервіс недаступны.';
-
-  @override
-  String get generalError => 'Нешта пайшло не так.';
-
-  @override
-  String get skip => 'Прапусціць';
-
-  @override
-  String get skipIntro => 'Skip Intro';
-
-  @override
-  String get skipOutro => 'Skip Outro';
-
-  @override
-  String get skipRecap => 'Skip Recap';
-
-  @override
-  String get goLive => 'У эфір';
-
-  @override
-  String get dismiss => 'Закрыць';
-
-  @override
-  String get nextUp => 'Далей';
-
-  @override
-  String sourceAttempt(int index, int total) {
-    return 'Крыніца $index з $total';
-  }
-
-  @override
-  String get trying => 'Спроба';
-
-  @override
-  String get failed => 'Памылка';
-
-  @override
-  String get selected => 'Выбрана';
-
-  @override
-  String get playing => 'Прайграванне';
-
-  @override
-  String get pending => 'Чакае';
-
-  @override
-  String get openSubtitles => 'OpenSubtitles';
-
-  @override
-  String get subDl => 'SubDL';
-
-  @override
-  String get subSource => 'SubSource';
+  String get githubProxySubtitle =>
+      'Route extension downloads through jsDelivr to bypass ISP blocks.';
 
   @override
   String get wifiQualityPreference => 'Перавага якасці Wi-Fi';
@@ -1186,6 +1084,165 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get anyNoPreference => 'Любая (без пераваг)';
+
+  @override
+  String get custom => 'Уласнае';
+
+  @override
+  String get subtitleSettings => 'Налады субтытраў';
+
+  @override
+  String get subtitleAppearance => 'Subtitle Appearance';
+
+  @override
+  String get background => 'Фон';
+
+  @override
+  String get fontSettings => 'Font Settings';
+
+  @override
+  String get fontSize => 'Памер шрыфта';
+
+  @override
+  String get fontSizeSubtitle =>
+      'Overriding text size from subtitle files (6sp-60sp)';
+
+  @override
+  String get selectFontSize => 'Select Font Size';
+
+  @override
+  String get fileDefault => 'File Default';
+
+  @override
+  String get fontTypeface => 'Font Typeface';
+
+  @override
+  String get fontTypefaceSubtitle =>
+      'Choose from built-in fonts or load custom OTF/TTF';
+
+  @override
+  String get selectFontTypeface => 'Select Font Typeface';
+
+  @override
+  String get customFontFile => 'Custom Font File...';
+
+  @override
+  String get boldTextStyle => 'Bold Text Style';
+
+  @override
+  String get boldTextStyleSubtitle => 'Make subtitle text bold';
+
+  @override
+  String get italicTextStyle => 'Italic Text Style';
+
+  @override
+  String get italicTextStyleSubtitle => 'Make subtitle text slanted';
+
+  @override
+  String get textColor => 'Колер тэксту';
+
+  @override
+  String get navigateAndSelectColor => 'Navigate and select color';
+
+  @override
+  String get edgeSettings => 'Edge Settings';
+
+  @override
+  String get edgeType => 'Edge Type';
+
+  @override
+  String get edgeTypeSubtitle => 'Text borders/shadows (outline default)';
+
+  @override
+  String get selectEdgeType => 'Select Edge Type';
+
+  @override
+  String get edgeOutline => 'Outline';
+
+  @override
+  String get edgeDepressed => 'Depressed';
+
+  @override
+  String get edgeDropShadow => 'Drop Shadow';
+
+  @override
+  String get edgeRaised => 'Raised';
+
+  @override
+  String get edgeStrokeSize => 'Edge Stroke Size';
+
+  @override
+  String get edgeStrokeSizeSubtitle => 'Thicker outline borders (1px-60px)';
+
+  @override
+  String get outlineColor => 'Outline Color';
+
+  @override
+  String get backgroundAndLayout => 'Background & Layout';
+
+  @override
+  String get backgroundPillColor => 'Background Pill Color';
+
+  @override
+  String get backgroundOpacity => 'Празрыстасць фону';
+
+  @override
+  String get backgroundOpacitySubtitle => 'Pill opacity level (0% to 100%)';
+
+  @override
+  String get selectCornerRadius => 'Select Corner Radius';
+
+  @override
+  String get noneSharp => 'None (Sharp)';
+
+  @override
+  String get backgroundCornerRadius => 'Background Corner Radius';
+
+  @override
+  String get backgroundCornerRadiusSubtitle =>
+      'Round background corners (5px-50px)';
+
+  @override
+  String get elevationBottomPadding => 'Elevation (Bottom padding)';
+
+  @override
+  String get elevationSubtitle => 'Push subtitles higher (0dp-400dp)';
+
+  @override
+  String get selectAlignment => 'Select Alignment';
+
+  @override
+  String get autoExoAssDefault => 'Auto (Exo/Ass default)';
+
+  @override
+  String get alignment => 'Alignment';
+
+  @override
+  String get alignmentSubtitle => 'Screen alignment (SSA 1-9 coordinates)';
+
+  @override
+  String get contentCleaningAndFiltering => 'Content Cleaning & Filtering';
+
+  @override
+  String get removeBloat => 'Remove Bloat';
+
+  @override
+  String get removeBloatSubtitle =>
+      'Strip OpenSubtitles ads/promos (re-parses stream)';
+
+  @override
+  String get removeCaptions => 'Remove Captions';
+
+  @override
+  String get removeCaptionsSubtitle =>
+      'Strips bracketed text like [Music] or (cough)';
+
+  @override
+  String get forceUppercase => 'Force Uppercase';
+
+  @override
+  String get forceUppercaseSubtitle =>
+      'Display all subtitle cues in capital letters';
 
   @override
   String get subtitleAccounts => 'Уліковыя запісы субцітраў';
@@ -1241,6 +1298,18 @@ class AppLocalizationsBe extends AppLocalizations {
   String get invalidApiKey => 'Invalid API Key';
 
   @override
+  String get openSubtitles => 'OpenSubtitles';
+
+  @override
+  String get subDl => 'SubDL';
+
+  @override
+  String get subSource => 'SubSource';
+
+  @override
+  String get tmdb => 'TMDB';
+
+  @override
   String get openSubtitlesAuthSubtitle =>
       'Enter your account credentials for higher limits and ad-free subtitles.';
 
@@ -1265,23 +1334,138 @@ class AppLocalizationsBe extends AppLocalizations {
   String get getApiKeyFromProfile => 'Get your API Key from SubSource Profile';
 
   @override
-  String get qualityNotGuaranteed =>
-      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
-
-  @override
-  String get keepSourcesOriginalOrder => 'Keep sources in original order';
-
-  @override
   String get openLink => 'Open link';
 
   @override
-  String get diagnostics => 'Дыягностыка';
+  String pluginSettings(String pluginName) {
+    return 'Налады $pluginName';
+  }
 
   @override
-  String get viewLogs => 'Прагляд логаў';
+  String get noConfigurableSettings =>
+      'This extension does not define configurable settings.';
 
   @override
-  String get viewLogsSubtitle => 'Праглядзець актыўнасць праграмы і памылкі';
+  String get installRemoveProviders => 'Усталяваць/выдаліць правайдэраў';
+
+  @override
+  String get selectProvider => 'Выбраць правайдэра';
+
+  @override
+  String get noPluginsInstalled => 'Няма ўсталяваных плагінаў';
+
+  @override
+  String get noPluginsMessage =>
+      'Усталюйце пашырэнні для прагляду і трансляцыі кантэнту.';
+
+  @override
+  String get goToExtensions => 'Перайсці да пашырэнняў';
+
+  @override
+  String get noReposFound => 'Рэпазіторыі або плагіны не знойдзены';
+
+  @override
+  String get downloadAllProviders => 'Спампаваць усё';
+
+  @override
+  String get removeRepository => 'Выдаліць рэпазіторый';
+
+  @override
+  String get addRepo => 'Дадаць рэпазіторый';
+
+  @override
+  String get extensionsNotInRepos => 'Пашырэнні не з рэпазіторыяў';
+
+  @override
+  String get noLongerInRepo => 'Больш не значыцца ў рэпазіторыях';
+
+  @override
+  String get addRepoToBrowse => 'Дадайце рэпазіторый, каб бачыць плагіны';
+
+  @override
+  String removeRepoConfirm(String repoName) {
+    return 'Выдаліць $repoName?';
+  }
+
+  @override
+  String get removeRepoWarning =>
+      'Гэта выдаліць рэпазіторый і ЎСЕ яго плагіны.';
+
+  @override
+  String get addRepository => 'Дадаць рэпазіторый';
+
+  @override
+  String get repoUrlOrShortcode => 'URL рэпазіторыя або шорткод';
+
+  @override
+  String get assetPlugin => 'Убудаваны плагін';
+
+  @override
+  String get installed => 'Усталявана';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
+
+  @override
+  String updateTo(String version) {
+    return 'Абнавіць да $version';
+  }
+
+  @override
+  String extensionsUpdated(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count пашырэння абноўлена',
+      many: '$count пашырэнняў абноўлена',
+      few: '$count пашырэнні абноўлена',
+      one: '1 пашырэнне абноўлена',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadPluginFromAssets => 'Загрузіць плагін з рэсурсаў';
+
+  @override
+  String get resetDataKeepExtensions => 'Скінуць даныя (захаваць пашырэнні)';
+
+  @override
+  String get resetDataSubtitle => 'Ачысціць налады і БД, захаваць плагіны';
+
+  @override
+  String get resetDataDialogTitle => 'Скінуць даныя?';
+
+  @override
+  String get resetDataDialogContent =>
+      'Гэта выдаліць Налады, Выбранае і Гісторыю. Усталяваныя пашырэнні ЗАСТАНУЦЦА.';
+
+  @override
+  String get factoryReset => 'Скід да заводскіх налад';
+
+  @override
+  String get factoryResetSubtitle => 'Выдаліць усе даныя, налады і пашырэнні';
+
+  @override
+  String get factoryResetDialogTitle => 'Скід да заводскіх налад?';
+
+  @override
+  String get factoryResetDialogContent =>
+      'Гэта выдаліць УСЁ: Выбранае, Гісторыю, Налады і ЎСЕ пашырэнні. Нельга адмяніць.';
 
   @override
   String get clearCache => 'Clear image and video cache';
@@ -1307,23 +1491,137 @@ class AppLocalizationsBe extends AppLocalizations {
   String get calculating => 'Calculating…';
 
   @override
-  String get playerControls => 'Player Controls';
+  String get developerOptions => 'Опцыі распрацоўшчыка';
 
   @override
-  String get playerControlsSubtitle => 'Show or hide player control buttons';
+  String get developerOptionsSubtitle =>
+      'Інструменты адладкі і лакальны прагляд';
 
   @override
-  String get showPip => 'Picture-in-Picture button';
+  String get debugExtensions => 'Адладка пашырэнняў';
 
   @override
-  String get showResize => 'Resize button';
+  String get debugTools => 'Інструменты адладкі';
 
   @override
-  String get showRotate => 'Rotate button';
+  String get diagnostics => 'Дыягностыка';
 
   @override
-  String get showPlaybackSpeed => 'Playback speed button';
+  String get viewLogs => 'Прагляд логаў';
 
   @override
-  String get showEpisodes => 'Episodes button';
+  String get viewLogsSubtitle => 'Праглядзець актыўнасць праграмы і памылкі';
+
+  @override
+  String get debug => 'DEBUG';
+
+  @override
+  String get debugOnlyFeature =>
+      'Гэтая функцыя даступная толькі ў рэжыме адладкі';
+
+  @override
+  String get version => 'Версія';
+
+  @override
+  String get discord => 'Discord';
+
+  @override
+  String get discordSubtitle => 'Далучайцеся да нашага сервера';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get telegramSubtitle => 'Далучайцеся да нашага канала';
+
+  @override
+  String developedBy(String name) {
+    return 'Developed by $name';
+  }
+
+  @override
+  String get updateAvailable => 'Даступна абнаўленне';
+
+  @override
+  String updateAvailableTag(String tag) {
+    return 'Даступна абнаўленне: $tag';
+  }
+
+  @override
+  String get error => 'Памылка';
+
+  @override
+  String errorPrefix(String message) {
+    return 'Памылка: $message';
+  }
+
+  @override
+  String errorDetails(String error) {
+    return 'Дэталі памылкі: $error';
+  }
+
+  @override
+  String get startupError => 'Памылка запуску';
+
+  @override
+  String get noInternetConnection => 'Няма падключэння да інтэрнэту';
+
+  @override
+  String get siteNotReachable => 'Сайт недаступны';
+
+  @override
+  String get checkConnectionOrDownloads =>
+      'Праверце падключэнне або паглядзіце загрузкі.';
+
+  @override
+  String get tryVpnOrConnection => 'Паспрабуйце VPN або праверце інтэрнэт.';
+
+  @override
+  String get noInternetError => 'Няма інтэрнэту';
+
+  @override
+  String get timeoutError => 'Час чакання выйшаў.';
+
+  @override
+  String get serverError => 'Памылка сервера.';
+
+  @override
+  String get contentNotFoundError => 'Кантэнт не знойдзены.';
+
+  @override
+  String get accessDeniedError => 'Доступ забаронены.';
+
+  @override
+  String get serviceUnavailableError => 'Сервіс недаступны.';
+
+  @override
+  String get generalError => 'Нешта пайшло не так.';
+
+  @override
+  String usingInternalPlayerError(String error) {
+    return 'Памылка: $error. Выкарыстоўваецца ўнутраны плэер.';
+  }
+
+  @override
+  String playerNotDetected(String playerName) {
+    return '$playerName не знойдзены. Запуск унутранага плэера.';
+  }
+
+  @override
+  String get failedToLoadContent => 'Не ўдалося загрузіць кантэнт';
+
+  @override
+  String get invalidNavigation => 'Памылка навігацыі. Вярніцеся назад.';
+
+  @override
+  String get playbackError => 'Памылка прайгравання';
+
+  @override
+  String get exitApp => 'Exit SkyStream';
+
+  @override
+  String get confirmExitTitle => 'Exit SkyStream?';
+
+  @override
+  String get confirmExitMessage => 'Are you sure you want to exit the app?';
 }

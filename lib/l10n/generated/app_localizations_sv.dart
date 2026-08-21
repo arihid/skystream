@@ -24,12 +24,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get explore => 'Utforska';
 
   @override
-  String get exploreAnime => 'Explore Anime';
-
-  @override
-  String get exploreMovies => 'Explore Movies';
-
-  @override
   String get library => 'Bibliotek';
 
   @override
@@ -39,142 +33,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get extensions => 'Tillägg';
 
   @override
-  String get updateAvailable => 'Uppdatering tillgänglig';
+  String get downloads => 'Nedladdningar';
 
   @override
-  String get retry => 'Försök igen';
-
-  @override
-  String get factoryReset => 'Fabriksåterställning';
-
-  @override
-  String get startupError => 'Startfel';
-
-  @override
-  String get general => 'Allmänt';
-
-  @override
-  String get appTheme => 'App-tema';
-
-  @override
-  String get recordWatchHistory => 'Spara tittarhistorik';
-
-  @override
-  String get defaultHomeScreen => 'Standardhemskärm';
-
-  @override
-  String get titlePosition => 'Title Position';
-
-  @override
-  String get titlePositionBelowPoster => 'Below Poster';
-
-  @override
-  String get titlePositionInsidePoster => 'Inside Poster';
-
-  @override
-  String get player => 'Spelare';
-
-  @override
-  String get defaultPlayer => 'Standardspelare';
-
-  @override
-  String get leftGesture => 'Vänster gest';
-
-  @override
-  String get rightGesture => 'Höger gest';
-
-  @override
-  String get doubleTapToSeek => 'Dubbelklicka för att spola';
-
-  @override
-  String get swipeToSeek => 'Svep för att spola';
-
-  @override
-  String get seekDuration => 'Spolningstid';
-
-  @override
-  String get bufferDepth => 'Buffertdjup';
-
-  @override
-  String get defaultResizeMode => 'Standardvisningsläge';
-
-  @override
-  String get hardwareDecoding => 'Hårdvaruavkodning';
-
-  @override
-  String get network => 'Nätverk';
-
-  @override
-  String get dnsOverHttps => 'DNS över HTTPS';
-
-  @override
-  String get dohProvider => 'DoH-leverantör';
-
-  @override
-  String get githubProxy => 'GitHub Proxy';
-
-  @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
-
-  @override
-  String get manageExtensions => 'Hantera tillägg';
-
-  @override
-  String get appData => 'Appdata';
-
-  @override
-  String get resetDataKeepExtensions => 'Återställ data (behåll tillägg)';
-
-  @override
-  String get developer => 'Utvecklare';
-
-  @override
-  String get developerOptions => 'Utvecklaralternativ';
-
-  @override
-  String get about => 'Om appen';
-
-  @override
-  String get version => 'Version';
-
-  @override
-  String get enabled => 'Aktiverad';
-
-  @override
-  String get disabled => 'Inaktiverad';
-
-  @override
-  String get discord => 'Discord';
-
-  @override
-  String get discordSubtitle => 'Gå med i vår server';
-
-  @override
-  String get telegram => 'Telegram';
-
-  @override
-  String get telegramSubtitle => 'Gå med i vår kanal';
-
-  @override
-  String developedBy(String name) {
-    return 'Developed by $name';
-  }
-
-  @override
-  String get system => 'System';
-
-  @override
-  String get dark => 'Mörkt';
-
-  @override
-  String get light => 'Ljust';
-
-  @override
-  String get later => 'Senare';
-
-  @override
-  String get updateNow => 'Uppdatera nu';
+  String get bookmarks => 'Bokmärken';
 
   @override
   String get save => 'Spara';
@@ -189,13 +51,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get delete => 'Radera';
 
   @override
-  String get viewDetails => 'Visa detaljer';
+  String get retry => 'Försök igen';
 
   @override
-  String get clearAll => 'Rensa allt';
-
-  @override
-  String get clearAllHistory => 'Rensa historik';
+  String get ok => 'OK';
 
   @override
   String get all => 'Alla';
@@ -204,84 +63,189 @@ class AppLocalizationsSv extends AppLocalizations {
   String get none => 'Ingen';
 
   @override
-  String get confirmDownload => 'Bekräfta nedladdning';
+  String get on => 'På';
 
   @override
-  String get downloadNow => 'Ladda ner nu';
+  String get off => 'Av';
 
   @override
-  String get selectSource => 'Välj källa';
+  String get yesDelete => 'Ja, radera';
 
   @override
-  String get downloadUnavailable => 'Ej tillgänglig';
+  String get no => 'Nej';
 
   @override
-  String get selectAnotherSource => 'Välj en annan';
+  String get viewDetails => 'Visa detaljer';
 
   @override
-  String get watchHistoryCleared => 'Tittarhistorik rensad';
+  String get viewAll => 'Visa alla';
 
   @override
-  String get downloadingUpdate => 'Laddar ner uppdatering...';
+  String get clearAll => 'Rensa allt';
 
   @override
-  String errorPrefix(String message) {
-    return 'Fel: $message';
+  String get startOver => 'Börja om';
+
+  @override
+  String get goBack => 'Gå tillbaka';
+
+  @override
+  String get showMore => 'Visa mer';
+
+  @override
+  String get showLess => 'Visa mindre';
+
+  @override
+  String get install => 'Installera';
+
+  @override
+  String get updateNow => 'Uppdatera nu';
+
+  @override
+  String get later => 'Senare';
+
+  @override
+  String get enabled => 'Aktiverad';
+
+  @override
+  String get disabled => 'Inaktiverad';
+
+  @override
+  String get recommended => 'Rekommenderat';
+
+  @override
+  String get loading => 'Laddar...';
+
+  @override
+  String get hintSelect => 'Select';
+
+  @override
+  String get hintBack => 'Back';
+
+  @override
+  String get hintExit => 'Exit';
+
+  @override
+  String get hintMenu => 'Menu';
+
+  @override
+  String get hintView => 'View';
+
+  @override
+  String get hintKeyboard => 'Keyboard';
+
+  @override
+  String get hintFilter => 'Filter';
+
+  @override
+  String get hintFilters => 'Filters';
+
+  @override
+  String get hintSearch => 'Search';
+
+  @override
+  String get hintFillQuery => 'Fill Query';
+
+  @override
+  String get hintType => 'Type';
+
+  @override
+  String get hintList => 'List';
+
+  @override
+  String get hintExpand => 'Expand';
+
+  @override
+  String get hintCollapse => 'Collapse';
+
+  @override
+  String get hintDeleteAll => 'Delete All';
+
+  @override
+  String get hintDelete => 'Delete';
+
+  @override
+  String get hintPrevTab => 'Prev Tab';
+
+  @override
+  String get hintNextTab => 'Next Tab';
+
+  @override
+  String get hintPlay => 'Play';
+
+  @override
+  String get hintPause => 'Pause';
+
+  @override
+  String get hintResume => 'Resume';
+
+  @override
+  String get hintRemove => 'Remove';
+
+  @override
+  String get hintClearAll => 'Clear All';
+
+  @override
+  String get hintSearchField => 'Search field';
+
+  @override
+  String get hintSelectToggle => 'Select / Toggle';
+
+  @override
+  String get hintBrowse => 'Browse';
+
+  @override
+  String get hintAddRepo => 'Add Repo';
+
+  @override
+  String get hintDownloadAll => 'Download All';
+
+  @override
+  String get hintDeleteRepo => 'Delete Repo';
+
+  @override
+  String get hintSettings => 'Settings';
+
+  @override
+  String get hintInstall => 'Install';
+
+  @override
+  String get hintUpdate => 'Update';
+
+  @override
+  String get hintViewAll => 'View All';
+
+  @override
+  String get hintDeselect => 'Deselect';
+
+  @override
+  String get hintRemoveBookmark => 'Remove Bookmark';
+
+  @override
+  String get hintAddBookmark => 'Add Bookmark';
+
+  @override
+  String get hintManageDownload => 'Manage Download';
+
+  @override
+  String get hintDownloading => 'Downloading...';
+
+  @override
+  String get hintDownload => 'Download';
+
+  @override
+  String get hintScroll => 'Scroll';
+
+  @override
+  String hintSeek(Object seconds) {
+    return 'Seek ${seconds}s';
   }
 
   @override
-  String updateAvailableTag(String tag) {
-    return 'Uppdatering tillgänglig: $tag';
-  }
+  String get exploreAnime => 'Explore Anime';
 
   @override
-  String get selectProviderToStart => 'Välj en leverantör för att börja titta';
-
-  @override
-  String get tapExtensionIcon => 'Tryck på tilläggsikonen i hörnet';
-
-  @override
-  String get continueWatching => 'Fortsätt titta';
-
-  @override
-  String get noInternetConnection => 'Ingen internetanslutning';
-
-  @override
-  String get siteNotReachable => 'Sidan kan inte nås';
-
-  @override
-  String get checkConnectionOrDownloads =>
-      'Kontrollera din anslutning eller se ditt nedladdade innehåll.';
-
-  @override
-  String get tryVpnOrConnection =>
-      'Försök använda en VPN eller kontrollera din internetanslutning.';
-
-  @override
-  String errorDetails(String error) {
-    return 'Feldetaljer: $error';
-  }
-
-  @override
-  String get goToDownloads => 'Gå till nedladdningar';
-
-  @override
-  String get selectProvider => 'Välj leverantör';
-
-  @override
-  String get searchHint => 'Sök filmer, serier...';
-
-  @override
-  String get searchFavoriteContent => 'Sök efter ditt favoritinnehåll';
-
-  @override
-  String get pressSearchOrEnter => 'Tryck på Sök eller Enter för att börja';
-
-  @override
-  String get noResultsFound => 'Inga resultat hittades.';
-
-  @override
-  String get couldNotLoadTrending => 'Kunde inte ladda trender';
+  String get exploreMovies => 'Explore Movies';
 
   @override
   String get popularMovies => 'Populära filmer';
@@ -305,181 +269,55 @@ class AppLocalizationsSv extends AppLocalizations {
   String get lastVideosTVShows => 'Senaste serierna';
 
   @override
-  String get downloads => 'Nedladdningar';
+  String get continueWatching => 'Fortsätt titta';
 
   @override
-  String get bookmarks => 'Bokmärken';
+  String get couldNotLoadTrending => 'Kunde inte ladda trender';
 
   @override
-  String get noDownloadsYet => 'Inga nedladdningar ännu';
+  String get selectProviderToStart => 'Välj en leverantör för att börja titta';
 
   @override
-  String episodesCount(int count, int done) {
-    return '$count avsnitt • $done klara';
-  }
+  String get tapExtensionIcon => 'Tryck på tilläggsikonen i hörnet';
 
   @override
-  String get deleteAllEpisodes => 'Radera alla avsnitt';
+  String get searchFavoriteContent => 'Sök efter ditt favoritinnehåll';
 
   @override
-  String confirmDeleteAllEpisodes(int count, String title) {
-    return 'Är du säker på att du vill radera alla $count avsnitt av \"$title\" och deras filer?';
-  }
+  String get pressSearchOrEnter => 'Tryck på Sök eller Enter för att börja';
 
   @override
-  String get deleteAll => 'Radera alla';
+  String get noResultsFound => 'Inga resultat hittades.';
 
   @override
-  String get completed => 'Klar';
+  String get searchHint => 'Sök filmer, serier...';
 
   @override
-  String get statusQueued => 'I kö...';
+  String get searchScope => 'Search Scope';
 
   @override
-  String get statusDownloading => 'Laddar ner...';
+  String get nonLivestreams => 'Non Livestreams';
 
   @override
-  String get statusFinished => 'Klar';
+  String get movies => 'Filmer';
 
   @override
-  String get statusFailed => 'Misslyckades';
+  String get series => 'Serier';
 
   @override
-  String get statusCanceled => 'Avbruten';
+  String get anime => 'Anime';
 
   @override
-  String get statusPaused => 'Pausad';
+  String get liveStreams => 'Livestreamar';
 
   @override
-  String get statusWaiting => 'Väntar...';
+  String get live => 'LIVE';
 
   @override
-  String get fileNotFoundRemoving =>
-      'Filen hittades inte på disken. Tar bort posten.';
+  String get movieDetails => 'Filminformation';
 
   @override
-  String get fileNotFound => 'Filen hittades inte';
-
-  @override
-  String get deleteDownload => 'Radera nedladdning';
-
-  @override
-  String get confirmDeleteDownload =>
-      'Är du säker på att du vill radera denna nedladdning?';
-
-  @override
-  String get libraryEmpty => 'Ditt bibliotek är tomt';
-
-  @override
-  String get language => 'Språk';
-
-  @override
-  String get english => 'Engelska';
-
-  @override
-  String get hindi => 'Hindi';
-
-  @override
-  String get kannada => 'Kannada';
-
-  @override
-  String get unknown => 'Okänt';
-
-  @override
-  String get recommended => 'Rekommenderat';
-
-  @override
-  String get on => 'På';
-
-  @override
-  String get off => 'Av';
-
-  @override
-  String get installRemoveProviders => 'Installera eller ta bort leverantörer';
-
-  @override
-  String get resetDataSubtitle =>
-      'Rensa inställningar och databas, behåll insticksfiler';
-
-  @override
-  String get factoryResetSubtitle =>
-      'Radera all data, inställningar och tillägg';
-
-  @override
-  String get developerOptionsSubtitle =>
-      'Felsökningsverktyg och lokal uppspelning';
-
-  @override
-  String get loading => 'Laddar...';
-
-  @override
-  String get sec => 'sek';
-
-  @override
-  String get min => 'min';
-
-  @override
-  String get internalPlayer => 'Intern (media_kit)';
-
-  @override
-  String get builtInPlayer => 'Inbyggd spelare';
-
-  @override
-  String get customNotSet => 'Anpassad (inte inställd)';
-
-  @override
-  String selectGesture(String side) {
-    return 'Välj $side gest';
-  }
-
-  @override
-  String get left => 'vänster';
-
-  @override
-  String get right => 'höger';
-
-  @override
-  String get selectSeekDuration => 'Välj spolningstid';
-
-  @override
-  String get selectBufferDepth => 'Välj buffertdjup';
-
-  @override
-  String get subtitleSettings => 'Undertextinställningar';
-
-  @override
-  String size(int size) {
-    return 'Storlek: $size';
-  }
-
-  @override
-  String get background => 'Bakgrund';
-
-  @override
-  String get customDohUrlLabel => 'Anpassad DoH-URL';
-
-  @override
-  String get enterCustomDohUrl => 'Ange din egen DoH-URL';
-
-  @override
-  String get chooseTheme => 'Välj tema';
-
-  @override
-  String get resetDataDialogTitle => 'Återställa data?';
-
-  @override
-  String get resetDataDialogContent =>
-      'Detta rensar inställningar, favoriter och historik. Dina installerade tillägg kommer INTE raderas.';
-
-  @override
-  String get factoryResetDialogTitle => 'Fabriksåterställning?';
-
-  @override
-  String get factoryResetDialogContent =>
-      'Detta raderar ALLT: favoriter, historik, inställningar och ALLA tillägg. Detta kan inte ångras.';
-
-  @override
-  String get selectLanguage => 'Välj språk';
+  String get showDetails => 'Visa detaljer';
 
   @override
   String get synopsis => 'Sammanfattning';
@@ -488,45 +326,298 @@ class AppLocalizationsSv extends AppLocalizations {
   String get noDescription => 'Ingen beskrivning tillgänglig.';
 
   @override
-  String get videoAlreadyDownloadedPrompt =>
-      'Denna video har redan laddats ner. Vad vill du göra?';
+  String get director => 'Regissör';
+
+  @override
+  String get creator => 'Skapare';
+
+  @override
+  String get tagline => 'Tagline';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get releaseDate => 'Utgivningsdatum';
+
+  @override
+  String get firstAirDate => 'Sändes första gången';
+
+  @override
+  String get originalLanguage => 'Originalspråk';
+
+  @override
+  String get originCountry => 'Ursprungsland';
+
+  @override
+  String get budgetLabel => 'Budget';
+
+  @override
+  String get revenueLabel => 'Intäkt';
+
+  @override
+  String get seasons => 'Säsonger';
+
+  @override
+  String get episodes => 'Avsnitt';
+
+  @override
+  String get noEpisodesFound => 'Inga avsnitt hittades';
+
+  @override
+  String seasonWithNumber(Object number) {
+    return 'Säsong $number';
+  }
+
+  @override
+  String seasonsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count säsonger',
+      one: '1 säsong',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seasonWithEpisodes(Object number, int count) {
+    return 'Säsong $number ($count avsnitt)';
+  }
+
+  @override
+  String episodesCount(int count, int done) {
+    return '$count avsnitt • $done klara';
+  }
+
+  @override
+  String episodeCountOnly(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count avsnitt',
+      one: '1 avsnitt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String titleWithParam(String title) {
+    return 'Titel: $title';
+  }
+
+  @override
+  String sourceWithParam(String source) {
+    return 'Källa: $source';
+  }
+
+  @override
+  String sizeWithParam(String size) {
+    return 'Storlek: $size';
+  }
+
+  @override
+  String get play => 'Spela';
 
   @override
   String get playNow => 'Spela nu';
 
   @override
-  String get upNext => 'Up Next';
-
-  @override
-  String get deleteDownloadPrompt => 'Radera nedladdning?';
-
-  @override
-  String get deleteDownloadConfirmation =>
-      'Är du säker på att du vill radera denna fil? Detta kan inte ångras.';
-
-  @override
-  String get no => 'Nej';
-
-  @override
-  String get yesDelete => 'Ja, radera';
-
-  @override
-  String get downloadPaused => 'Nedladdning pausad';
-
-  @override
-  String get downloading => 'Laddar ner';
-
-  @override
-  String get speed => 'Hastighet';
-
-  @override
-  String get remaining => 'Återstår';
-
-  @override
   String get resume => 'Fortsätt';
 
   @override
+  String get resumeNow => 'Återuppta nu';
+
+  @override
   String get pause => 'Pausa';
+
+  @override
+  String get watching => 'Tittar';
+
+  @override
+  String get watched => 'Sett';
+
+  @override
+  String get lastWatched => 'Senast sedda';
+
+  @override
+  String get resumingPlayback => 'Återupptar uppspelning';
+
+  @override
+  String pausedAt(String time) {
+    return 'Pausad vid $time';
+  }
+
+  @override
+  String resumesAutomatically(int count) {
+    return 'Återupptar automatiskt om $count sek';
+  }
+
+  @override
+  String percentWatched(int percent) {
+    return '$percent% tittat';
+  }
+
+  @override
+  String playEpisode(String label, Object season, Object episode) {
+    return '$label S$season E$episode';
+  }
+
+  @override
+  String playEpisodeOnly(String label, int episode) {
+    return '$label E$episode';
+  }
+
+  @override
+  String get skip => 'Hoppa över';
+
+  @override
+  String get skipIntro => 'Skip Intro';
+
+  @override
+  String get skipOutro => 'Skip Outro';
+
+  @override
+  String get skipRecap => 'Skip Recap';
+
+  @override
+  String get goLive => 'Gå live';
+
+  @override
+  String get dismiss => 'Stäng';
+
+  @override
+  String get nextUp => 'Nästa';
+
+  @override
+  String get playing => 'Spelar';
+
+  @override
+  String get playbackSpeed => 'Uppspelningshastighet';
+
+  @override
+  String get volume => 'Volym';
+
+  @override
+  String get brightness => 'Ljusstyrka';
+
+  @override
+  String get fit => 'Passa';
+
+  @override
+  String get zoom => 'Zooma';
+
+  @override
+  String get stretch => 'Sträck ut';
+
+  @override
+  String get resize => 'Storlek';
+
+  @override
+  String get next => 'Nästa';
+
+  @override
+  String get pip => 'PiP';
+
+  @override
+  String get rotate => 'Rotera';
+
+  @override
+  String get windowed => 'Fönster';
+
+  @override
+  String get fullscreen => 'Helskärm';
+
+  @override
+  String sourceAttempt(int index, int total) {
+    return 'Källa $index av $total';
+  }
+
+  @override
+  String get unlock => 'Lås upp';
+
+  @override
+  String get lock => 'Lås';
+
+  @override
+  String get resolving => 'Löser länkar...';
+
+  @override
+  String get trying => 'Försöker';
+
+  @override
+  String get failed => 'Misslyckades';
+
+  @override
+  String get selected => 'Vald';
+
+  @override
+  String get pending => 'Väntar';
+
+  @override
+  String get local => 'Lokal';
+
+  @override
+  String get remote => 'Fjärr';
+
+  @override
+  String get torrent => 'Torrent';
+
+  @override
+  String get sources => 'Källor';
+
+  @override
+  String get tracks => 'Spår';
+
+  @override
+  String get content => 'Innehåll';
+
+  @override
+  String get stats => 'Statistik';
+
+  @override
+  String get selectSource => 'Välj källa';
+
+  @override
+  String get selectAnotherSource => 'Välj en annan';
+
+  @override
+  String get selectSourceToPlay => 'Välj en källa att spela upp.';
+
+  @override
+  String selectSourceForPlayer(String playerName) {
+    return 'Källa för $playerName';
+  }
+
+  @override
+  String get availableSources => 'Tillgängliga källor';
+
+  @override
+  String get refreshingLiveStream => 'Uppdaterar livestream...';
+
+  @override
+  String get playLocalVideo => 'Lokal video';
+
+  @override
+  String get playLocalVideoSubtitle => 'Spela fil från enhet';
+
+  @override
+  String get streamUrl => 'Stream-URL';
+
+  @override
+  String get streamUrlSubtitle => 'Spela från nätverks-URL';
+
+  @override
+  String get streamTorrent => 'Stream torrent';
+
+  @override
+  String get streamTorrentSubtitle => 'Välj lokal torrent-fil';
+
+  @override
+  String get enterVideoUrlHint => 'Ange video-URL (http, magnet etc.)';
+
+  @override
+  String get networkStream => 'Nätverksström';
 
   @override
   String get torrentContent => 'Torrent-innehåll';
@@ -538,6 +629,17 @@ class AppLocalizationsSv extends AppLocalizations {
   String get noAudioTracks => 'Inga ljudspår hittades';
 
   @override
+  String get qualityNotGuaranteed =>
+      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
+
+  @override
+  String get keepSourcesOriginalOrder => 'Keep sources in original order';
+
+  @override
+  String get noSourcesQualityFilterFallback =>
+      'No sources matched your quality filter — showing all sources.';
+
+  @override
   String get subtitles => 'Undertexter';
 
   @override
@@ -545,9 +647,6 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get noSubtitlesFound => 'Inga undertextspår hittades';
-
-  @override
-  String get playbackSpeed => 'Uppspelningshastighet';
 
   @override
   String get subtitleOptions => 'Alternativ för undertexter';
@@ -586,24 +685,6 @@ class AppLocalizationsSv extends AppLocalizations {
       'Stilinställningar för undertexter är för tillfället endast tillgängliga i media_kit-spelaren.';
 
   @override
-  String get resetToDefault => 'Återställ till standard';
-
-  @override
-  String get fontSize => 'Textstorlek';
-
-  @override
-  String get verticalPosition => 'Vertikal position';
-
-  @override
-  String get textColor => 'Textfärg';
-
-  @override
-  String get backgroundColor => 'Bakgrundsfärg';
-
-  @override
-  String get backgroundOpacity => 'Bakgrundens opacitet';
-
-  @override
   String get subtitleSearch => 'Sök efter undertexter';
 
   @override
@@ -628,139 +709,95 @@ class AppLocalizationsSv extends AppLocalizations {
       'Kunde inte ladda undertexter. Försök igen.';
 
   @override
-  String get noReposFound => 'Inga källor eller insticksfiler hittades';
+  String get sub => 'Sub';
 
   @override
-  String get downloadAllProviders => 'Ladda ner alla';
-
-  @override
-  String get removeRepository => 'Ta bort källa';
-
-  @override
-  String get addRepo => 'Lägg till källa';
-
-  @override
-  String get extensionsNotInRepos => 'Tillägg som inte finns i källor';
-
-  @override
-  String get noLongerInRepo => 'Finns inte längre i någon källa';
-
-  @override
-  String get addRepoToBrowse =>
-      'Lägg till en källa för att bläddra bland insticksfiler';
-
-  @override
-  String get debugExtensions => 'Felsök tillägg';
-
-  @override
-  String removeRepoConfirm(String repoName) {
-    return 'Ta bort $repoName?';
-  }
-
-  @override
-  String get removeRepoWarning =>
-      'Detta tar bort källan och avinstallerar ALLA dess insticksfiler.';
-
-  @override
-  String get addRepository => 'Lägg till källa';
-
-  @override
-  String get repoUrlOrShortcode => 'Källans URL eller kortkod';
-
-  @override
-  String get assetPlugin => 'Inbyggd insticksfil';
-
-  @override
-  String get installed => 'Installerad';
-
-  @override
-  String get repositories => 'Repositories';
-
-  @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
-
-  @override
-  String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
-
-  @override
-  String get browseRepositories => 'Browse Repositories';
-
-  @override
-  String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
-
-  @override
-  String updateTo(String version) {
-    return 'Uppdatera till $version';
-  }
-
-  @override
-  String get install => 'Installera';
-
-  @override
-  String get error => 'Fel';
-
-  @override
-  String get ok => 'OK';
-
-  @override
-  String pluginSettings(String pluginName) {
-    return 'Inställningar för $pluginName';
-  }
-
-  @override
-  String get movies => 'Filmer';
-
-  @override
-  String get series => 'Serier';
-
-  @override
-  String get anime => 'Anime';
-
-  @override
-  String get liveStreams => 'Livestreamar';
-
-  @override
-  String get debug => 'DEBUG';
-
-  @override
-  String extensionsUpdated(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count tillägg uppdaterade',
-      one: '1 tillägg uppdaterat',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get invalidNavigation => 'Ogiltig navigering.';
-
-  @override
-  String get startOver => 'Börja om';
-
-  @override
-  String get goBack => 'Gå tillbaka';
-
-  @override
-  String get resolving => 'Löser länkar...';
-
-  @override
-  String get downloaded => 'Nedladdad';
+  String get dub => 'Dub';
 
   @override
   String get download => 'Ladda ner';
 
   @override
-  String get debugOnlyFeature => 'Endast för debug-versioner';
+  String get downloading => 'Laddar ner';
 
   @override
-  String get streamUrl => 'Stream-URL';
+  String get downloaded => 'Nedladdad';
 
   @override
-  String get play => 'Spela';
+  String get downloadNow => 'Ladda ner nu';
+
+  @override
+  String get confirmDownload => 'Bekräfta nedladdning';
+
+  @override
+  String get downloadUnavailable => 'Ej tillgänglig';
+
+  @override
+  String get downloadPaused => 'Nedladdning pausad';
+
+  @override
+  String get downloadingUpdate => 'Laddar ner uppdatering...';
+
+  @override
+  String get manageExtensions => 'Hantera tillägg';
+
+  @override
+  String get deleteDownload => 'Radera nedladdning';
+
+  @override
+  String get deleteDownloadPrompt => 'Radera nedladdning?';
+
+  @override
+  String get deleteDownloadConfirmation =>
+      'Är du säker på att du vill radera denna fil? Detta kan inte ångras.';
+
+  @override
+  String get deleteAllEpisodes => 'Radera alla avsnitt';
+
+  @override
+  String confirmDeleteAllEpisodes(int count, String title) {
+    return 'Är du säker på att du vill radera alla $count avsnitt av \"$title\" och deras filer?';
+  }
+
+  @override
+  String get noDownloadsYet => 'Inga nedladdningar ännu';
+
+  @override
+  String get goToDownloads => 'Gå till nedladdningar';
+
+  @override
+  String get speed => 'Hastighet';
+
+  @override
+  String get remaining => 'Återstår';
+
+  @override
+  String get statusQueued => 'I kö...';
+
+  @override
+  String get statusDownloading => 'Laddar ner...';
+
+  @override
+  String get statusFinished => 'Klar';
+
+  @override
+  String get statusFailed => 'Misslyckades';
+
+  @override
+  String get statusCanceled => 'Avbruten';
+
+  @override
+  String get statusPaused => 'Pausad';
+
+  @override
+  String get statusWaiting => 'Väntar...';
+
+  @override
+  String get fileNotFoundRemoving =>
+      'Filen hittades inte på disken. Tar bort posten.';
+
+  @override
+  String get fileNotFound => 'Filen hittades inte';
 
   @override
   String get verifyingSourceSize => 'Verifierar källa och storlek...';
@@ -770,82 +807,35 @@ class AppLocalizationsSv extends AppLocalizations {
       'Filen kommer att sparas i mappen Hämtade filer.';
 
   @override
-  String get resumingPlayback => 'Återupptar uppspelning';
+  String get videoAlreadyDownloadedPrompt =>
+      'Denna video har redan laddats ner. Vad vill du göra?';
 
   @override
-  String pausedAt(String time) {
-    return 'Pausad vid $time';
+  String size(int size) {
+    return 'Storlek: $size';
   }
 
   @override
-  String resumesAutomatically(int count) {
-    return 'Återupptar automatiskt om $count sek';
-  }
+  String get deleteAll => 'Radera alla';
 
   @override
-  String get resumeNow => 'Återuppta nu';
+  String get completed => 'Klar';
 
   @override
-  String get playbackError => 'Uppspelningsfel';
+  String get confirmDeleteDownload =>
+      'Är du säker på att du vill radera denna nedladdning?';
 
   @override
-  String get confirmClearHistory => 'Radera all historik?';
+  String get libraryEmpty => 'Ditt bibliotek är tomt';
 
   @override
-  String seasonWithNumber(Object number) {
-    return 'Säsong $number';
-  }
+  String get addedToLibrary => 'Added to library';
 
   @override
-  String get starting => 'Startar...';
+  String get removedFromLibrary => 'Removed from library';
 
   @override
-  String percentWatched(int percent) {
-    return '$percent% tittat';
-  }
-
-  @override
-  String get sub => 'Sub';
-
-  @override
-  String get dub => 'Dub';
-
-  @override
-  String playEpisode(String label, Object season, Object episode) {
-    return '$label S$season E$episode';
-  }
-
-  @override
-  String playEpisodeOnly(String label, int episode) {
-    return '$label E$episode';
-  }
-
-  @override
-  String get debugTools => 'Felsökningsverktyg';
-
-  @override
-  String get playLocalVideo => 'Lokal video';
-
-  @override
-  String get playLocalVideoSubtitle => 'Spela fil från enhet';
-
-  @override
-  String get streamUrlSubtitle => 'Spela från nätverks-URL';
-
-  @override
-  String get streamTorrent => 'Stream torrent';
-
-  @override
-  String get streamTorrentSubtitle => 'Välj lokal torrent-fil';
-
-  @override
-  String get loadPluginFromAssets => 'Ladda insticksfil från tillgångar';
-
-  @override
-  String get enterVideoUrlHint => 'Ange video-URL (http, magnet etc.)';
-
-  @override
-  String get networkStream => 'Nätverksström';
+  String get removeFromHistory => 'Ta bort från historik';
 
   @override
   String removedFromHistory(String title) {
@@ -853,61 +843,198 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String get custom => 'Anpassad';
+  String get clearAllHistory => 'Rensa historik';
 
   @override
-  String get refreshingLiveStream => 'Uppdaterar livestream...';
+  String get watchHistoryCleared => 'Tittarhistorik rensad';
 
   @override
-  String get removeFromHistory => 'Ta bort från historik';
+  String get confirmClearHistory => 'Radera all historik?';
 
   @override
-  String get live => 'LIVE';
-
-  @override
-  String get volume => 'Volym';
-
-  @override
-  String get brightness => 'Ljusstyrka';
-
-  @override
-  String get fit => 'Passa';
-
-  @override
-  String get zoom => 'Zooma';
-
-  @override
-  String get stretch => 'Sträck ut';
-
-  @override
-  String titleWithParam(String title) {
-    return 'Titel: $title';
+  String syncedProgress(String percentage) {
+    return 'Synced progress: $percentage%';
   }
 
   @override
-  String sourceWithParam(String source) {
-    return 'Källa: $source';
+  String get general => 'Allmänt';
+
+  @override
+  String get player => 'Spelare';
+
+  @override
+  String get network => 'Nätverk';
+
+  @override
+  String get appData => 'Appdata';
+
+  @override
+  String get developer => 'Utvecklare';
+
+  @override
+  String get about => 'Om appen';
+
+  @override
+  String get system => 'System';
+
+  @override
+  String get saveSettings => 'Save settings';
+
+  @override
+  String get applySettings => 'Apply Settings';
+
+  @override
+  String get resetToDefault => 'Återställ till standard';
+
+  @override
+  String get appTheme => 'App-tema';
+
+  @override
+  String get dark => 'Mörkt';
+
+  @override
+  String get light => 'Ljust';
+
+  @override
+  String get chooseTheme => 'Välj tema';
+
+  @override
+  String get recordWatchHistory => 'Spara tittarhistorik';
+
+  @override
+  String get defaultHomeScreen => 'Standardhemskärm';
+
+  @override
+  String get titlePosition => 'Title Position';
+
+  @override
+  String get titlePositionBelowPoster => 'Below Poster';
+
+  @override
+  String get titlePositionInsidePoster => 'Inside Poster';
+
+  @override
+  String get bigPictureMode => 'Experimental: Big Picture Mode';
+
+  @override
+  String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
+
+  @override
+  String get targetDisplay => 'Preferred Display';
+
+  @override
+  String get whichMonitorShouldBigPictureUse =>
+      'Which monitor should Big Picture use?';
+
+  @override
+  String get language => 'Språk';
+
+  @override
+  String get selectLanguage => 'Välj språk';
+
+  @override
+  String get english => 'Engelska';
+
+  @override
+  String get hindi => 'Hindi';
+
+  @override
+  String get kannada => 'Kannada';
+
+  @override
+  String get unknown => 'Okänt';
+
+  @override
+  String get defaultPlayer => 'Standardspelare';
+
+  @override
+  String get internalPlayer => 'Intern (media_kit)';
+
+  @override
+  String get builtInPlayer => 'Inbyggd spelare';
+
+  @override
+  String get customNotSet => 'Anpassad (inte inställd)';
+
+  @override
+  String get leftGesture => 'Vänster gest';
+
+  @override
+  String get rightGesture => 'Höger gest';
+
+  @override
+  String selectGesture(String side) {
+    return 'Välj $side gest';
   }
 
   @override
-  String sizeWithParam(String size) {
-    return 'Storlek: $size';
-  }
+  String get left => 'vänster';
 
   @override
-  String usingInternalPlayerError(String error) {
-    return 'Fel: $error. Använder intern spelare.';
-  }
+  String get right => 'höger';
 
   @override
-  String playerNotDetected(String playerName) {
-    return '$playerName hittades inte.';
-  }
+  String get doubleTapToSeek => 'Dubbelklicka för att spola';
 
   @override
-  String seasonWithEpisodes(Object number, int count) {
-    return 'Säsong $number ($count avsnitt)';
-  }
+  String get swipeToSeek => 'Svep för att spola';
+
+  @override
+  String get seekDuration => 'Spolningstid';
+
+  @override
+  String get selectSeekDuration => 'Välj spolningstid';
+
+  @override
+  String get min => 'min';
+
+  @override
+  String get sec => 'sek';
+
+  @override
+  String get bufferDepth => 'Buffertdjup';
+
+  @override
+  String get selectBufferDepth => 'Välj buffertdjup';
+
+  @override
+  String get defaultResizeMode => 'Standardvisningsläge';
+
+  @override
+  String get hardwareDecoding => 'Hårdvaruavkodning';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
+
+  @override
+  String get dnsOverHttps => 'DNS över HTTPS';
+
+  @override
+  String get dohProvider => 'DoH-leverantör';
+
+  @override
+  String get customDohUrlLabel => 'Anpassad DoH-URL';
+
+  @override
+  String get enterCustomDohUrl => 'Ange din egen DoH-URL';
 
   @override
   String get cloudflare => 'Cloudflare';
@@ -931,241 +1058,11 @@ class AppLocalizationsSv extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get tmdb => 'TMDB';
+  String get githubProxy => 'GitHub Proxy';
 
   @override
-  String selectSourceForPlayer(String playerName) {
-    return 'Källa för $playerName';
-  }
-
-  @override
-  String get noPluginsInstalled => 'Inga insticksfiler installerade';
-
-  @override
-  String get noPluginsMessage =>
-      'Installera tillägg för att bläddra och strömma innehåll.';
-
-  @override
-  String get goToExtensions => 'Gå till tillägg';
-
-  @override
-  String get availableSources => 'Tillgängliga källor';
-
-  @override
-  String get seasons => 'Säsonger';
-
-  @override
-  String get episodes => 'Avsnitt';
-
-  @override
-  String get selectSourceToPlay => 'Välj en källa att spela upp.';
-
-  @override
-  String episodeCountOnly(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count avsnitt',
-      one: '1 avsnitt',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noEpisodesFound => 'Inga avsnitt hittades';
-
-  @override
-  String get local => 'Lokal';
-
-  @override
-  String get remote => 'Fjärr';
-
-  @override
-  String get torrent => 'Torrent';
-
-  @override
-  String get unlock => 'Lås upp';
-
-  @override
-  String get lock => 'Lås';
-
-  @override
-  String get sources => 'Källor';
-
-  @override
-  String get tracks => 'Spår';
-
-  @override
-  String get content => 'Innehåll';
-
-  @override
-  String get stats => 'Statistik';
-
-  @override
-  String get resize => 'Storlek';
-
-  @override
-  String get next => 'Nästa';
-
-  @override
-  String get pip => 'PiP';
-
-  @override
-  String get rotate => 'Rotera';
-
-  @override
-  String get windowed => 'Fönster';
-
-  @override
-  String get fullscreen => 'Helskärm';
-
-  @override
-  String get movieDetails => 'Filminformation';
-
-  @override
-  String get showDetails => 'Visa detaljer';
-
-  @override
-  String get tagline => 'Tagline';
-
-  @override
-  String get status => 'Status';
-
-  @override
-  String get releaseDate => 'Utgivningsdatum';
-
-  @override
-  String get firstAirDate => 'Sändes första gången';
-
-  @override
-  String get originalLanguage => 'Originalspråk';
-
-  @override
-  String get originCountry => 'Ursprungsland';
-
-  @override
-  String get budgetLabel => 'Budget';
-
-  @override
-  String get revenueLabel => 'Intäkt';
-
-  @override
-  String get paused => 'Pausad';
-
-  @override
-  String get watched => 'Sett';
-
-  @override
-  String get watching => 'Tittar';
-
-  @override
-  String get lastWatched => 'Senast sedda';
-
-  @override
-  String get movie => 'Film';
-
-  @override
-  String get tvShow => 'Serie';
-
-  @override
-  String get failedToLoadContent => 'Laddning misslyckades';
-
-  @override
-  String get director => 'Regissör';
-
-  @override
-  String get creator => 'Skapare';
-
-  @override
-  String get showMore => 'Visa mer';
-
-  @override
-  String get showLess => 'Visa mindre';
-
-  @override
-  String get viewAll => 'Visa alla';
-
-  @override
-  String seasonsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count säsonger',
-      one: '1 säsong',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noInternetError => 'Inget internet';
-
-  @override
-  String get timeoutError => 'Tiden gick ut.';
-
-  @override
-  String get serverError => 'Serverfel.';
-
-  @override
-  String get contentNotFoundError => 'Hittades inte.';
-
-  @override
-  String get accessDeniedError => 'Åtkomst nekad.';
-
-  @override
-  String get serviceUnavailableError => 'Tjänsten inte tillgänglig.';
-
-  @override
-  String get generalError => 'Ett fel uppstod.';
-
-  @override
-  String get skip => 'Hoppa över';
-
-  @override
-  String get skipIntro => 'Skip Intro';
-
-  @override
-  String get skipOutro => 'Skip Outro';
-
-  @override
-  String get skipRecap => 'Skip Recap';
-
-  @override
-  String get goLive => 'Gå live';
-
-  @override
-  String get dismiss => 'Stäng';
-
-  @override
-  String get nextUp => 'Nästa';
-
-  @override
-  String sourceAttempt(int index, int total) {
-    return 'Källa $index av $total';
-  }
-
-  @override
-  String get trying => 'Försöker';
-
-  @override
-  String get failed => 'Misslyckades';
-
-  @override
-  String get selected => 'Vald';
-
-  @override
-  String get playing => 'Spelar';
-
-  @override
-  String get pending => 'Väntar';
-
-  @override
-  String get openSubtitles => 'OpenSubtitles';
-
-  @override
-  String get subDl => 'SubDL';
-
-  @override
-  String get subSource => 'SubSource';
+  String get githubProxySubtitle =>
+      'Route extension downloads through jsDelivr to bypass ISP blocks.';
 
   @override
   String get wifiQualityPreference => 'Kvalitetsinställning för Wi-Fi';
@@ -1175,6 +1072,165 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get anyNoPreference => 'Inget val';
+
+  @override
+  String get custom => 'Anpassad';
+
+  @override
+  String get subtitleSettings => 'Undertextinställningar';
+
+  @override
+  String get subtitleAppearance => 'Subtitle Appearance';
+
+  @override
+  String get background => 'Bakgrund';
+
+  @override
+  String get fontSettings => 'Font Settings';
+
+  @override
+  String get fontSize => 'Textstorlek';
+
+  @override
+  String get fontSizeSubtitle =>
+      'Overriding text size from subtitle files (6sp-60sp)';
+
+  @override
+  String get selectFontSize => 'Select Font Size';
+
+  @override
+  String get fileDefault => 'File Default';
+
+  @override
+  String get fontTypeface => 'Font Typeface';
+
+  @override
+  String get fontTypefaceSubtitle =>
+      'Choose from built-in fonts or load custom OTF/TTF';
+
+  @override
+  String get selectFontTypeface => 'Select Font Typeface';
+
+  @override
+  String get customFontFile => 'Custom Font File...';
+
+  @override
+  String get boldTextStyle => 'Bold Text Style';
+
+  @override
+  String get boldTextStyleSubtitle => 'Make subtitle text bold';
+
+  @override
+  String get italicTextStyle => 'Italic Text Style';
+
+  @override
+  String get italicTextStyleSubtitle => 'Make subtitle text slanted';
+
+  @override
+  String get textColor => 'Textfärg';
+
+  @override
+  String get navigateAndSelectColor => 'Navigate and select color';
+
+  @override
+  String get edgeSettings => 'Edge Settings';
+
+  @override
+  String get edgeType => 'Edge Type';
+
+  @override
+  String get edgeTypeSubtitle => 'Text borders/shadows (outline default)';
+
+  @override
+  String get selectEdgeType => 'Select Edge Type';
+
+  @override
+  String get edgeOutline => 'Outline';
+
+  @override
+  String get edgeDepressed => 'Depressed';
+
+  @override
+  String get edgeDropShadow => 'Drop Shadow';
+
+  @override
+  String get edgeRaised => 'Raised';
+
+  @override
+  String get edgeStrokeSize => 'Edge Stroke Size';
+
+  @override
+  String get edgeStrokeSizeSubtitle => 'Thicker outline borders (1px-60px)';
+
+  @override
+  String get outlineColor => 'Outline Color';
+
+  @override
+  String get backgroundAndLayout => 'Background & Layout';
+
+  @override
+  String get backgroundPillColor => 'Background Pill Color';
+
+  @override
+  String get backgroundOpacity => 'Bakgrundens opacitet';
+
+  @override
+  String get backgroundOpacitySubtitle => 'Pill opacity level (0% to 100%)';
+
+  @override
+  String get selectCornerRadius => 'Select Corner Radius';
+
+  @override
+  String get noneSharp => 'None (Sharp)';
+
+  @override
+  String get backgroundCornerRadius => 'Background Corner Radius';
+
+  @override
+  String get backgroundCornerRadiusSubtitle =>
+      'Round background corners (5px-50px)';
+
+  @override
+  String get elevationBottomPadding => 'Elevation (Bottom padding)';
+
+  @override
+  String get elevationSubtitle => 'Push subtitles higher (0dp-400dp)';
+
+  @override
+  String get selectAlignment => 'Select Alignment';
+
+  @override
+  String get autoExoAssDefault => 'Auto (Exo/Ass default)';
+
+  @override
+  String get alignment => 'Alignment';
+
+  @override
+  String get alignmentSubtitle => 'Screen alignment (SSA 1-9 coordinates)';
+
+  @override
+  String get contentCleaningAndFiltering => 'Content Cleaning & Filtering';
+
+  @override
+  String get removeBloat => 'Remove Bloat';
+
+  @override
+  String get removeBloatSubtitle =>
+      'Strip OpenSubtitles ads/promos (re-parses stream)';
+
+  @override
+  String get removeCaptions => 'Remove Captions';
+
+  @override
+  String get removeCaptionsSubtitle =>
+      'Strips bracketed text like [Music] or (cough)';
+
+  @override
+  String get forceUppercase => 'Force Uppercase';
+
+  @override
+  String get forceUppercaseSubtitle =>
+      'Display all subtitle cues in capital letters';
 
   @override
   String get subtitleAccounts => 'Undertextkonton';
@@ -1230,6 +1286,18 @@ class AppLocalizationsSv extends AppLocalizations {
   String get invalidApiKey => 'Invalid API Key';
 
   @override
+  String get openSubtitles => 'OpenSubtitles';
+
+  @override
+  String get subDl => 'SubDL';
+
+  @override
+  String get subSource => 'SubSource';
+
+  @override
+  String get tmdb => 'TMDB';
+
+  @override
   String get openSubtitlesAuthSubtitle =>
       'Enter your account credentials for higher limits and ad-free subtitles.';
 
@@ -1254,23 +1322,139 @@ class AppLocalizationsSv extends AppLocalizations {
   String get getApiKeyFromProfile => 'Get your API Key from SubSource Profile';
 
   @override
-  String get qualityNotGuaranteed =>
-      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
-
-  @override
-  String get keepSourcesOriginalOrder => 'Keep sources in original order';
-
-  @override
   String get openLink => 'Open link';
 
   @override
-  String get diagnostics => 'Diagnostik';
+  String pluginSettings(String pluginName) {
+    return 'Inställningar för $pluginName';
+  }
 
   @override
-  String get viewLogs => 'Visa loggar';
+  String get noConfigurableSettings =>
+      'This extension does not define configurable settings.';
 
   @override
-  String get viewLogsSubtitle => 'Visa appaktivitet och fel';
+  String get installRemoveProviders => 'Installera eller ta bort leverantörer';
+
+  @override
+  String get selectProvider => 'Välj leverantör';
+
+  @override
+  String get noPluginsInstalled => 'Inga insticksfiler installerade';
+
+  @override
+  String get noPluginsMessage =>
+      'Installera tillägg för att bläddra och strömma innehåll.';
+
+  @override
+  String get goToExtensions => 'Gå till tillägg';
+
+  @override
+  String get noReposFound => 'Inga källor eller insticksfiler hittades';
+
+  @override
+  String get downloadAllProviders => 'Ladda ner alla';
+
+  @override
+  String get removeRepository => 'Ta bort källa';
+
+  @override
+  String get addRepo => 'Lägg till källa';
+
+  @override
+  String get extensionsNotInRepos => 'Tillägg som inte finns i källor';
+
+  @override
+  String get noLongerInRepo => 'Finns inte längre i någon källa';
+
+  @override
+  String get addRepoToBrowse =>
+      'Lägg till en källa för att bläddra bland insticksfiler';
+
+  @override
+  String removeRepoConfirm(String repoName) {
+    return 'Ta bort $repoName?';
+  }
+
+  @override
+  String get removeRepoWarning =>
+      'Detta tar bort källan och avinstallerar ALLA dess insticksfiler.';
+
+  @override
+  String get addRepository => 'Lägg till källa';
+
+  @override
+  String get repoUrlOrShortcode => 'Källans URL eller kortkod';
+
+  @override
+  String get assetPlugin => 'Inbyggd insticksfil';
+
+  @override
+  String get installed => 'Installerad';
+
+  @override
+  String get repositories => 'Repositories';
+
+  @override
+  String get noExtensionsInstalled => 'No Extensions Installed';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Browse the Repositories tab to discover and install extensions.';
+
+  @override
+  String get browseRepositories => 'Browse Repositories';
+
+  @override
+  String get addRepoDescription =>
+      'Add a repository URL or shortcode to discover and install extension plugins.';
+
+  @override
+  String updateTo(String version) {
+    return 'Uppdatera till $version';
+  }
+
+  @override
+  String extensionsUpdated(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tillägg uppdaterade',
+      one: '1 tillägg uppdaterat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadPluginFromAssets => 'Ladda insticksfil från tillgångar';
+
+  @override
+  String get resetDataKeepExtensions => 'Återställ data (behåll tillägg)';
+
+  @override
+  String get resetDataSubtitle =>
+      'Rensa inställningar och databas, behåll insticksfiler';
+
+  @override
+  String get resetDataDialogTitle => 'Återställa data?';
+
+  @override
+  String get resetDataDialogContent =>
+      'Detta rensar inställningar, favoriter och historik. Dina installerade tillägg kommer INTE raderas.';
+
+  @override
+  String get factoryReset => 'Fabriksåterställning';
+
+  @override
+  String get factoryResetSubtitle =>
+      'Radera all data, inställningar och tillägg';
+
+  @override
+  String get factoryResetDialogTitle => 'Fabriksåterställning?';
+
+  @override
+  String get factoryResetDialogContent =>
+      'Detta raderar ALLT: favoriter, historik, inställningar och ALLA tillägg. Detta kan inte ångras.';
 
   @override
   String get clearCache => 'Clear image and video cache';
@@ -1296,23 +1480,137 @@ class AppLocalizationsSv extends AppLocalizations {
   String get calculating => 'Calculating…';
 
   @override
-  String get playerControls => 'Player Controls';
+  String get developerOptions => 'Utvecklaralternativ';
 
   @override
-  String get playerControlsSubtitle => 'Show or hide player control buttons';
+  String get developerOptionsSubtitle =>
+      'Felsökningsverktyg och lokal uppspelning';
 
   @override
-  String get showPip => 'Picture-in-Picture button';
+  String get debugExtensions => 'Felsök tillägg';
 
   @override
-  String get showResize => 'Resize button';
+  String get debugTools => 'Felsökningsverktyg';
 
   @override
-  String get showRotate => 'Rotate button';
+  String get diagnostics => 'Diagnostik';
 
   @override
-  String get showPlaybackSpeed => 'Playback speed button';
+  String get viewLogs => 'Visa loggar';
 
   @override
-  String get showEpisodes => 'Episodes button';
+  String get viewLogsSubtitle => 'Visa appaktivitet och fel';
+
+  @override
+  String get debug => 'DEBUG';
+
+  @override
+  String get debugOnlyFeature => 'Endast för debug-versioner';
+
+  @override
+  String get version => 'Version';
+
+  @override
+  String get discord => 'Discord';
+
+  @override
+  String get discordSubtitle => 'Gå med i vår server';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get telegramSubtitle => 'Gå med i vår kanal';
+
+  @override
+  String developedBy(String name) {
+    return 'Developed by $name';
+  }
+
+  @override
+  String get updateAvailable => 'Uppdatering tillgänglig';
+
+  @override
+  String updateAvailableTag(String tag) {
+    return 'Uppdatering tillgänglig: $tag';
+  }
+
+  @override
+  String get error => 'Fel';
+
+  @override
+  String errorPrefix(String message) {
+    return 'Fel: $message';
+  }
+
+  @override
+  String errorDetails(String error) {
+    return 'Feldetaljer: $error';
+  }
+
+  @override
+  String get startupError => 'Startfel';
+
+  @override
+  String get noInternetConnection => 'Ingen internetanslutning';
+
+  @override
+  String get siteNotReachable => 'Sidan kan inte nås';
+
+  @override
+  String get checkConnectionOrDownloads =>
+      'Kontrollera din anslutning eller se ditt nedladdade innehåll.';
+
+  @override
+  String get tryVpnOrConnection =>
+      'Försök använda en VPN eller kontrollera din internetanslutning.';
+
+  @override
+  String get noInternetError => 'Inget internet';
+
+  @override
+  String get timeoutError => 'Tiden gick ut.';
+
+  @override
+  String get serverError => 'Serverfel.';
+
+  @override
+  String get contentNotFoundError => 'Hittades inte.';
+
+  @override
+  String get accessDeniedError => 'Åtkomst nekad.';
+
+  @override
+  String get serviceUnavailableError => 'Tjänsten inte tillgänglig.';
+
+  @override
+  String get generalError => 'Ett fel uppstod.';
+
+  @override
+  String usingInternalPlayerError(String error) {
+    return 'Fel: $error. Använder intern spelare.';
+  }
+
+  @override
+  String playerNotDetected(String playerName) {
+    return '$playerName hittades inte.';
+  }
+
+  @override
+  String get failedToLoadContent => 'Laddning misslyckades';
+
+  @override
+  String get invalidNavigation => 'Ogiltig navigering.';
+
+  @override
+  String get playbackError => 'Uppspelningsfel';
+
+  @override
+  String get exitApp => 'Exit SkyStream';
+
+  @override
+  String get confirmExitTitle => 'Exit SkyStream?';
+
+  @override
+  String get confirmExitMessage => 'Are you sure you want to exit the app?';
 }
