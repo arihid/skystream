@@ -93,121 +93,132 @@ class GlobalSystemMenu extends StatelessWidget {
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
-                    child: FocusTraversalGroup(
-                      policy: WidgetOrderTraversalPolicy(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12.0, bottom: 48.0),
-                            child: Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.asset(
-                                    'assets/images/ic_launcher_foreground.png',
-                                    width: 36,
-                                    height: 36,
-                                    errorBuilder: (context, error, stack) => Icon(
-                                      Icons.videogame_asset_rounded, 
-                                      color: theme.colorScheme.primary, 
-                                      size: 36,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: FocusTraversalGroup(
+                        policy: WidgetOrderTraversalPolicy(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 12.0, bottom: 48.0),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      'assets/images/ic_launcher_foreground.png',
+                                      width: 36,
+                                      height: 36,
+                                      errorBuilder: (context, error, stack) => Icon(
+                                        Icons.videogame_asset_rounded, 
+                                        color: theme.colorScheme.primary, 
+                                        size: 36,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Text('SkyStream', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                              ],
+                                  const SizedBox(width: 16),
+                                  Text('SkyStream', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                                ],
+                              ),
                             ),
-                          ),
-                          
-                          _MenuButton(
-                            icon: Icons.home_rounded,
-                            label: 'Home',
-                            autofocus: currentLocation == '/' || currentLocation.startsWith('/home'),
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              const HomeRoute().go(context);
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _MenuButton(
-                            icon: Icons.search_rounded,
-                            label: 'Search',
-                            autofocus: currentLocation.startsWith('/search'),
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              const SearchRoute().go(context);
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _MenuButton(
-                            icon: Icons.explore_rounded,
-                            label: 'Explore',
-                            autofocus: currentLocation.startsWith('/explore'),
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              const ExploreRoute().go(context);
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _MenuButton(
-                            icon: Icons.video_library_rounded,
-                            label: 'Library',
-                            autofocus: currentLocation.startsWith('/library'),
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              const LibraryRoute().go(context);
-                            },
-                          ),
-                          
-                          const Spacer(),
-                          const Divider(height: 32),
-                          
-                          _MenuButton(
-                            icon: Icons.settings_rounded,
-                            label: 'Settings',
-                            autofocus: currentLocation.startsWith('/settings'),
-                            onTap: () {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              const SettingsRoute().push<void>(context);
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _MenuButton(
-                            icon: Icons.power_settings_new_rounded,
-                            label: 'Exit SkyStream',
-                            isDestructive: true,
-                            onTap: () {
-                              showDialog<void>(
-                                context: context,
-                                builder: (dialogContext) {
-                                  return AlertDialog(
-                                    title: const Text('Exit SkyStream?'),
-                                    content: const Text('Are you sure you want to exit the app?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(dialogContext),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(dialogContext);
-                                          if (Platform.isAndroid || Platform.isIOS) {
-                                            SystemNavigator.pop();
-                                          } else {
-                                            exit(0);
-                                          }
-                                        },
-                                        child: const Text('Exit', style: TextStyle(color: Colors.redAccent)),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ],
+                            
+                            _MenuButton(
+                              icon: Icons.home_rounded,
+                              label: 'Home',
+                              autofocus: currentLocation == '/' || currentLocation.startsWith('/home'),
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop(); 
+                                const HomeRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.search_rounded,
+                              label: 'Search',
+                              autofocus: currentLocation.startsWith('/search'),
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop(); 
+                                const SearchRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.explore_rounded,
+                              label: 'Explore',
+                              autofocus: currentLocation.startsWith('/explore'),
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop(); 
+                                const ExploreRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.video_library_rounded,
+                              label: 'Library',
+                              autofocus: currentLocation.startsWith('/library'),
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop(); 
+                                const LibraryRoute().go(context);
+                              },
+                            ),
+                            
+                            const Spacer(),
+                            const Divider(height: 32),
+                            
+                            _MenuButton(
+                              icon: Icons.settings_rounded,
+                              label: 'Settings',
+                              autofocus: currentLocation.startsWith('/settings'),
+                              onTap: () {
+                                Navigator.of(context, rootNavigator: true).pop(); 
+                                const SettingsRoute().push<void>(context);
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _MenuButton(
+                              icon: Icons.power_settings_new_rounded,
+                              label: 'Exit SkyStream',
+                              isDestructive: true,
+                              onTap: () {
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (dialogContext) {
+                                    return AlertDialog(
+                                      title: const Text('Exit SkyStream?'),
+                                      content: const Text('Are you sure you want to exit the app?'),
+                                      actions: [
+                                        TextButton(
+                                          autofocus: true, 
+                                          onPressed: () => Navigator.pop(dialogContext),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(dialogContext);
+                                            if (Platform.isAndroid || Platform.isIOS) {
+                                              SystemNavigator.pop();
+                                            } else {
+                                              exit(0);
+                                            }
+                                          },
+                                          child: const Text('Exit', style: TextStyle(color: Colors.redAccent)),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

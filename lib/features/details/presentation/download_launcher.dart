@@ -97,6 +97,14 @@ class DownloadLauncher {
     // Master Switch Evaluation
     final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+    final firstItemFocusNode = FocusNode();
+    if (isBigPicture) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (firstItemFocusNode.canRequestFocus) {
+          firstItemFocusNode.requestFocus();
+        }
+      });
+    }
 
     showModalBottomSheet<void>(
       context: context,

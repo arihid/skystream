@@ -116,6 +116,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ref.read(focusedGamepadHintsProvider.notifier).state = [
                 GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Toggle', buttonColor: Colors.greenAccent.shade400),
                 GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
               ];
             }
           });
