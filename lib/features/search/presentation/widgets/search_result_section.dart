@@ -14,6 +14,7 @@ import 'bouncy_entry_animation.dart';
 
 import '../../../../core/widgets/focusable_wrapper.dart';
 import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+import 'package:skystream/l10n/generated/app_localizations.dart';
 
 class SearchResultSection extends ConsumerStatefulWidget {
   final String providerName;
@@ -47,6 +48,7 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
   Widget build(BuildContext context) {
     if (widget.results.isEmpty) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final isLarge = context.isTabletOrLarger;
     final double listHeight = isLarge ? 350.0 : 230.0;
 
@@ -125,9 +127,9 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
                         child: FocusableWrapper(
                           focusNode: rIndex == 0 ? widget.firstCardFocusNode : null,
                           gamepadHints: [
-                            GamepadHint(buttonLabel: 'A', actionLabel: 'View', buttonColor: Colors.greenAccent.shade400),
-                            GamepadHint(buttonLabel: 'LT', actionLabel: 'Keyboard', buttonColor: Colors.grey.shade400),
-                            GamepadHint(buttonLabel: 'RT', actionLabel: 'Filter', buttonColor: Colors.amberAccent.shade400),
+                            GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintView, buttonColor: Colors.greenAccent.shade400),
+                            GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintKeyboard, buttonColor: Colors.grey.shade400),
+                            GamepadHint(buttonLabel: 'RT', actionLabel: l10n.hintFilter, buttonColor: Colors.amberAccent.shade400),
                           ],
                           onTap: () => DetailsRoute(
                             $extra: DetailsRouteExtra(item: item),
@@ -137,7 +139,7 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
                             imageUrl: AppImageFallbacks.poster(
                               item.posterUrl,
                               label: item.title,
-                            ) ?? '',
+                            ),
                             title: item.title,
                             heroTag: uniqueTag,
                             onTap: () => DetailsRoute(

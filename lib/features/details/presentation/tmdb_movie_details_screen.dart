@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/models/tmdb_details.dart';
-import 'package:intl/intl.dart';
 import '../../../../core/storage/history_repository.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../data/tmdb_details_provider.dart';
@@ -22,8 +23,12 @@ import 'widgets/movie_seasons_list.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 
+// TV/Gamepad Feature Imports
 import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 import '../../../../core/input/gamepad_shortcut_manager.dart';
+import '../../../../core/input/gamepad_intents.dart';
+import '../../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class TmdbMovieDetailsScreen extends ConsumerStatefulWidget {
   final int movieId;
@@ -119,6 +124,11 @@ class _TmdbMovieDetailsScreenState
     final detailsAsync = ref.watch(tmdbDetailsProvider(params));
     final fastDetailsAsync = ref.watch(lightweightDetailsProvider(params));
 
+    // Master Switch Evaluation
+    final profile = ref.watch(deviceProfileProvider).asData?.value;
+    final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     // Prioritize full data, but use fast data if full is still loading
     final data = detailsAsync.asData?.value ?? fastDetailsAsync.asData?.value;
     final isHeavyLoading = detailsAsync.isLoading;
@@ -126,8 +136,8 @@ class _TmdbMovieDetailsScreenState
 
     final content = hasAnyData
         ? (context.isDesktop
-              ? _buildDesktopLayout(data, isHeavyLoading)
-              : _buildMobileLayout(data, isHeavyLoading))
+              ? _buildDesktopLayout(data, isHeavyLoading, isBigPicture)
+              : _buildMobileLayout(data, isHeavyLoading, isBigPicture))
         : detailsAsync.when(
             skipLoadingOnReload: false,
             skipLoadingOnRefresh: false,
@@ -139,7 +149,8 @@ class _TmdbMovieDetailsScreenState
                 appBar: AppBar(
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  leading: const BackButton(),
+                  // Hide UI back button in Big Picture
+                  leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
                 ),
                 body: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -159,8 +170,8 @@ class _TmdbMovieDetailsScreenState
                           _buildTopBadge(
                             context,
                             isMovie
-                                ? l10n.movie.toUpperCase()
-                                : l10n.tvShow.toUpperCase(),
+                                ? l10n.movies.toUpperCase()
+                                : l10n.series.toUpperCase(),
                           ),
                         ],
                       ),
@@ -186,7 +197,8 @@ class _TmdbMovieDetailsScreenState
               appBar: AppBar(
                 backgroundColor: Colors.transparent,
                 elevation: 0,
-                leading: const BackButton(),
+                // Hide UI back button in Big Picture
+                leading: isBigPicture ? const SizedBox.shrink() : const BackButton(),
               ),
               body: Center(
                 child: Column(
@@ -216,10 +228,23 @@ class _TmdbMovieDetailsScreenState
       body: content,
     );
 
-    return RightStickScroller(child: scaffold);
+    // Catch Gamepad B button globally and wrap in RightStickScroller if active
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            context.pop();
+            return null;
+          }
+        ),
+      },
+      child: isBigPicture 
+          ? RightStickScroller(child: scaffold)
+          : scaffold,
+    );
   }
 
-  Widget _buildDesktopLayout(TmdbDetails data, bool isHeavyLoading) {
+  Widget _buildDesktopLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
     final isMovie = widget.mediaType == 'movie';
     final seasons = data.seasons;
     final cast = data.tmdbCast;
@@ -237,7 +262,8 @@ class _TmdbMovieDetailsScreenState
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: context.isTabletOrLarger ? const SizedBox.shrink() : IconButton(
+        // Hide UI back button in Big Picture
+        leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
           style: IconButton.styleFrom(
@@ -295,12 +321,12 @@ class _TmdbMovieDetailsScreenState
               ),
             ),
           ),
-          if (context.isTabletOrLarger)
+          if (isBigPicture)
             GamepadHintsOverlay(
               customHints: [
-                GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
-                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
-                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400),
+                GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
+                GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
+                GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
               ],
             ),
         ],
@@ -308,7 +334,7 @@ class _TmdbMovieDetailsScreenState
     );
   }
 
-  Widget _buildMobileLayout(TmdbDetails data, bool isHeavyLoading) {
+  Widget _buildMobileLayout(TmdbDetails data, bool isHeavyLoading, bool isBigPicture) {
     final isMovie = widget.mediaType == 'movie';
 
     final backdropImageUrl = data.backdropImageUrl;
@@ -341,15 +367,17 @@ class _TmdbMovieDetailsScreenState
         ? (mq.height * 0.80).clamp(220.0, 400.0)
         : 550.0;
 
-    return CustomScrollView(
+    Widget scrollView = CustomScrollView(
       controller: _scrollController,
-      cacheExtent: 99999,
+      // Fixed Flutter Deprecation Warning
+      scrollCacheExtent: const ScrollCacheExtent.pixels(99999),
       slivers: [
         SliverAppBar(
           expandedHeight: expandedHeaderHeight,
           pinned: true,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
-          leading: Padding(
+          // Hide UI back button in Big Picture
+          leading: isBigPicture ? const SizedBox.shrink() : Padding(
             padding: const EdgeInsets.all(8.0),
             child: CircleAvatar(
               backgroundColor: Theme.of(
@@ -539,12 +567,14 @@ class _TmdbMovieDetailsScreenState
           ),
         ),
 
+        // 2. Metadata, Synopsis, Cast, Production, Trailers, Details
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Source Search (Provider Integration)
                 ProviderSearchSection(
                   query: title,
                   parentMediaType: isMovie ? 'movie' : 'tv',
@@ -613,8 +643,8 @@ class _TmdbMovieDetailsScreenState
                       widget.source == 'anilist'
                           ? (isMovie ? "MOVIE" : "ANIME")
                           : (isMovie
-                                ? l10n.movie.toUpperCase()
-                                : l10n.tvShow.toUpperCase()),
+                                ? l10n.movies.toUpperCase()
+                                : l10n.series.toUpperCase()),
                     ),
                     _buildIconInfo(context, Icons.calendar_today_rounded, year),
                     _buildIconInfo(
@@ -796,6 +826,23 @@ class _TmdbMovieDetailsScreenState
         ),
       ],
     );
+
+    if (isBigPicture) {
+      return Column(
+        children: [
+          Expanded(child: scrollView),
+          GamepadHintsOverlay(
+            customHints: [
+              GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
+              GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
+              GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
+            ],
+          ),
+        ],
+      );
+    }
+    
+    return scrollView;
   }
 
   Widget _buildTmdbLogo() {

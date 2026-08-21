@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:screen_retriever/screen_retriever.dart';
+
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/utils/responsive_breakpoints.dart';
 import '../../../core/providers/device_info_provider.dart';
 import '../../../core/theme/theme_provider.dart';
-
 import '../../../core/utils/stream_quality_sorter.dart';
 import 'widgets/settings_widgets.dart';
 import 'widgets/settings_dialogs.dart';
@@ -20,7 +22,9 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../core/network/doh_service.dart';
 import '../../../core/router/app_router.dart';
 import 'cache_provider.dart';
-import '../../../shared/widgets/gamepad_hints_overlay.dart'; 
+
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import 'big_picture_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -41,7 +45,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
+    
+    // Master Switch Evaluation
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+    final isTv = isBigPicture || profile?.isTv == true || context.isTv;
+    
     final isWidescreen = isTv || context.isTabletOrLarger;
 
     if (isWidescreen) {
@@ -49,6 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         backgroundColor: Colors.transparent,
         body: Column(
           children: [
+            // Inline header matching other widescreen screens
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Container(
@@ -71,6 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       );
     }
 
+    // Mobile layout
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settings)),
@@ -88,6 +98,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const PlayerSettings();
 
     final l10n = AppLocalizations.of(context)!;
+
     final platform = Theme.of(context).platform;
     final isDesktopOS =
         platform == TargetPlatform.windows ||
@@ -95,6 +106,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         platform == TargetPlatform.linux;
     final isTouchDevice = !isTv && !isDesktopOS;
 
+    // Wrap entirely in Focus to dispatch Gamepad hints
     return Focus(
       focusNode: _screenFocusNode,
       canRequestFocus: false,
@@ -127,7 +139,77 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 100),
               children: [
-                const SizedBox(height: LayoutConstants.spacingXs),
+                
+                // INJECTED: Display & TV Settings (Only on Desktop platforms)
+                if (!kIsWeb && isDesktopOS) ...[
+                  const SizedBox(height: LayoutConstants.spacingXs),
+                  SettingsGroup(
+                    title: 'Display & Interface',
+                    children: [
+                      SettingsTile(
+                        icon: Icons.tv_rounded,
+                        title: l10n.bigPictureMode,
+                        subtitle: l10n.bigPictureModeSubtitle,
+                        isLast: !ref.watch(bigPictureModeProvider).isEnabled,
+                        trailing: Switch(
+                          value: ref.watch(bigPictureModeProvider).isEnabled,
+                          onChanged: (val) => ref.read(bigPictureModeProvider.notifier).toggleBigPicture(val),
+                        ),
+                        onTap: () {
+                          final current = ref.read(bigPictureModeProvider).isEnabled;
+                          ref.read(bigPictureModeProvider.notifier).toggleBigPicture(!current);
+                        },
+                      ),
+                      if (ref.watch(bigPictureModeProvider).isEnabled) ...[
+                        SettingsTile(
+                          icon: Icons.power_settings_new_rounded,
+                          title: l10n.startInBigPicture,
+                          subtitle: l10n.keepBigPictureEnabled,
+                          trailing: Switch(
+                            value: ref.watch(bigPictureModeProvider).keepAcrossRestarts,
+                            onChanged: (val) => ref.read(bigPictureModeProvider.notifier).updateSettings(keepAcrossRestarts: val),
+                          ),
+                          onTap: () {
+                            final current = ref.read(bigPictureModeProvider).keepAcrossRestarts;
+                            ref.read(bigPictureModeProvider.notifier).updateSettings(keepAcrossRestarts: !current);
+                          },
+                        ),
+                        // Multi-Monitor Target Selector
+                        FutureBuilder<List<Display>>(
+                          future: screenRetriever.getAllDisplays(),
+                          builder: (context, snapshot) {
+                            final displays = snapshot.data ?? [];
+                            if (displays.length <= 1) return const SizedBox.shrink();
+
+                            final currentDisplay = ref.watch(bigPictureModeProvider).targetDisplayId ?? displays.first.id;
+
+                            return SettingsTile(
+                              icon: Icons.monitor_rounded,
+                              title: l10n.targetDisplay,
+                              subtitle: l10n.whichMonitorShouldBigPictureUse,
+                              isLast: true,
+                              trailing: DropdownButton<String>(
+                                value: displays.any((d) => d.id == currentDisplay) ? currentDisplay : displays.first.id,
+                                underline: const SizedBox(),
+                                items: displays.map((display) {
+                                  return DropdownMenuItem(
+                                    value: display.id,
+                                    child: Text(display.name ?? 'Display ${display.id}', style: const TextStyle(fontSize: 14)),
+                                  );
+                                }).toList(),
+                                onChanged: (id) => ref.read(bigPictureModeProvider.notifier).updateSettings(targetDisplayId: id),
+                              ),
+                            );
+                          }
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingLg),
+                ] else ...[
+                  const SizedBox(height: LayoutConstants.spacingXs),
+                ],
+
                 SettingsGroup(
                   title: l10n.general,
                   children: [

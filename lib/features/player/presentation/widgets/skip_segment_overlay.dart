@@ -19,7 +19,10 @@ class SkipSegmentOverlay extends ConsumerStatefulWidget {
   final Player player;
   final vv.VideoController? videoViewController;
   final List<SkipSegment> skipSegments;
-  final bool isTv;
+  
+  // Renamed to reflect our Master Switch architecture
+  final bool isBigPicture; 
+  
   final bool controlsVisible;
   final VoidCallback? onFocusReturned;
   final FocusNode? focusNode;
@@ -30,7 +33,7 @@ class SkipSegmentOverlay extends ConsumerStatefulWidget {
     required this.player,
     required this.skipSegments,
     this.videoViewController,
-    this.isTv = false,
+    this.isBigPicture = false,
     this.controlsVisible = false,
     this.onFocusReturned,
     this.focusNode,
@@ -168,7 +171,7 @@ class _SkipSegmentOverlayState extends ConsumerState<SkipSegmentOverlay> {
     final isCompact = size.shortestSide < 600;
 
     return PlayerPromptPlacement(
-      isTv: widget.isTv,
+      isTv: widget.isBigPicture,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         switchInCurve: Curves.easeOut,
@@ -193,7 +196,7 @@ class _SkipSegmentOverlayState extends ConsumerState<SkipSegmentOverlay> {
                   AppLocalizations.of(context)!,
                 ),
                 focusNode: _focusNode,
-                isTv: widget.isTv,
+                isBigPicture: widget.isBigPicture,
                 isCompact: isCompact,
                 controlsVisible: widget.controlsVisible,
                 onPressed: () => _handleSkip(activeSegment),
@@ -208,7 +211,7 @@ class _SkipSegmentOverlayState extends ConsumerState<SkipSegmentOverlay> {
 class _SkipPill extends StatelessWidget {
   final String label;
   final FocusNode focusNode;
-  final bool isTv;
+  final bool isBigPicture;
   final bool isCompact;
   final bool controlsVisible;
   final VoidCallback onPressed;
@@ -217,7 +220,7 @@ class _SkipPill extends StatelessWidget {
     super.key,
     required this.label,
     required this.focusNode,
-    required this.isTv,
+    required this.isBigPicture,
     required this.isCompact,
     required this.controlsVisible,
     required this.onPressed,
@@ -231,7 +234,7 @@ class _SkipPill extends StatelessWidget {
     return FocusTraversalGroup(
       child: Focus(
         focusNode: focusNode,
-        autofocus: isTv && controlsVisible,
+        autofocus: isBigPicture && controlsVisible,
         canRequestFocus: controlsVisible,
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -294,7 +297,8 @@ class _SkipPill extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (isTv)
+                              // Show Gamepad 'Y' Badge on Big Picture, otherwise standard Icon
+                              if (isBigPicture)
                                 _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
                               else
                                 const Icon(
@@ -329,6 +333,7 @@ class _SkipPill extends StatelessWidget {
   }
 }
 
+// Helper widget for Gamepad button hints
 Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
   return Container(
     width: isCompact ? 18 : 22,

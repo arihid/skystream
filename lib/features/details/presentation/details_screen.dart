@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
@@ -25,10 +26,14 @@ import "../../../shared/widgets/expandable_text.dart";
 import "../../../shared/widgets/loading_indicator.dart";
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+// TV/Gamepad Feature Imports
 import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import '../../../core/input/gamepad_actions.dart'; 
 import '../../../core/input/gamepad_shortcut_manager.dart'; 
+import '../../../core/input/gamepad_intents.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class DetailsScreen extends ConsumerStatefulWidget {
   final MultimediaItem item;
@@ -100,8 +105,14 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       ),
     );
     final libraryNotifier = ref.read(libraryProvider.notifier);
-    final isLarge = context.isTabletOrLarger;
-    final isBigPicture = context.isTabletOrLarger; 
+    
+    // Master Switch Evaluation
+    final profile = ref.watch(deviceProfileProvider).asData?.value;
+    final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+    
+    // Force large layout if Big Picture is active, regardless of window size
+    final isLarge = context.isTabletOrLarger || isBigPicture;
 
     final detailsAsync = ref.watch(
       detailsControllerProvider(widget.item.url).select((s) => s.details),
@@ -125,10 +136,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       
       if (isBookmarked) {
         libraryNotifier.removeItem(item.url);
-        ref.read(notificationServiceProvider).showSuccess("Removed Bookmark");
+        ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
       } else {
         libraryNotifier.addItem(item);
-        ref.read(notificationServiceProvider).showSuccess("Added Bookmark");
+        ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
       }
     }
 
@@ -153,8 +164,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             ? null
             : _buildEpisodeSelectionBar(context, selectedEpisodeCount),
         body: CustomScrollView(
-          cacheExtent: 99999,
-          slivers: [
+          scrollCacheExtent: const ScrollCacheExtent.pixels(99999), slivers: [
             SliverAppBar(
               pinned: true,
               expandedHeight: LayoutConstants.detailsExpandedHeightMobile,
@@ -211,10 +221,18 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.0),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.15),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.45),
-                            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.0),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.15),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.45),
+                            Theme.of(
+                              context,
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.8),
                             Theme.of(context).scaffoldBackgroundColor,
                           ],
                           stops: const [0.0, 0.5, 0.75, 0.9, 1.0],
@@ -236,6 +254,35 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
                   ),
                 ),
               ),
+              actions: [
+                Focus(
+                  descendantsAreTraversable: false,
+                  child: IconButton(
+                    icon: Icon(
+                      isBookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                      color: isBookmarked
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white,
+                    ),
+                    onPressed: () {
+                      if (isBookmarked) {
+                        libraryNotifier.removeItem(item.url);
+                        ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+                      } else {
+                        libraryNotifier.addItem(item);
+                        ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+                      }
+                    },
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black45,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
             ..._buildMobileSlivers(
               context,
@@ -250,19 +297,30 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       );
     }
 
-    return RightStickScroller(
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
-            onInvoke: (_) {
-              toggleBookmark();
-              return null;
-            }
-          ),
-        },
-        child: scaffoldContent,
-      ),
-    );
+    // Use RightStickScroller & Global Gamepad Actions ONLY in Big Picture mode
+    if (isBigPicture) {
+      return RightStickScroller(
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+              onInvoke: (_) {
+                toggleBookmark();
+                return null;
+              }
+            ),
+            AppBackIntent: CallbackAction<AppBackIntent>(
+              onInvoke: (_) {
+                context.pop();
+                return null;
+              }
+            ),
+          },
+          child: scaffoldContent,
+        ),
+      );
+    }
+    
+    return scaffoldContent;
   }
 
   Widget _buildEpisodeSelectionBar(BuildContext context, int selectedCount) {
@@ -408,6 +466,10 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  //  DESKTOP / TV  — Immersive hero layout
+  // ─────────────────────────────────────────────────────────────────
+
   Widget _buildDesktopLayout(
     BuildContext context,
     MultimediaItem item,
@@ -431,6 +493,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        // Hide UI back button in Big Picture
         leading: isBigPicture ? const SizedBox.shrink() : IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
@@ -439,6 +502,34 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
             foregroundColor: textColor,
           ),
         ),
+        actions: [
+          // Hide UI bookmark button in Big Picture
+          if (!isBigPicture)
+            IconButton(
+              icon: Icon(
+                isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: isBookmarked
+                    ? Theme.of(context).colorScheme.primary
+                    : textColor,
+              ),
+              onPressed: () {
+                if (isBookmarked) {
+                  libraryNotifier.removeItem(item.url);
+                  ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+                } else {
+                  libraryNotifier.addItem(item);
+                  ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+                }
+              },
+              style: IconButton.styleFrom(
+                backgroundColor: isDark ? Colors.black45 : Colors.white54,
+                foregroundColor: textColor,
+              ),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -463,15 +554,15 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
           if (isBigPicture)
             GamepadHintsOverlay(
               customHints: [
-                GamepadHint(buttonLabel: 'A', actionLabel: 'Select / Play', buttonColor: Colors.greenAccent.shade400),
-                GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+                GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelectToggle, buttonColor: Colors.greenAccent.shade400),
+                GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
                 GamepadHint(
                   buttonLabel: 'X', 
-                  actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+                  actionLabel: isBookmarked ? l10n.hintRemoveBookmark : l10n.hintAddBookmark, 
                   buttonColor: Colors.blueAccent.shade400
                 ),
-                GamepadHint(buttonLabel: 'RS', actionLabel: 'Scroll', buttonColor: Colors.grey.shade400),
-                GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+                GamepadHint(buttonLabel: 'RS', actionLabel: l10n.hintScroll, buttonColor: Colors.grey.shade400),
+                GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
               ],
             ),
         ],
@@ -479,6 +570,8 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     );
   }
 
+  /// Content rendered below the hero section: season chips, episodes,
+  /// cast, trailers, and recommendations.
   Widget _buildDesktopContentBelow(
     BuildContext context,
     MultimediaItem item,
@@ -490,6 +583,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Loading / Error / Season chips
         if (detailsState is AsyncLoading)
           const Center(child: AppLoadingIndicator())
         else if (detailsState is AsyncError)
@@ -502,6 +596,7 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
         const SizedBox(height: 16),
 
+        // Episode grid (non-sliver version)
         DetailsDesktopEpisodeColumn(
           parentItem: item,
           itemUrl: widget.item.url,
@@ -510,15 +605,18 @@ class _DetailsScreenState extends ConsumerState<DetailsScreen> {
 
         const SizedBox(height: 32),
 
+        // Cast
         if (item.cast != null && item.cast!.isNotEmpty) ...[
           CastCarousel(cast: item.cast!),
         ],
 
+        // Trailers
         if (item.trailers != null && item.trailers!.isNotEmpty) ...[
           const SizedBox(height: 32),
           TrailersSection(trailers: item.trailers!),
         ],
 
+        // Recommendations
         if (item.recommendations != null &&
             item.recommendations!.isNotEmpty) ...[
           const SizedBox(height: 32),

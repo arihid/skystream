@@ -8,7 +8,6 @@ import '../player_controller.dart';
 import '../../../../shared/widgets/custom_widgets.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-
 class PlayerLoadingOverlay extends StatefulWidget {
   final VoidCallback onDoubleTap;
   final VoidCallback onBack;
@@ -18,7 +17,7 @@ class PlayerLoadingOverlay extends StatefulWidget {
   final String? logoUrl;
   final VoidCallback? onGoLive;
   final VoidCallback? onSkip;
-  final bool isTv;
+  final bool isBigPicture;
 
   const PlayerLoadingOverlay({
     super.key,
@@ -30,7 +29,7 @@ class PlayerLoadingOverlay extends StatefulWidget {
     this.logoUrl,
     this.onGoLive,
     this.onSkip,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -73,7 +72,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
   }
 
   void _stealFocus() {
-    if (!widget.isTv) return;
+    if (!widget.isBigPicture) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Force focus out of the PlayerScreen root and into this overlay's buttons
@@ -126,7 +125,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
       onGoLive: widget.onGoLive,
       onSkip: widget.onSkip,
       onBack: widget.onBack,
-      isTv: widget.isTv,
+      isBigPicture: widget.isBigPicture,
     );
 
     return FocusScope(
@@ -141,7 +140,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
               Positioned.fill(
                 child: Stack(
                   children: [
-                    if (widget.backdropUrl != null && (!isCompact || widget.isTv))
+                    if (widget.backdropUrl != null && (!isCompact || widget.isBigPicture))
                       Positioned.fill(
                         child: CachedNetworkImage(
                           imageUrl: widget.backdropUrl!,
@@ -168,6 +167,31 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                   ],
                 ),
               ),
+              
+              // Conditionally render the physical back button for Mobile/Desktop users
+              if (!widget.isBigPicture)
+                Positioned(
+                  top: MediaQuery.viewPaddingOf(context).top + 16,
+                  left: 16,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: CustomButton(
+                      onPressed: widget.onBack,
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               Positioned.fill(
                 child: Center(
                   child: Padding(
@@ -177,7 +201,7 @@ class _PlayerLoadingOverlayState extends State<PlayerLoadingOverlay> {
                 ),
               ),
               
-              if (widget.isTv)
+              if (widget.isBigPicture)
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -228,7 +252,7 @@ class _LoadingCard extends StatelessWidget {
   final VoidCallback? onGoLive;
   final VoidCallback? onSkip;
   final VoidCallback? onBack;
-  final bool isTv;
+  final bool isBigPicture;
 
   const _LoadingCard({
     required this.phase,
@@ -237,7 +261,7 @@ class _LoadingCard extends StatelessWidget {
     this.onGoLive,
     this.onSkip,
     this.onBack,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -270,14 +294,14 @@ class _LoadingCard extends StatelessWidget {
                   if (logoUrl!.toLowerCase().endsWith('.svg'))
                     SvgPicture.network(
                       logoUrl!,
-                      height: isTv ? 100 : 80,
+                      height: isBigPicture ? 100 : 80,
                       fit: BoxFit.contain,
                       placeholderBuilder: (_) => const SizedBox(height: 80),
                     )
                   else
                     CachedNetworkImage(
                       imageUrl: logoUrl!,
-                      height: isTv ? 100 : 80,
+                      height: isBigPicture ? 100 : 80,
                       fit: BoxFit.contain,
                       placeholder: (_, _) => const SizedBox(height: 80),
                       errorWidget: (_, _, _) => const SizedBox(height: 80),
@@ -358,8 +382,8 @@ class _LoadingCard extends StatelessWidget {
                           icon: Icons.fast_forward_rounded,
                           onPressed: onSkip,
                           primary: true,
-                          isTv: isTv,
-                          autofocus: isTv,
+                          isBigPicture: isBigPicture,
+                          autofocus: isBigPicture,
                         ),
                       if (phase.showGoLive && onGoLive != null)
                         _ActionButton(
@@ -367,8 +391,8 @@ class _LoadingCard extends StatelessWidget {
                           icon: Icons.live_tv,
                           onPressed: onGoLive,
                           primary: false,
-                          isTv: isTv,
-                          autofocus: isTv && onSkip == null,
+                          isBigPicture: isBigPicture,
+                          autofocus: isBigPicture && onSkip == null,
                         ),
                       if (phase.kind == PlaybackUiPhaseKind.error &&
                           onBack != null)
@@ -377,9 +401,9 @@ class _LoadingCard extends StatelessWidget {
                           icon: Icons.arrow_back_rounded,
                           onPressed: onBack,
                           primary: false,
-                          isTv: isTv,
+                          isBigPicture: isBigPicture,
                           autofocus:
-                              isTv && onSkip == null && !phase.showGoLive,
+                              isBigPicture && onSkip == null && !phase.showGoLive,
                         ),
                     ],
                   ),
@@ -431,7 +455,7 @@ class _ActionButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final bool primary;
-  final bool isTv;
+  final bool isBigPicture;
   final bool autofocus;
 
   const _ActionButton({
@@ -439,7 +463,7 @@ class _ActionButton extends StatefulWidget {
     required this.icon,
     required this.onPressed,
     required this.primary,
-    this.isTv = false,
+    this.isBigPicture = false,
     this.autofocus = false,
   });
 
@@ -456,7 +480,7 @@ class _ActionButtonState extends State<_ActionButton> {
   void initState() {
     super.initState();
     _focusNode = FocusNode(debugLabel: 'ActionButton_${widget.label}');
-    if (widget.autofocus && widget.isTv) {
+    if (widget.autofocus && widget.isBigPicture) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _focusNode.requestFocus();
       });
@@ -466,7 +490,7 @@ class _ActionButtonState extends State<_ActionButton> {
   @override
   void didUpdateWidget(_ActionButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.autofocus && !oldWidget.autofocus && widget.isTv) {
+    if (widget.autofocus && !oldWidget.autofocus && widget.isBigPicture) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _focusNode.requestFocus();
       });

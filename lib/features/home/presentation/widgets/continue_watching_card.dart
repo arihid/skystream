@@ -3,21 +3,25 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:skystream/core/input/gamepad_actions.dart';
-import 'package:skystream/features/library/presentation/history_provider.dart';
-import '../../../../core/domain/entity/multimedia_item.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
-import '../../../../core/extensions/extension_manager.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../../../shared/widgets/loading_dialog.dart';
-import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/services/notification_service.dart';
+import 'package:skystream/l10n/generated/app_localizations.dart';
 
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/shared/widgets/gamepad_hints_overlay.dart';
+import 'package:skystream/core/providers/device_info_provider.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+
+import 'package:skystream/features/library/presentation/history_provider.dart';
+import 'package:skystream/shared/widgets/cards_wrapper.dart';
+import 'package:skystream/shared/widgets/loading_dialog.dart';
 
 class ContinueWatchingCard extends ConsumerStatefulWidget {
   final HistoryItem historyItem;
@@ -117,8 +121,8 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear History'),
-        content: const Text('Are you sure you want to clear your entire watch history? This action cannot be undone.'),
+        title: Text(l10n.clearAllHistory),
+        content: Text(l10n.confirmClearHistory),
         actions: [
           TextButton(
             autofocus: true,
@@ -133,9 +137,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
             onPressed: () {
               Navigator.pop(ctx);
               ref.read(watchHistoryProvider.notifier).clearAllHistory();
-              ref.read(notificationServiceProvider).showSuccess("History cleared");
+              ref.read(notificationServiceProvider).showSuccess(l10n.watchHistoryCleared);
             },
-            child: const Text('Clear All'),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -144,6 +148,12 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+    
     final item = widget.historyItem.item;
     final double progress = (widget.historyItem.duration > 0)
         ? (widget.historyItem.position / widget.historyItem.duration).clamp(
@@ -177,7 +187,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         unawaited(
           LoadingDialog.show(
             context,
-            message: AppLocalizations.of(context)!.refreshingLiveStream,
+            message: l10n.refreshingLiveStream,
             onCancel: () {
               canceled = true;
               dialogDismissed = true;
@@ -214,9 +224,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     };
 
     final playHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: 'Resume', buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'X', actionLabel: 'Remove', buttonColor: Colors.blueAccent.shade400),
-      GamepadHint(buttonLabel: 'Y', actionLabel: 'Clear All', buttonColor: Colors.yellowAccent.shade700),
+      GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintResume, buttonColor: Colors.greenAccent.shade400),
+      GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintRemove, buttonColor: Colors.blueAccent.shade400),
+      GamepadHint(buttonLabel: 'Y', actionLabel: l10n.hintClearAll, buttonColor: Colors.yellowAccent.shade700),
     ];
 
     return Semantics(
@@ -229,7 +239,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
             onInvoke: (_) {
               ref.read(watchHistoryProvider.notifier).removeFromHistory(item.url);
               ref.read(notificationServiceProvider).showSuccess(
-                AppLocalizations.of(context)!.removedFromHistory(item.title)
+                l10n.removedFromHistory(item.title)
               );
               return null;
             }
@@ -244,13 +254,16 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         child: Focus(
           onFocusChange: (f) {
             setState(() => _isHovered = f);
-            if (f) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (ref.context.mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (ref.context.mounted) {
+                if (f && isBigPicture) {
                   ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
+                } else {
+                  // Clear hints when focus is lost to prevent them from getting stuck!
+                  ref.read(focusedGamepadHintsProvider.notifier).state = [];
                 }
-              });
-            }
+              }
+            });
           },
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -278,7 +291,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       const SizedBox(height: 8),
                       ListTile(
                         leading: const Icon(Icons.info_outline),
-                        title: Text(AppLocalizations.of(context)!.viewDetails),
+                        title: Text(l10n.viewDetails),
                         onTap: () {
                           Navigator.pop(context);
                           unawaited(
@@ -294,7 +307,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                           color: Theme.of(context).colorScheme.error,
                         ),
                         title: Text(
-                          AppLocalizations.of(context)!.removeFromHistory,
+                          l10n.removeFromHistory,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.error,
                           ),
@@ -307,15 +320,13 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                           ref
                               .read(notificationServiceProvider)
                               .showSuccess(
-                                AppLocalizations.of(
-                                  context,
-                                )!.removedFromHistory(item.title),
+                                l10n.removedFromHistory(item.title),
                               );
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.delete_sweep_rounded),
-                        title: const Text("Clear History"),
+                        title: Text(l10n.clearAllHistory), 
                         onTap: () {
                           Navigator.pop(context);
                           _showClearAllConfirmation(context, ref);
@@ -323,7 +334,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       ),
                       ListTile(
                         leading: const Icon(Icons.close),
-                        title: Text(AppLocalizations.of(context)!.cancel),
+                        title: Text(l10n.cancel),
                         onTap: () => Navigator.pop(context),
                       ),
                     ],
@@ -498,6 +509,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                           ),
                         ),
 
+                        // Highlight Border when Focused/Hovered
                         if (_isHovered)
                           Positioned.fill(
                             child: Container(

@@ -32,6 +32,9 @@ import '../player_platform_service.dart';
 import '../player_gesture_handler.dart';
 import 'player_metadata_scrim.dart';
 
+// TV/Gamepad Master Switch
+import '../../../settings/presentation/big_picture_provider.dart';
+
 class SkyStreamPlayerControls extends ConsumerStatefulWidget {
   final Player player;
   final vv.VideoController? videoViewController;
@@ -84,9 +87,6 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
   bool _isIpad = false;
   bool _isTv = false;
   bool _isInPip = false;
-  bool _isDesktop = false;
-
-  bool get _isBigPicture => _isTv || _isDesktop;
 
   void togglePlayPause() => _togglePlay();
 
@@ -134,18 +134,17 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
     final deviceProfile = ref.read(deviceProfileProvider).asData?.value;
     _isTv = deviceProfile?.isTv ?? false;
     _isIpad = Platform.isIOS && (deviceProfile?.isTablet ?? false);
-    _isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
     _platformService = PlayerPlatformService();
     
-    // Defer complex logic that might trigger state reads until after build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       
       ref.read(playerGestureHandlerProvider.notifier).init(
         getSettings: () async => await ref.read(playerSettingsProvider.future),
         isTv: _isTv,
-        isDesktop: _isDesktop,
+        isDesktop: isDesktop,
         getDuration: () => _duration,
         getPosition: () => _position,
         canSeek: () => ref.read(playerControllerProvider).canSeek,
@@ -278,19 +277,17 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
       _isVisible = true;
     }
     
-    if (_isBigPicture) {
-      _isVisible = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _isVisible) {
-          widget.onVisibilityChanged?.call(true);
-          _restoreFocus();
-        }
-      });
-    }
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _startHideTimer();
+      if (!mounted) return;
+      final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || _isTv;
+      if (isBigPicture) {
+        _isVisible = true;
+        widget.onVisibilityChanged?.call(true);
+        _restoreFocus();
+      }
+      _startHideTimer();
     });
+    
     FocusManager.instance.addListener(_onFocusChange);
 
     _revertMessageSub = ref.listenManual(playerControllerProvider, (_, _) {
@@ -439,7 +436,8 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
   }
 
   void _startTouchSpeedHold() {
-    if (_isLocked || _panelOpen || _isTv || !(Platform.isAndroid || Platform.isIOS)) return;
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || _isTv;
+    if (_isLocked || _panelOpen || isBigPicture || !(Platform.isAndroid || Platform.isIOS)) return;
     if (_touchHeldForSpeed) return;
     _touchHeldForSpeed = true;
     _speedBeforeTouchHold = ref.read(playerControllerProvider).playbackSpeed;
@@ -847,9 +845,12 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
     final size = MediaQuery.sizeOf(context);
     final isSmallWindow = size.width < 300 || size.height < 200;
 
+    // Master Switch Evaluation
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || _isTv;
+
     if (_isInPip || isSmallWindow) return const SizedBox.shrink();
 
-    if (uiPhase.fullscreenBlocking) return _buildLoadingUI(phase: uiPhase, sourceAttempts: sourceAttempts);
+    if (uiPhase.fullscreenBlocking) return _buildLoadingUI(phase: uiPhase, sourceAttempts: sourceAttempts, isBigPicture: isBigPicture);
 
     final chromeVisible = _isVisible && !_panelOpen;
 
@@ -907,15 +908,15 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
             color: Colors.transparent,
             child: Stack(
               children: [
-                if (_isLocked) _buildLockedUI()
+                if (_isLocked) _buildLockedUI(isBigPicture)
                 else _buildUnlockedUI(
                     title: title, subtitle: subtitle, torrentStatus: torrentStatus, streams: streams, currentStream: currentStream,
                     externalSubtitles: externalSubtitles, showEpisodeList: showEpisodeList, isSeries: isSeries,
                     supportsPlaybackSpeed: supportsPlaybackSpeed, playbackSpeed: playbackSpeed, maxPlaybackSpeed: maxPlaybackSpeed,
-                    chromeVisible: chromeVisible,
+                    chromeVisible: chromeVisible, isBigPicture: isBigPicture,
                   ),
 
-                if (!_isBigPicture && (Platform.isAndroid || Platform.isIOS) && !_isLocked)
+                if (!isBigPicture && (Platform.isAndroid || Platform.isIOS) && !_isLocked)
                   Positioned.fill(
                     child: IgnorePointer(
                       ignoring: !_isVisible,
@@ -925,7 +926,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                         child: Center(
                           child: PlayerPlayPauseButton(
                             player: widget.player, videoViewController: widget.videoViewController,
-                            isLoading: widget.isLoading, isTv: _isBigPicture, size: 82,
+                            isLoading: widget.isLoading, isTv: isBigPicture, size: 82,
                             backgroundColor: Colors.black.withValues(alpha: 0.32),
                             onPressed: _togglePlay,
                           ),
@@ -934,7 +935,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                     ),
                   ),
 
-                PlayerBufferingIndicator(isVisible: _isVisible, isTouch: !_isBigPicture && (Platform.isAndroid || Platform.isIOS)),
+                PlayerBufferingIndicator(isVisible: _isVisible, isTouch: !isBigPicture && (Platform.isAndroid || Platform.isIOS)),
 
                 AnimatedBuilder(
                   animation: _seekAnimController,
@@ -958,8 +959,8 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                           alignment: Alignment.topRight,
                           child: Padding(
                             padding: EdgeInsets.only(
-                              top: _isBigPicture ? 88 : 68,
-                              right: _isBigPicture ? HotstarPlayerStyle.tvEdgeInset : (MediaQuery.viewPaddingOf(context).right > HotstarPlayerStyle.edgeInset ? MediaQuery.viewPaddingOf(context).right : HotstarPlayerStyle.edgeInset),
+                              top: isBigPicture ? 88 : 68,
+                              right: isBigPicture ? HotstarPlayerStyle.tvEdgeInset : (MediaQuery.viewPaddingOf(context).right > HotstarPlayerStyle.edgeInset ? MediaQuery.viewPaddingOf(context).right : HotstarPlayerStyle.edgeInset),
                               left: 12,
                             ),
                             child: ConstrainedBox(
@@ -978,7 +979,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                     positionMs: resumePromptPosition, percentage: resumePromptPercentage,
                     onResume: () => ref.read(playerControllerProvider.notifier).confirmResume(),
                     onStartOver: () => ref.read(playerControllerProvider.notifier).dismissResumePrompt(),
-                    isTv: _isBigPicture,
+                    isBigPicture: isBigPicture,
                   ),
 
                 if (resumePromptPosition == null && resumePromptPercentage == null && showNextEpOverlay && nextEpTitle != null)
@@ -988,7 +989,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                     nextEpisodeRuntime: nextEpRuntime, nextEpisodeDescription: nextEpDescription,
                     onPlayNext: () => ref.read(playerControllerProvider.notifier).playNextEpisode(),
                     onDismiss: () => ref.read(playerControllerProvider.notifier).dismissNextEpisodeOverlay(),
-                    isTv: _isBigPicture, isPlaying: _isPlaying,
+                    isBigPicture: isBigPicture, isPlaying: _isPlaying,
                   ),
 
                 if (resumePromptPosition == null && resumePromptPercentage == null && !showNextEpOverlay && skipSegments.isNotEmpty)
@@ -997,7 +998,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                     onActiveSegmentChanged: (active) {
                       if (mounted) setState(() => _isSkipActive = active);
                     },
-                    player: widget.player, videoViewController: widget.videoViewController, skipSegments: skipSegments, isTv: _isBigPicture, controlsVisible: _isVisible,
+                    player: widget.player, videoViewController: widget.videoViewController, skipSegments: skipSegments, isBigPicture: isBigPicture, controlsVisible: _isVisible,
                     onFocusReturned: () {
                       if (_isVisible) {
                         _restoreFocus();
@@ -1010,9 +1011,9 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                 if (isSeries && ref.read(playerControllerProvider.notifier).multimediaItem != null)
                   Positioned.fill(
                     child: PlayerSidePanel(
-                      isVisible: showEpisodeList && !_isLocked, isTv: _isBigPicture, onDismiss: closeEpisodesPanel,
+                      isVisible: showEpisodeList && !_isLocked, isBigPicture: isBigPicture, onDismiss: closeEpisodesPanel,
                       child: PlayerEpisodesPanel(
-                        item: ref.read(playerControllerProvider.notifier).multimediaItem!, isTv: _isBigPicture, onClose: closeEpisodesPanel,
+                        item: ref.read(playerControllerProvider.notifier).multimediaItem!, isTv: isBigPicture, onClose: closeEpisodesPanel,
                       ),
                     ),
                   ),
@@ -1020,9 +1021,9 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                 if (torrentStatus != null)
                   Positioned.fill(
                     child: PlayerSidePanel(
-                      isVisible: ref.watch(playerControllerProvider.select((s) => s.showContentPanel)), isTv: _isBigPicture, onDismiss: closeContentPanel,
+                      isVisible: ref.watch(playerControllerProvider.select((s) => s.showContentPanel)), isBigPicture: isBigPicture, onDismiss: closeContentPanel,
                       child: PlayerContentPanel(
-                        isTv: _isBigPicture, onFileSelected: (idx) => ref.read(playerControllerProvider.notifier).onTorrentFileSelected(idx), onClose: closeContentPanel,
+                        isTv: isBigPicture, onFileSelected: (idx) => ref.read(playerControllerProvider.notifier).onTorrentFileSelected(idx), onClose: closeContentPanel,
                       ),
                     ),
                   ),
@@ -1030,14 +1031,14 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                 PlayerMetadataScrim(
                   key: _metadataScrimKey, item: ref.read(playerControllerProvider.notifier).multimediaItem, episode: ref.read(playerControllerProvider.notifier).currentEpisode,
                   isSeries: ref.read(playerControllerProvider.notifier).isSeries, isPaused: !_isPlaying, isDialogOpen: _panelOpen, controlsVisible: _isVisible,
-                  isTv: _isBigPicture, onHidePlayerUI: hideControls,
+                  isTv: isBigPicture, onHidePlayerUI: hideControls,
                 ),
 
                 Positioned.fill(
                   child: PlayerSidePanel(
-                    isVisible: ref.watch(playerControllerProvider.select((s) => s.showSourcesPanel)), isTv: _isBigPicture, onDismiss: closeSourcesPanel,
+                    isVisible: ref.watch(playerControllerProvider.select((s) => s.showSourcesPanel)), isBigPicture: isBigPicture, onDismiss: closeSourcesPanel,
                     child: PlayerSourcesPanel(
-                      player: widget.player, videoViewController: widget.videoViewController, isTv: _isBigPicture, onClose: closeSourcesPanel,
+                      player: widget.player, videoViewController: widget.videoViewController, isBigPicture: isBigPicture, onClose: closeSourcesPanel,
                     ),
                   ),
                 ),
@@ -1050,12 +1051,12 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
   }
 
   Widget _buildActionButton({
-    required IconData icon, required String label, required VoidCallback onTap, bool highlight = false, FocusNode? focusNode,
+    required IconData icon, required String label, required VoidCallback onTap, bool highlight = false, FocusNode? focusNode, required bool isBigPicture,
   }) {
-    return PlayerActionButton(icon: icon, label: label, onTap: onTap, highlight: highlight, isTv: _isBigPicture, focusNode: focusNode);
+    return PlayerActionButton(icon: icon, label: label, onTap: onTap, highlight: highlight, isTv: isBigPicture, focusNode: focusNode);
   }
 
-  Widget _buildLockedUI() {
+  Widget _buildLockedUI(bool isBigPicture) {
     return ExcludeFocus(
       excluding: !_isVisible,
       child: IgnorePointer(
@@ -1065,7 +1066,11 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
           duration: const Duration(milliseconds: 180),
           child: Center(
             child: _buildActionButton(
-              icon: Icons.lock, label: AppLocalizations.of(context)!.unlock, onTap: _toggleLock, highlight: false,
+              icon: Icons.lock, 
+              label: AppLocalizations.of(context)!.unlock, 
+              onTap: _toggleLock, 
+              highlight: false, 
+              isBigPicture: isBigPicture, // 🎯 Use the passed variable
             ),
           ),
         ),
@@ -1076,35 +1081,35 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
   Widget _buildUnlockedUI({
     required String title, String? subtitle, TorrentStatus? torrentStatus, List<StreamResult>? streams, StreamResult? currentStream,
     List<SubtitleFile>? externalSubtitles, required bool showEpisodeList, required bool isSeries, required bool supportsPlaybackSpeed,
-    required double playbackSpeed, required double maxPlaybackSpeed, required bool chromeVisible,
+    required double playbackSpeed, required double maxPlaybackSpeed, required bool chromeVisible, required bool isBigPicture,
   }) {
     final l10n = AppLocalizations.of(context)!;
-    final isTouch = !_isBigPicture && (Platform.isAndroid || Platform.isIOS);
+    final isTouch = !isBigPicture && (Platform.isAndroid || Platform.isIOS);
 
     final playPause = PlayerPlayPauseButton(
-      player: widget.player, videoViewController: widget.videoViewController, isLoading: widget.isLoading, isTv: _isBigPicture,
+      player: widget.player, videoViewController: widget.videoViewController, isLoading: widget.isLoading, isTv: isBigPicture,
       size: 52, focusNode: _playFocusNode, onPressed: _togglePlay, showBufferingSpinner: false,
     );
 
     final leading = <Widget>[
       if (!isTouch) playPause,
       if (isTouch)
-        PlayerIconButton(icon: _isLocked ? Icons.lock : Icons.lock_open, tooltip: _isLocked ? l10n.unlock : l10n.lock, onPressed: _toggleLock, isTv: _isBigPicture, highlight: _isLocked),
+        PlayerIconButton(icon: _isLocked ? Icons.lock : Icons.lock_open, tooltip: _isLocked ? l10n.unlock : l10n.lock, onPressed: _toggleLock, isTv: isBigPicture, highlight: _isLocked),
       if (isSeries)
-        PlayerIconButton(icon: Icons.skip_next_rounded, tooltip: l10n.next, onPressed: () => ref.read(playerControllerProvider.notifier).playNextEpisode(), isTv: _isBigPicture),
+        PlayerIconButton(icon: Icons.skip_next_rounded, tooltip: l10n.next, onPressed: () => ref.read(playerControllerProvider.notifier).playNextEpisode(), isTv: isBigPicture),
     ];
 
     final playerSettings = ref.watch(playerSettingsProvider).asData?.value ?? const PlayerSettings();
 
     final actions = <Widget>[
-      PlayerIconButton(icon: Icons.source, tooltip: l10n.sources, onPressed: () => openSourcesPanel(0), isTv: _isBigPicture),
-      PlayerIconButton(icon: Icons.audiotrack_rounded, tooltip: l10n.audioTracks, onPressed: () => openSourcesPanel(1), isTv: _isBigPicture),
-      PlayerIconButton(icon: Icons.subtitles_rounded, tooltip: l10n.subtitles, onPressed: () => openSourcesPanel(2), isTv: _isBigPicture),
+      PlayerIconButton(icon: Icons.source, tooltip: l10n.sources, onPressed: () => openSourcesPanel(0), isTv: isBigPicture),
+      PlayerIconButton(icon: Icons.audiotrack_rounded, tooltip: l10n.audioTracks, onPressed: () => openSourcesPanel(1), isTv: isBigPicture),
+      PlayerIconButton(icon: Icons.subtitles_rounded, tooltip: l10n.subtitles, onPressed: () => openSourcesPanel(2), isTv: isBigPicture),
       
-      // VOLUME BUTTON
+      // VOLUME BUTTON (Restored from your branch)
       PlayerIconButton(
         icon: Icons.volume_up_rounded,
-        tooltip: "Volume",
+        tooltip: l10n.volume,
         onPressed: () async {
           _cancelHideTimer();
           final controller = ref.read(playerControllerProvider.notifier);
@@ -1129,7 +1134,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
             _startHideTimer();
           }
         },
-        isTv: _isBigPicture,
+        isTv: isBigPicture,
       ),
 
       if (supportsPlaybackSpeed && playerSettings.showPlaybackSpeed)
@@ -1146,22 +1151,24 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
               _startHideTimer();
             }
           },
-          isTv: _isBigPicture,
+          isTv: isBigPicture,
         ),
         
       if (torrentStatus != null)
-        PlayerIconButton(icon: Icons.folder, tooltip: l10n.content, onPressed: openContentPanel, isTv: _isBigPicture),
+        PlayerIconButton(icon: Icons.folder, tooltip: l10n.content, onPressed: openContentPanel, isTv: isBigPicture),
       if (torrentStatus != null)
-        PlayerIconButton(icon: Icons.info_outline, tooltip: l10n.stats, onPressed: () => setState(() => _showTorrentInfo = !_showTorrentInfo), isTv: _isBigPicture, highlight: _showTorrentInfo),
+        PlayerIconButton(icon: Icons.info_outline, tooltip: l10n.stats, onPressed: () => setState(() => _showTorrentInfo = !_showTorrentInfo), isTv: isBigPicture, highlight: _showTorrentInfo),
       if (isTouch && (Platform.isAndroid || (Platform.isIOS && !_isIpad)) && playerSettings.showRotate)
-        PlayerIconButton(icon: Icons.screen_rotation, tooltip: l10n.rotate, onPressed: _toggleOrientation, isTv: _isBigPicture),
+        PlayerIconButton(icon: Icons.screen_rotation, tooltip: l10n.rotate, onPressed: _toggleOrientation, isTv: isBigPicture),
       if (isSeries && playerSettings.showEpisodes)
-        PlayerIconButton(icon: Icons.playlist_play_rounded, tooltip: l10n.episodes, onPressed: openEpisodesPanel, isTv: _isBigPicture),
+        PlayerIconButton(icon: Icons.playlist_play_rounded, tooltip: l10n.episodes, onPressed: openEpisodesPanel, isTv: isBigPicture),
       if (playerSettings.showResize)
-        PlayerIconButton(icon: Icons.aspect_ratio_rounded, tooltip: l10n.resize, onPressed: cycleResize, isTv: _isBigPicture),
-      if (Platform.isAndroid && !_isBigPicture && playerSettings.showPip)
-        PlayerIconButton(icon: Icons.picture_in_picture_alt_rounded, tooltip: l10n.pip, onPressed: _enterPip, isTv: _isBigPicture),
+        PlayerIconButton(icon: Icons.aspect_ratio_rounded, tooltip: l10n.resize, onPressed: cycleResize, isTv: isBigPicture),
+      if (Platform.isAndroid && !isBigPicture && playerSettings.showPip)
+        PlayerIconButton(icon: Icons.picture_in_picture_alt_rounded, tooltip: l10n.pip, onPressed: _enterPip, isTv: isBigPicture),
     ];
+
+    final seekDuration = ref.watch(playerSettingsProvider).asData?.value.seekDuration ?? 10;
 
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
@@ -1190,13 +1197,13 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
               child: Column(
                 children: [
                   ExcludeFocus(
-                    excluding: _isBigPicture, 
+                    excluding: isBigPicture, 
                     child: _absorbGestures(
                       Visibility(
-                        visible: !_isBigPicture, 
+                        visible: !isBigPicture, 
                         child: PlayerTopBar(
                           title: title, subtitle: subtitle, onBack: widget.onBackPointer ?? () => context.pop(),
-                          isTv: _isBigPicture, backFocusNode: _backFocusNode,
+                          isTv: isBigPicture, backFocusNode: _backFocusNode,
                         ),
                       ),
                     ),
@@ -1204,13 +1211,13 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                   const Expanded(child: SizedBox.expand()),
                   _absorbGestures(
                     PlayerBottomBar(
-                      isTv: _isBigPicture,
+                      isTv: isBigPicture,
                       isTouch: isTouch,
                       progressBar: ExcludeFocus(
-                        excluding: _isBigPicture, 
+                        excluding: isBigPicture, 
                         child: PlayerProgressBar(
                           player: widget.player, videoViewController: widget.videoViewController,
-                          onSeekStart: _cancelHideTimer, isTv: _isBigPicture, focusNode: _scrubFocusNode,
+                          onSeekStart: _cancelHideTimer, isTv: isBigPicture, focusNode: _scrubFocusNode,
                           onArrowUp: () {},
                         ),
                       ),
@@ -1218,19 +1225,19 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
                       actions: actions,
                     ),
                   ),
-                  if (_isBigPicture)
+                  if (isBigPicture)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildMiniHint(context, 'A', 'Select', Colors.greenAccent.shade400),
+                          _buildMiniHint(context, 'A', l10n.hintSelect, Colors.greenAccent.shade400),
                           const SizedBox(width: 16),
-                          _buildMiniHint(context, 'B', 'Exit', Colors.redAccent.shade400),
+                          _buildMiniHint(context, 'B', l10n.hintExit, Colors.redAccent.shade400),
                           const SizedBox(width: 16),
-                          _buildMiniHint(context, 'LT / RT', 'Seek 10s', Colors.white),
+                          _buildMiniHint(context, 'LT / RT', l10n.hintSeek(seekDuration), Colors.white),
                           const SizedBox(width: 16),
-                          _buildMiniHint(context, '≡', 'Menu', Colors.white),
+                          _buildMiniHint(context, '≡', l10n.hintMenu, Colors.white),
                         ],
                       ),
                     ),
@@ -1247,7 +1254,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
     return GestureDetector(onTap: () {}, onDoubleTap: () {}, onVerticalDragStart: (_) {}, onHorizontalDragStart: (_) {}, child: child);
   }
 
-  Widget _buildLoadingUI({required PlaybackUiPhase phase, required List<SourceAttemptEntry> sourceAttempts}) {
+  Widget _buildLoadingUI({required PlaybackUiPhase phase, required List<SourceAttemptEntry> sourceAttempts, required bool isBigPicture}) {
     final canSkip = phase.kind != PlaybackUiPhaseKind.bootstrapping && phase.kind != PlaybackUiPhaseKind.fetchingSources && phase.kind != PlaybackUiPhaseKind.error;
     
     return Actions(
@@ -1270,7 +1277,7 @@ class SkyStreamPlayerControlsState extends ConsumerState<SkyStreamPlayerControls
         sourceAttempts: sourceAttempts,
         backdropUrl: widget.backdropUrl, 
         logoUrl: widget.logoUrl, 
-        isTv: _isBigPicture,
+        isBigPicture: isBigPicture,
         onSkip: canSkip ? () => ref.read(playerControllerProvider.notifier).skipLoadingOverlay() : null,
         onGoLive: () => ref.read(playerControllerProvider.notifier).goLive(),
       ),

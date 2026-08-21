@@ -20,6 +20,9 @@ import '../../../../core/providers/device_info_provider.dart';
 import '../../../../features/settings/presentation/player_settings_provider.dart';
 import '../../../../features/settings/presentation/general_settings_provider.dart';
 import '../../../../core/input/gamepad_actions.dart';
+
+import '../../../../features/settings/presentation/big_picture_provider.dart';
+
 import 'widgets/skystream_player_controls.dart';
 import 'widgets/hotstar_player_style.dart';
 import 'player_controller.dart';
@@ -71,7 +74,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   bool _isTv = false;
   bool _isTablet = false;
-  bool get _isBigPicture => _isTv || Platform.isMacOS || Platform.isWindows || Platform.isLinux;
   bool _wasPlayingBeforeBackground = false;
   bool _spaceHeldForSpeed = false;
   double? _speedBeforeSpaceHold;
@@ -237,12 +239,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     final rootHasFocus = FocusManager.instance.primaryFocus == node;
+    
+    // Use Master Switch to dynamically alter keyboard behavior
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || _isTv;
 
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
       return _consumeBack() ? KeyEventResult.handled : KeyEventResult.ignored;
     }
 
-    if (!_isTv && rootHasFocus && event.logicalKey == LogicalKeyboardKey.space) {
+    if (!isBigPicture && rootHasFocus && event.logicalKey == LogicalKeyboardKey.space) {
       if (event is KeyDownEvent) {
         _spaceHoldTimer ??= Timer(const Duration(milliseconds: 260), () {
           if (!mounted || _spaceHeldForSpeed) return;
@@ -322,6 +327,66 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       }
     }
 
+    if (!rootHasFocus) {
+      if (!isBigPicture) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          _controlsKeyFinal.currentState?.triggerSeek(true);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+          _controlsKeyFinal.currentState?.triggerSeek(false);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          _controlsKeyFinal.currentState?.changeVolume(0.05);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          _controlsKeyFinal.currentState?.changeVolume(-0.05);
+          return KeyEventResult.handled;
+        }
+      }
+      return KeyEventResult.ignored;
+    }
+
+    if (isBigPicture && _controlsVisible.value) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+          event.logicalKey == LogicalKeyboardKey.arrowDown ||
+          event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+          event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _controlsKeyFinal.currentState?.showControls();
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (isBigPicture && !_controlsVisible.value) {
+      if (event.logicalKey == LogicalKeyboardKey.goBack ||
+          event.logicalKey == LogicalKeyboardKey.escape) {
+        return KeyEventResult.ignored;
+      }
+      _controlsKeyFinal.currentState?.showControls();
+      return KeyEventResult.handled;
+    }
+
+    if (isBigPicture) return KeyEventResult.ignored;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _controlsKeyFinal.currentState?.changeVolume(0.05);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _controlsKeyFinal.currentState?.changeVolume(-0.05);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _controlsKeyFinal.currentState?.triggerSeek(true);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _controlsKeyFinal.currentState?.triggerSeek(false);
+      return KeyEventResult.handled;
+    }
+
     return KeyEventResult.ignored;
   }
 
@@ -342,13 +407,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       return true;
     }
     if (_controlsVisible.value) {
-      final isPlaying = ref.read(playerControllerProvider.select((s) => s.useExoPlayer))
-          ? _videoViewController.playbackState.value == vv.VideoControllerPlaybackState.playing
-          : _player.state.playing;
-      if (isPlaying) {
-        _lastBackAt = now;
-        _controlsKeyFinal.currentState?.hideControls();
-        return true;
+      // Respect Big Picture Mode for auto-hiding controls instead of exiting
+      final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || _isTv;
+      if (isBigPicture) {
+        final isPlaying = ref.read(playerControllerProvider.select((s) => s.useExoPlayer))
+            ? _videoViewController.playbackState.value == vv.VideoControllerPlaybackState.playing
+            : _player.state.playing;
+        if (isPlaying) {
+          _lastBackAt = now;
+          _controlsKeyFinal.currentState?.hideControls();
+          return true;
+        }
       }
     }
     return false;
@@ -503,7 +572,6 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               ),
               AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
                 onInvoke: (intent) {
-                  
                   if (!controlsVisible) {
                     _controlsKeyFinal.currentState?.showControls();
                     _controlsKeyFinal.currentState?.togglePlayPause();

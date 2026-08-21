@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/services/download_service.dart';
 import '../../../../core/utils/layout_constants.dart';
@@ -17,6 +18,7 @@ import '../../../../core/utils/file_size_formatter.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/providers/device_info_provider.dart';
 
+// TV/Gamepad Feature Imports
 import '../../../../core/widgets/focusable_wrapper.dart';
 import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
@@ -111,7 +113,7 @@ class _DownloadsTabState extends ConsumerState<DownloadsTab>
           },
         );
       },
-      loading: () => Center(child: AppLoadingIndicator()),
+      loading: () => const Center(child: AppLoadingIndicator()),
       error: (err, stack) =>
           Center(child: Text(l10n.errorPrefix(err.toString()))),
     );
@@ -160,7 +162,9 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
     final firstItem = widget.items.first;
     final nodeToUse = widget.focusNode ?? _localNode;
 
+    // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     final completedCount = widget.items.where((i) {
       final status = widget.activeProgress[i.task.metaData]?.status ?? i.status;
@@ -185,11 +189,11 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
             onTap: _toggleExpand,
             onSecondaryTap: () => _confirmDeleteAll(context, ref, nodeToUse),
             gamepadHints: [
-              GamepadHint(buttonLabel: 'A', actionLabel: _isExpanded ? 'Collapse' : 'Expand', buttonColor: Colors.greenAccent.shade400),
-              GamepadHint(buttonLabel: 'X', actionLabel: 'Delete All', buttonColor: Colors.redAccent.shade400),
-              GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.white), 
-              GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.white), 
-              GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+              GamepadHint(buttonLabel: 'A', actionLabel: _isExpanded ? l10n.hintCollapse : l10n.hintExpand, buttonColor: Colors.greenAccent.shade400),
+              GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintDeleteAll, buttonColor: Colors.redAccent.shade400),
+              GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
+              GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
+              GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
             ],
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -252,7 +256,8 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                   ),
                   const SizedBox(width: LayoutConstants.spacingSm),
                   
-                  if (!isTv)
+                  // Hide inline touch actions in Big Picture Mode
+                  if (!isBigPicture)
                     ExcludeFocus(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -380,7 +385,9 @@ class _DownloadItemTile extends HookConsumerWidget {
     final localNode = useFocusNode();
     final nodeToUse = focusNode ?? localNode;
 
+    // 🎯 Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     final isDone = status == TaskStatus.complete;
     final isWorking = status == TaskStatus.running || status == TaskStatus.enqueued;
@@ -391,13 +398,13 @@ class _DownloadItemTile extends HookConsumerWidget {
 
     if (isDone) {
       primaryAction = () => _playLocalFile(context, ref, l10n, nodeToUse);
-      primaryActionLabel = 'Play';
+      primaryActionLabel = l10n.hintPlay;
     } else if (isPaused) {
       primaryAction = () => ref.read(downloadsProvider.notifier).resumeDownload(item.task.taskId);
-      primaryActionLabel = 'Resume';
+      primaryActionLabel = l10n.hintResume;
     } else if (isWorking) {
       primaryAction = () => ref.read(downloadsProvider.notifier).pauseDownload(item.task.taskId);
-      primaryActionLabel = 'Pause';
+      primaryActionLabel = l10n.hintPause;
     }
 
     final content = Row(
@@ -515,10 +522,12 @@ class _DownloadItemTile extends HookConsumerWidget {
                     ),
                   ),
               ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (!isTv)
+              
+              // Hide inline touch actions in Big Picture Mode
+              if (!isBigPicture)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                     ExcludeFocus(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -553,8 +562,8 @@ class _DownloadItemTile extends HookConsumerWidget {
                         ],
                       ),
                     ),
-                ],
-              ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -569,10 +578,10 @@ class _DownloadItemTile extends HookConsumerWidget {
       gamepadHints: [
         if (primaryActionLabel.isNotEmpty)
           GamepadHint(buttonLabel: 'A', actionLabel: primaryActionLabel, buttonColor: Colors.greenAccent.shade400),
-        GamepadHint(buttonLabel: 'X', actionLabel: 'Delete', buttonColor: Colors.redAccent.shade400),
-        GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+        GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintDelete, buttonColor: Colors.redAccent.shade400),
+        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
+        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
+        GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
       ],
       child: Container(
         padding: EdgeInsets.all(isInsideGroup ? LayoutConstants.spacingSm : LayoutConstants.spacingMd),

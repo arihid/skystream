@@ -9,6 +9,10 @@ import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import 'view_all_screen.dart';
 
+// Master Switch Imports
+import '../../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 class AnilistExploreScreen extends ConsumerStatefulWidget {
   final ScrollController scrollController;
   final FocusNode firstActionFocusNode;
@@ -41,6 +45,10 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
   }
 
   List<Widget> _buildContentSlivers(BuildContext context) {
+    // Master Switch Evaluation for safe autofocusing inside slivers
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     return [
       SliverToBoxAdapter(
         child: Consumer(
@@ -51,7 +59,7 @@ class _AnilistExploreScreenState extends ConsumerState<AnilistExploreScreen> {
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
-                        autofocus: widget.autofocus,
+                        autofocus: widget.autofocus && isBigPicture, // TV Conditional Autofocus
                         movies: value,
                         scrollController: widget.scrollController,
                         onNavigateUp: () =>

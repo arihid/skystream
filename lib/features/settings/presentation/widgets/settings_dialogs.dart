@@ -165,6 +165,7 @@ void showTitlePositionDialog(
   );
 }
 
+// Must be used inside a RadioGroup<ThemeMode> ancestor.
 Widget _buildThemeOption(String title, ThemeMode value, ThemeMode currentTheme, VoidCallback onSelect) {
   return ListTile(
     autofocus: currentTheme == value,
@@ -198,15 +199,21 @@ void showThemeDialog(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildThemeOption(l10n.system, ThemeMode.system, currentTheme, () {
-                ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.system);
+                ref
+                    .read(appThemeModeProvider.notifier)
+                    .setThemeMode(ThemeMode.system);
                 Navigator.pop<void>(context);
               }),
               _buildThemeOption(l10n.dark, ThemeMode.dark, currentTheme, () {
-                ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+                ref
+                    .read(appThemeModeProvider.notifier)
+                    .setThemeMode(ThemeMode.dark);
                 Navigator.pop<void>(context);
               }),
               _buildThemeOption(l10n.light, ThemeMode.light, currentTheme, () {
-                ref.read(appThemeModeProvider.notifier).setThemeMode(ThemeMode.light);
+                ref
+                    .read(appThemeModeProvider.notifier)
+                    .setThemeMode(ThemeMode.light);
                 Navigator.pop<void>(context);
               }),
             ],
@@ -281,7 +288,8 @@ void showDefaultPlayerDialog(
   String? currentPlayerId,
 ) {
   final l10n = AppLocalizations.of(context)!;
-  final platformPlayers = ExternalPlayerService.instance.getPlayersForPlatform();
+  final platformPlayers = ExternalPlayerService.instance
+      .getPlayersForPlatform();
 
   showDialog<void>(
     context: context,
@@ -305,7 +313,9 @@ void showDefaultPlayerDialog(
                 leading: const Radio<String?>(value: null),
                 trailing: const Icon(Icons.play_circle_filled_rounded),
                 onTap: () {
-                  ref.read(playerSettingsProvider.notifier).setPreferredPlayer(null);
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setPreferredPlayer(null);
                   Navigator.pop<void>(context);
                 },
               ),
@@ -317,7 +327,9 @@ void showDefaultPlayerDialog(
                   leading: Radio<String?>(value: player.id),
                   trailing: Icon(player.icon),
                   onTap: () {
-                    ref.read(playerSettingsProvider.notifier).setPreferredPlayer(player.id);
+                    ref
+                        .read(playerSettingsProvider.notifier)
+                        .setPreferredPlayer(player.id);
                     Navigator.pop<void>(context);
                   },
                 );
@@ -331,7 +343,9 @@ void showDefaultPlayerDialog(
           onPressed: () => Navigator.pop<void>(context),
           child: Text(
             l10n.cancel,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -383,57 +397,74 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                       autofocus: currentProvider == DohProvider.cloudflare,
                       title: Text(l10n.cloudflare),
                       subtitle: const Text('1.1.1.1'),
-                      leading: const Radio<DohProvider>(value: DohProvider.cloudflare),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.cloudflare,
+                      ),
                       onTap: () => saveAndClose(DohProvider.cloudflare),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.google,
                       title: Text(l10n.google),
                       subtitle: const Text('8.8.8.8'),
-                      leading: const Radio<DohProvider>(value: DohProvider.google),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.google,
+                      ),
                       onTap: () => saveAndClose(DohProvider.google),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.adguard,
                       title: Text(l10n.adguard),
                       subtitle: const Text('dns.adguard.com'),
-                      leading: const Radio<DohProvider>(value: DohProvider.adguard),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.adguard,
+                      ),
                       onTap: () => saveAndClose(DohProvider.adguard),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.dnsWatch,
                       title: Text(l10n.dnsWatch),
                       subtitle: const Text('resolver2.dns.watch'),
-                      leading: const Radio<DohProvider>(value: DohProvider.dnsWatch),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.dnsWatch,
+                      ),
                       onTap: () => saveAndClose(DohProvider.dnsWatch),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.quad9,
                       title: Text(l10n.quad9),
                       subtitle: const Text('9.9.9.9'),
-                      leading: const Radio<DohProvider>(value: DohProvider.quad9),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.quad9,
+                      ),
                       onTap: () => saveAndClose(DohProvider.quad9),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.dnsSb,
                       title: Text(l10n.dnsSb),
                       subtitle: const Text('doh.dns.sb'),
-                      leading: const Radio<DohProvider>(value: DohProvider.dnsSb),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.dnsSb,
+                      ),
                       onTap: () => saveAndClose(DohProvider.dnsSb),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.canadianShield,
                       title: Text(l10n.canadianShield),
                       subtitle: const Text('private.canadianshield.cira.ca'),
-                      leading: const Radio<DohProvider>(value: DohProvider.canadianShield),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.canadianShield,
+                      ),
                       onTap: () => saveAndClose(DohProvider.canadianShield),
                     ),
                     ListTile(
                       autofocus: currentProvider == DohProvider.custom,
                       title: Text(l10n.custom),
                       subtitle: Text(l10n.enterCustomDohUrl),
-                      leading: const Radio<DohProvider>(value: DohProvider.custom),
-                      onTap: () => setState(() => currentProvider = DohProvider.custom),
+                      leading: const Radio<DohProvider>(
+                        value: DohProvider.custom,
+                      ),
+                      onTap: () =>
+                          setState(() => currentProvider = DohProvider.custom),
                     ),
                     if (currentProvider == DohProvider.custom)
                       Padding(
@@ -447,7 +478,10 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                           decoration: InputDecoration(
                             labelText: l10n.customDohUrlLabel,
                             hintText: 'https://...',
-                            prefixIcon: const Icon(Icons.link_rounded, size: 20),
+                            prefixIcon: const Icon(
+                              Icons.link_rounded,
+                              size: 20,
+                            ),
                           ),
                           keyboardType: TextInputType.url,
                         ),
@@ -461,7 +495,9 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                 onPressed: () => Navigator.pop<void>(ctx),
                 child: Text(
                   l10n.cancel,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               if (currentProvider == DohProvider.custom)
@@ -520,7 +556,9 @@ void showGestureDialog(
                   if (isLeft) {
                     ref.read(playerSettingsProvider.notifier).setLeftGesture(g);
                   } else {
-                    ref.read(playerSettingsProvider.notifier).setRightGesture(g);
+                    ref
+                        .read(playerSettingsProvider.notifier)
+                        .setRightGesture(g);
                   }
                   Navigator.pop<void>(context);
                 },
@@ -559,7 +597,9 @@ void showDurationDialog(BuildContext context, WidgetRef ref, int current) {
                 title: Text(formatSeekDuration(sec, l10n)),
                 leading: Radio<int>(value: sec),
                 onTap: () {
-                  ref.read(playerSettingsProvider.notifier).setSeekDuration(sec);
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setSeekDuration(sec);
                   Navigator.pop<void>(context);
                 },
               );
@@ -600,7 +640,9 @@ void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
                 title: Text(e['label']!),
                 leading: Radio<String>(value: e['value']!),
                 onTap: () {
-                  ref.read(playerSettingsProvider.notifier).setDefaultResizeMode(e['value']!);
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setDefaultResizeMode(e['value']!);
                   Navigator.pop<void>(ctx);
                 },
               );
@@ -615,6 +657,7 @@ void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
 /// Shows a dialog to pick the readahead duration (5-10 min).
 void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
   final l10n = AppLocalizations.of(context)!;
+  // 1 to 20 minutes in 1-minute steps
   final options = List.generate(20, (i) => (1 + i) * 60);
 
   showDialog<void>(
@@ -638,7 +681,9 @@ void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
                 title: Text(formatReadahead(sec, l10n)),
                 leading: Radio<int>(value: sec),
                 onTap: () {
-                  ref.read(playerSettingsProvider.notifier).setReadaheadSeconds(sec);
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setReadaheadSeconds(sec);
                   Navigator.pop<void>(context);
                 },
               );
@@ -695,14 +740,18 @@ void showSubtitleDialog(
               onPressed: () => Navigator.pop<void>(ctx),
               child: Text(
                 l10n.cancel,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             CustomButton(
               isPrimary: true,
               onPressed: () {
                 final bg = showBackground ? 0x99000000 : 0x00000000;
-                ref.read(playerSettingsProvider.notifier).setSubtitleSettings(size, settings.subtitleColor, bg);
+                ref
+                    .read(playerSettingsProvider.notifier)
+                    .setSubtitleSettings(size, settings.subtitleColor, bg);
                 Navigator.pop<void>(ctx);
               },
               child: Text(l10n.save),
@@ -747,7 +796,9 @@ void showQualityDialog(
                   return ListTile(
                     autofocus: current == q,
                     title: Text(qualityPreferenceLabel(q, l10n)),
-                    subtitle: q == QualityPreference.any ? Text(l10n.keepSourcesOriginalOrder) : null,
+                    subtitle: q == QualityPreference.any
+                        ? Text(l10n.keepSourcesOriginalOrder)
+                        : null,
                     leading: Radio<QualityPreference>(value: q),
                     onTap: () {
                       onChanged(q);
@@ -763,12 +814,18 @@ void showQualityDialog(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline_rounded, size: 14, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       l10n.qualityNotGuaranteed,
-                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -782,6 +839,7 @@ void showQualityDialog(
 }
 
 /// Shows a dialog to pick a [QualityFilterMode].
+/// Controls whether sources that don't match the quality preference are hidden.
 void showQualityFilterModeDialog(
   BuildContext context,
   WidgetRef ref, {
@@ -792,17 +850,22 @@ void showQualityFilterModeDialog(
     (
       mode: QualityFilterMode.any,
       label: 'Show all (sort only)',
-      subtitle: 'Sources are sorted by your quality preference but none are hidden.',
+      subtitle:
+          'Sources are sorted by your quality preference but none are hidden.',
     ),
     (
       mode: QualityFilterMode.atOrAbove,
       label: 'Hide sources below preference',
-      subtitle: 'Only sources at or above your preferred quality are shown. Falls back to all sources if nothing qualifies.',
+      subtitle:
+          'Only sources at or above your preferred quality are shown. '
+          'Falls back to all sources if nothing qualifies.',
     ),
     (
       mode: QualityFilterMode.atOrBelow,
       label: 'Hide sources above preference',
-      subtitle: 'Only sources at or below your preferred quality are shown (data-saver mode).',
+      subtitle:
+          'Only sources at or below your preferred quality are shown '
+          '(data-saver mode).',
     ),
   ];
 
@@ -845,12 +908,19 @@ void showQualityFilterModeDialog(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline_rounded, size: 14, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'The quality preference (Wi-Fi / Mobile) controls which tier is used as the threshold for this filter.',
-                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Theme.of(ctx).colorScheme.onSurfaceVariant),
+                      'The quality preference (Wi-Fi / Mobile) controls '
+                      'which tier is used as the threshold for this filter.',
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],
@@ -863,11 +933,13 @@ void showQualityFilterModeDialog(
   );
 }
 
-/// Shows a dialog to toggle the visibility of individual player control buttons.
+/// Shows a dialog to toggle the visibility of individual player control
+/// buttons. Changes apply live via the player settings notifier.
 void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final notifier = ref.read(playerSettingsProvider.notifier);
-  final settings = ref.read(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+  final settings =
+      ref.read(playerSettingsProvider).asData?.value ?? const PlayerSettings();
 
   final metadata = [
     (icon: Icons.picture_in_picture_alt_rounded, label: l10n.showPip),
@@ -876,8 +948,20 @@ void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
     (icon: Icons.speed_rounded, label: l10n.showPlaybackSpeed),
     (icon: Icons.playlist_play_rounded, label: l10n.showEpisodes),
   ];
-  final setters = [notifier.setShowPip, notifier.setShowResize, notifier.setShowRotate, notifier.setShowPlaybackSpeed, notifier.setShowEpisodes];
-  final values = [settings.showPip, settings.showResize, settings.showRotate, settings.showPlaybackSpeed, settings.showEpisodes];
+  final setters = [
+    notifier.setShowPip,
+    notifier.setShowResize,
+    notifier.setShowRotate,
+    notifier.setShowPlaybackSpeed,
+    notifier.setShowEpisodes,
+  ];
+  final values = [
+    settings.showPip,
+    settings.showResize,
+    settings.showRotate,
+    settings.showPlaybackSpeed,
+    settings.showEpisodes,
+  ];
 
   showDialog<void>(
     context: context,
@@ -907,7 +991,12 @@ void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop<void>(ctx),
-              child: Text(l10n.close, style: TextStyle(color: Theme.of(ctx).colorScheme.onSurfaceVariant)),
+              child: Text(
+                l10n.close,
+                style: TextStyle(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ],
         );
@@ -952,11 +1041,15 @@ void showOpenSubtitlesAuthDialog(
                 children: [
                   Text(
                     l10n.openSubtitlesAuthSubtitle,
-                    style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: userController,
+                    // No autofocus here! Keeps TV keyboard from popping up instantly.
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: l10n.username,
@@ -972,26 +1065,53 @@ void showOpenSubtitlesAuthDialog(
                       prefixIcon: const Icon(Icons.lock_outline, size: 20),
                       suffixIcon: ExcludeFocus(
                         child: IconButton(
-                          icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility, size: 20),
-                          onPressed: () => setState(() => isObscure = !isObscure),
+                          icon: Icon(
+                            isObscure ? Icons.visibility_off : Icons.visibility,
+                            size: 20,
+                          ),
+                          onPressed: () =>
+                              setState(() => isObscure = !isObscure),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextButton.icon(
-                    onPressed: () => launchUrl(Uri.parse('https://www.opensubtitles.com/en/users/sign_up'), mode: LaunchMode.externalApplication),
+                    onPressed: () => launchUrl(
+                      Uri.parse(
+                        'https://www.opensubtitles.com/en/users/sign_up',
+                      ),
+                      mode: LaunchMode.externalApplication,
+                    ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: Text(l10n.noAccountRegister),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: const TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
                   if (verifyResult != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(verifyResult! ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded, color: verifyResult! ? Colors.green : Colors.red, size: 16),
+                        Icon(
+                          verifyResult!
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          color: verifyResult! ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
-                        Text(verifyResult! ? l10n.connectedSuccessfully : l10n.connectionFailed, style: TextStyle(color: verifyResult! ? Colors.green : Colors.red, fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text(
+                          verifyResult!
+                              ? l10n.connectedSuccessfully
+                              : l10n.connectionFailed,
+                          style: TextStyle(
+                            color: verifyResult! ? Colors.green : Colors.red,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1006,7 +1126,12 @@ void showOpenSubtitlesAuthDialog(
                                 isVerifying = true;
                                 verifyResult = null;
                               });
-                              final ok = await ref.read(playerSettingsProvider.notifier).verifyOpenSubtitles(userController.text.trim(), passController.text.trim());
+                              final ok = await ref
+                                  .read(playerSettingsProvider.notifier)
+                                  .verifyOpenSubtitles(
+                                    userController.text.trim(),
+                                    passController.text.trim(),
+                                  );
                               if (ctx.mounted) {
                                 setState(() {
                                   isVerifying = false;
@@ -1014,9 +1139,26 @@ void showOpenSubtitlesAuthDialog(
                                 });
                               }
                             },
-                      icon: isVerifying ? const AppLoadingIndicator(constraints: BoxConstraints(minWidth: 16, minHeight: 16, maxWidth: 16, maxHeight: 16)) : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      icon: isVerifying
+                          ? const AppLoadingIndicator(
+                              constraints: BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                                maxWidth: 16,
+                                maxHeight: 16,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 18,
+                            ),
                       label: Text(l10n.testConnection),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1028,8 +1170,15 @@ void showOpenSubtitlesAuthDialog(
                 children: [
                   TextButton(
                     autofocus: true,
-                    onPressed: isVerifying ? null : () => Navigator.pop<void>(ctx),
-                    child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    onPressed: isVerifying
+                        ? null
+                        : () => Navigator.pop<void>(ctx),
+                    child: Text(
+                      l10n.cancel,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   CustomButton(
@@ -1037,7 +1186,12 @@ void showOpenSubtitlesAuthDialog(
                     onPressed: isVerifying
                         ? null
                         : () {
-                            ref.read(playerSettingsProvider.notifier).setOpenSubtitlesCredentials(userController.text.trim(), passController.text.trim());
+                            ref
+                                .read(playerSettingsProvider.notifier)
+                                .setOpenSubtitlesCredentials(
+                                  userController.text.trim(),
+                                  passController.text.trim(),
+                                );
                             Navigator.pop<void>(ctx);
                           },
                     child: Text(l10n.save),
@@ -1090,12 +1244,22 @@ void showSubDlAuthDialog(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.subDlAuthSubtitle, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Text(
+                    l10n.subDlAuthSubtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: apiKeyController,
+                    // No autofocus here!
                     textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(labelText: l10n.apiKey, prefixIcon: const Icon(Icons.key_rounded, size: 20)),
+                    decoration: InputDecoration(
+                      labelText: l10n.apiKey,
+                      prefixIcon: const Icon(Icons.key_rounded, size: 20),
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -1103,7 +1267,17 @@ void showSubDlAuthDialog(
                       const Expanded(child: Divider()),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('OR FETCH VIA ACCOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6))),
+                        child: Text(
+                          'OR FETCH VIA ACCOUNT',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
                       ),
                       const Expanded(child: Divider()),
                     ],
@@ -1112,7 +1286,10 @@ void showSubDlAuthDialog(
                   CustomTextField(
                     controller: emailController,
                     textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(labelText: l10n.email, prefixIcon: const Icon(Icons.email_outlined, size: 20)),
+                    decoration: InputDecoration(
+                      labelText: l10n.email,
+                      prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   CustomTextField(
@@ -1123,8 +1300,12 @@ void showSubDlAuthDialog(
                       prefixIcon: const Icon(Icons.lock_outline, size: 20),
                       suffixIcon: ExcludeFocus(
                         child: IconButton(
-                          icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility, size: 20),
-                          onPressed: () => setState(() => isObscure = !isObscure),
+                          icon: Icon(
+                            isObscure ? Icons.visibility_off : Icons.visibility,
+                            size: 20,
+                          ),
+                          onPressed: () =>
+                              setState(() => isObscure = !isObscure),
                         ),
                       ),
                     ),
@@ -1141,34 +1322,89 @@ void showSubDlAuthDialog(
                                 fetchError = null;
                                 verifyKeyResult = null;
                               });
-                              final result = await ref.read(playerSettingsProvider.notifier).verifySubDl(emailController.text.trim(), passController.text.trim());
+                              final result = await ref
+                                  .read(playerSettingsProvider.notifier)
+                                  .verifySubDl(
+                                    emailController.text.trim(),
+                                    passController.text.trim(),
+                                  );
                               if (ctx.mounted) {
                                 setState(() {
                                   isFetching = false;
-                                  if (result.key != null) apiKeyController.text = result.key!;
-                                  else fetchError = result.error;
+                                  if (result.key != null) {
+                                    apiKeyController.text = result.key!;
+                                  } else {
+                                    fetchError = result.error;
+                                  }
                                 });
                               }
                             },
-                      icon: isFetching ? const AppLoadingIndicator(color: Colors.white, constraints: BoxConstraints(minWidth: 16, minHeight: 16, maxWidth: 16, maxHeight: 16)) : const Icon(Icons.download_rounded, size: 18),
+                      icon: isFetching
+                          ? const AppLoadingIndicator(
+                              color: Colors.white,
+                              constraints: BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                                maxWidth: 16,
+                                maxHeight: 16,
+                              ),
+                            )
+                          : const Icon(Icons.download_rounded, size: 18),
                       label: Text(l10n.fetchMyApiKey),
-                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: theme.colorScheme.primary.withValues(
+                          alpha: 0.8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: () => launchUrl(Uri.parse('https://subdl.com/panel/api'), mode: LaunchMode.externalApplication),
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://subdl.com/panel/api'),
+                      mode: LaunchMode.externalApplication,
+                    ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: Text(l10n.noAccountRegister),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: const TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
                   if (fetchError != null || verifyKeyResult != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(fetchError != null || verifyKeyResult == false ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded, color: fetchError != null || verifyKeyResult == false ? Colors.red : Colors.green, size: 16),
+                        Icon(
+                          fetchError != null || verifyKeyResult == false
+                              ? Icons.error_outline_rounded
+                              : Icons.check_circle_outline_rounded,
+                          color: fetchError != null || verifyKeyResult == false
+                              ? Colors.red
+                              : Colors.green,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
-                        Flexible(child: Text(fetchError ?? (verifyKeyResult! ? l10n.keyVerified : l10n.invalidApiKey), style: TextStyle(color: fetchError != null || verifyKeyResult == false ? Colors.red : Colors.green, fontSize: 13, fontWeight: FontWeight.w500))),
+                        Flexible(
+                          child: Text(
+                            fetchError ??
+                                (verifyKeyResult!
+                                    ? l10n.keyVerified
+                                    : l10n.invalidApiKey),
+                            style: TextStyle(
+                              color:
+                                  fetchError != null || verifyKeyResult == false
+                                      ? Colors.red
+                                      : Colors.green,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1184,7 +1420,9 @@ void showSubDlAuthDialog(
                                 verifyKeyResult = null;
                                 fetchError = null;
                               });
-                              final ok = await ref.read(playerSettingsProvider.notifier).verifySubDlKey(apiKeyController.text.trim());
+                              final ok = await ref
+                                  .read(playerSettingsProvider.notifier)
+                                  .verifySubDlKey(apiKeyController.text.trim());
                               if (ctx.mounted) {
                                 setState(() {
                                   isVerifyingKey = false;
@@ -1192,9 +1430,26 @@ void showSubDlAuthDialog(
                                 });
                               }
                             },
-                      icon: isVerifyingKey ? const AppLoadingIndicator(constraints: BoxConstraints(minWidth: 16, minHeight: 16, maxWidth: 16, maxHeight: 16)) : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      icon: isVerifyingKey
+                          ? const AppLoadingIndicator(
+                              constraints: BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                                maxWidth: 16,
+                                maxHeight: 16,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 18,
+                            ),
                       label: Text(l10n.testConnection),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1206,8 +1461,15 @@ void showSubDlAuthDialog(
                 children: [
                   TextButton(
                     autofocus: true,
-                    onPressed: (isFetching || isVerifyingKey) ? null : () => Navigator.pop<void>(ctx),
-                    child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    onPressed: (isFetching || isVerifyingKey)
+                        ? null
+                        : () => Navigator.pop<void>(ctx),
+                    child: Text(
+                      l10n.cancel,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   CustomButton(
@@ -1215,7 +1477,13 @@ void showSubDlAuthDialog(
                     onPressed: (isFetching || isVerifyingKey)
                         ? null
                         : () {
-                            ref.read(playerSettingsProvider.notifier).setSubDlAuth(apiKey: apiKeyController.text.trim(), email: emailController.text.trim(), pass: passController.text.trim());
+                            ref
+                                .read(playerSettingsProvider.notifier)
+                                .setSubDlAuth(
+                                  apiKey: apiKeyController.text.trim(),
+                                  email: emailController.text.trim(),
+                                  pass: passController.text.trim(),
+                                );
                             Navigator.pop<void>(ctx);
                           },
                     child: Text(l10n.save),
@@ -1262,26 +1530,58 @@ void showSubSourceAuthDialog(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.subSourceAuthSubtitle, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  Text(
+                    l10n.subSourceAuthSubtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: keyController,
-                    decoration: InputDecoration(labelText: l10n.apiKeyOptionalOverride, prefixIcon: const Icon(Icons.key_rounded, size: 20), hintText: l10n.enterKeyToOverrideDefault),
+                    // No autofocus here! Keeps TV keyboard from popping up instantly.
+                    decoration: InputDecoration(
+                      labelText: l10n.apiKeyOptionalOverride,
+                      prefixIcon: const Icon(Icons.key_rounded, size: 20),
+                      hintText: l10n.enterKeyToOverrideDefault,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
-                    onPressed: () => launchUrl(Uri.parse('https://subsource.net/dashboard/profile'), mode: LaunchMode.externalApplication),
+                    onPressed: () => launchUrl(
+                      Uri.parse('https://subsource.net/dashboard/profile'),
+                      mode: LaunchMode.externalApplication,
+                    ),
                     icon: const Icon(Icons.open_in_new_rounded, size: 16),
                     label: Text(l10n.getApiKeyFromProfile),
-                    style: TextButton.styleFrom(visualDensity: VisualDensity.compact, textStyle: const TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
                   if (verifyResult != null) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(verifyResult! ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded, color: verifyResult! ? Colors.green : Colors.red, size: 16),
+                        Icon(
+                          verifyResult!
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          color: verifyResult! ? Colors.green : Colors.red,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
-                        Text(verifyResult! ? l10n.keyVerified : l10n.invalidApiKey, style: TextStyle(color: verifyResult! ? Colors.green : Colors.red, fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text(
+                          verifyResult!
+                              ? l10n.keyVerified
+                              : l10n.invalidApiKey,
+                          style: TextStyle(
+                            color: verifyResult! ? Colors.green : Colors.red,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1296,7 +1596,9 @@ void showSubSourceAuthDialog(
                                 isVerifying = true;
                                 verifyResult = null;
                               });
-                              final ok = await ref.read(playerSettingsProvider.notifier).verifySubSource(keyController.text.trim());
+                              final ok = await ref
+                                  .read(playerSettingsProvider.notifier)
+                                  .verifySubSource(keyController.text.trim());
                               if (ctx.mounted) {
                                 setState(() {
                                   isVerifying = false;
@@ -1304,9 +1606,26 @@ void showSubSourceAuthDialog(
                                 });
                               }
                             },
-                      icon: isVerifying ? const AppLoadingIndicator(constraints: BoxConstraints(minWidth: 16, minHeight: 16, maxWidth: 16, maxHeight: 16)) : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      icon: isVerifying
+                          ? const AppLoadingIndicator(
+                              constraints: BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                                maxWidth: 16,
+                                maxHeight: 16,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.check_circle_outline_rounded,
+                              size: 18,
+                            ),
                       label: Text(l10n.testConnection),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1318,8 +1637,15 @@ void showSubSourceAuthDialog(
                 children: [
                   TextButton(
                     autofocus: true,
-                    onPressed: isVerifying ? null : () => Navigator.pop<void>(ctx),
-                    child: Text(l10n.cancel, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    onPressed: isVerifying
+                        ? null
+                        : () => Navigator.pop<void>(ctx),
+                    child: Text(
+                      l10n.cancel,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   CustomButton(
@@ -1327,7 +1653,9 @@ void showSubSourceAuthDialog(
                     onPressed: isVerifying
                         ? null
                         : () {
-                            ref.read(playerSettingsProvider.notifier).setSubSourceApiKey(keyController.text.trim());
+                            ref
+                                .read(playerSettingsProvider.notifier)
+                                .setSubSourceApiKey(keyController.text.trim());
                             Navigator.pop<void>(ctx);
                           },
                     child: Text(l10n.save),
@@ -1356,17 +1684,28 @@ void showResetDataDialog(BuildContext context, WidgetRef ref) {
         TextButton(
           autofocus: true,
           onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(l10n.cancel, style: TextStyle(color: Theme.of(dialogContext).colorScheme.onSurfaceVariant)),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
         TextButton(
           onPressed: () async {
             Navigator.pop<void>(dialogContext);
+
+            // Clear Preferences ONLY
             await ref.read(settingsRepositoryProvider).clearPreferences();
+
+            // Restart App - use caller's context; dialog context may be disposed after pop
             if (callerContext.mounted) {
               await AppUtils.restartApp(callerContext);
             }
           },
-          style: TextButton.styleFrom(foregroundColor: Theme.of(dialogContext).colorScheme.tertiary),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.tertiary,
+          ),
           child: Text(l10n.resetDataKeepExtensions),
         ),
       ],
@@ -1388,17 +1727,27 @@ void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
         TextButton(
           autofocus: true,
           onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(l10n.cancel, style: TextStyle(color: Theme.of(dialogContext).colorScheme.onSurfaceVariant)),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
         TextButton(
           onPressed: () async {
             Navigator.pop<void>(dialogContext);
+            // Deep Clean (Extensions, Prefs, Hive)
             await ref.read(settingsRepositoryProvider).deleteAllData();
+
+            // Restart App - use caller's context; dialog context may be disposed after pop
             if (callerContext.mounted) {
               await AppUtils.restartApp(callerContext);
             }
           },
-          style: TextButton.styleFrom(foregroundColor: Theme.of(dialogContext).colorScheme.error),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
           child: Text(l10n.factoryReset),
         ),
       ],
@@ -1420,7 +1769,12 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
         TextButton(
           autofocus: true,
           onPressed: () => Navigator.pop<void>(dialogContext),
-          child: Text(l10n.cancel, style: TextStyle(color: Theme.of(dialogContext).colorScheme.onSurfaceVariant)),
+          child: Text(
+            l10n.cancel,
+            style: TextStyle(
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
         TextButton(
           onPressed: () async {
@@ -1428,10 +1782,14 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
             await ref.read(settingsRepositoryProvider).clearImageVideoCache();
             ref.invalidate(cacheSizeProvider);
             if (callerContext.mounted) {
-              ScaffoldMessenger.of(callerContext).showSnackBar(SnackBar(content: Text(l10n.cacheCleared)));
+              ScaffoldMessenger.of(callerContext).showSnackBar(
+                SnackBar(content: Text(l10n.cacheCleared)),
+              );
             }
           },
-          style: TextButton.styleFrom(foregroundColor: Theme.of(dialogContext).colorScheme.error),
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(dialogContext).colorScheme.error,
+          ),
           child: Text(l10n.clearCacheNow),
         ),
       ],
@@ -1440,8 +1798,13 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
 }
 
 /// Shows a dialog to pick the application language.
-void showLanguageDialog(BuildContext context, WidgetRef ref, Locale currentLocale) {
+void showLanguageDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Locale currentLocale,
+) {
   final l10n = AppLocalizations.of(context)!;
+
   showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
@@ -1455,8 +1818,15 @@ void showLanguageDialog(BuildContext context, WidgetRef ref, Locale currentLocal
           }),
         ),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const SizedBox(height: 100, child: Center(child: AppLoadingIndicator()));
+          if (!snapshot.hasData) {
+            return const SizedBox(
+              height: 100,
+              child: Center(child: AppLoadingIndicator()),
+            );
+          }
+
           final options = snapshot.data!;
+
           return RadioGroup<Locale>(
             groupValue: currentLocale,
             onChanged: (val) {
@@ -1503,12 +1873,23 @@ void showDeveloperDialog(BuildContext context) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Profile Picture
             Container(
-              width: 100, height: 100,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2), width: 4),
-                boxShadow: [BoxShadow(color: colorScheme.primary.withValues(alpha: 0.1), blurRadius: 20, spreadRadius: 5)],
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.2),
+                  width: 4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
               ),
               child: ClipOval(
                 child: Image.network(
@@ -1517,23 +1898,73 @@ void showDeveloperDialog(BuildContext context) {
                     if (loadingProgress == null) return child;
                     return const Center(child: AppLoadingIndicator());
                   },
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.person_rounded, size: 50),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.person_rounded, size: 50),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            Text('Akash', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            // Name and Title
+            Text(
+              'Akash',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Fullstack & Flutter Developer', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
+            Text(
+              'Fullstack & Flutter Developer',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(height: 24),
+            // Social Links
             Wrap(
               alignment: WrapAlignment.center,
-              spacing: 12, runSpacing: 12,
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                _SocialButton(svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg', color: const Color(0xFF909692), onTap: () => launchUrl(Uri.parse('https://github.com/akashdh11'), mode: LaunchMode.externalApplication)),
-                _SocialButton(svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg', color: const Color(0xFF2d65bc), onTap: () => launchUrl(Uri.parse('https://www.linkedin.com/in/akashdh11'), mode: LaunchMode.externalApplication)),
-                _SocialButton(svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg', color: const Color(0xFF5865F2), onTap: () => launchUrl(Uri.parse('https://discord.gg/73XGA8Mxn9'), mode: LaunchMode.externalApplication)),
-                _SocialButton(svgUrl: 'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg', color: const Color(0xFF5baae3), onTap: () => launchUrl(Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'), mode: LaunchMode.externalApplication)),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/github.svg',
+                  color: const Color(
+                    0xFF909692,
+                  ), 
+                  onTap: () => launchUrl(
+                    Uri.parse('https://github.com/akashdh11'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/linkedin.svg',
+                  color: const Color(0xFF2d65bc), 
+                  onTap: () => launchUrl(
+                    Uri.parse('https://www.linkedin.com/in/akashdh11'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/discord.svg',
+                  color: const Color(0xFF5865F2), 
+                  onTap: () => launchUrl(
+                    Uri.parse('https://discord.gg/73XGA8Mxn9'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+                _SocialButton(
+                  svgUrl:
+                      'https://raw.githubusercontent.com/simple-icons/simple-icons/11.10.0/icons/telegram.svg',
+                  color: const Color(0xFF5baae3), 
+                  onTap: () => launchUrl(
+                    Uri.parse('https://t.me/+Ez5Vsv2pUUFjZmNl'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
               ],
             ),
           ],
@@ -1555,7 +1986,11 @@ class _SocialButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _SocialButton({required this.svgUrl, required this.color, required this.onTap});
+  const _SocialButton({
+    required this.svgUrl,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1567,8 +2002,12 @@ class _SocialButton extends StatelessWidget {
         icon: SvgPicture.network(
           svgUrl,
           colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-          width: 24, height: 24,
-          placeholderBuilder: (context) => AppLoadingIndicator(color: color.withValues(alpha: 0.5), constraints: BoxConstraints.tight(const Size(24, 24))),
+          width: 24,
+          height: 24,
+          placeholderBuilder: (context) => AppLoadingIndicator(
+            color: color.withValues(alpha: 0.5),
+            constraints: BoxConstraints.tight(const Size(24, 24)),
+          ),
         ),
         onPressed: onTap,
         tooltip: l10n.openLink,

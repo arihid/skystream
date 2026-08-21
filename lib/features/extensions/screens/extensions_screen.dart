@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,8 +13,10 @@ import 'plugin_settings_screen.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+// TV/Gamepad Feature Imports
 import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import 'package:skystream/core/input/gamepad_actions.dart'; 
+import '../../settings/presentation/big_picture_provider.dart';
 
 class ExtensionsScreen extends ConsumerStatefulWidget {
   const ExtensionsScreen({super.key});
@@ -28,8 +29,8 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
   bool _didEnsureInit = false;
   late TabController _tabController;
   
-  final FocusNode _installedFocusNode = FocusNode();
-  final FocusNode _reposFocusNode = FocusNode();
+  final FocusNode _installedFocusNode = FocusNode(debugLabel: 'installed_tab_anchor');
+  final FocusNode _reposFocusNode = FocusNode(debugLabel: 'repos_tab_anchor');
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
   }
 
   void _switchTab(int index) {
+    if (_tabController.index == index) return;
     _tabController.animateTo(index);
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
@@ -70,6 +72,11 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     if (!_didEnsureInit) {
       _didEnsureInit = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -101,7 +108,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
     return switch (state) {
       ExtensionsLoading(repositories: []) => Scaffold(
           appBar: AppBar(
-            automaticallyImplyLeading: false, 
+            automaticallyImplyLeading: !isBigPicture, 
             title: Text(l10n.extensions)
           ),
           body: const Center(child: AppLoadingIndicator()),
@@ -123,11 +130,12 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
             },
             child: Scaffold(
               appBar: AppBar(
-                automaticallyImplyLeading: false,
+                automaticallyImplyLeading: !isBigPicture,
                 title: Text(l10n.extensions),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
                   child: ExcludeFocus(
+                    excluding: isBigPicture, // Trap D-Pad inside content
                     child: TabBar(
                       controller: _tabController,
                       indicatorSize: TabBarIndicatorSize.label,
@@ -203,9 +211,9 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
                     onFocusChange: (f) {
                       if (f && mounted) {
                         ref.read(focusedGamepadHintsProvider.notifier).state = [
-                          GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.grey.shade400),
-                          GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.grey.shade400),
-                          GamepadHint(buttonLabel: 'A', actionLabel: 'Browse', buttonColor: Colors.greenAccent.shade400),
+                          GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.grey.shade400),
+                          GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.grey.shade400),
+                          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintBrowse, buttonColor: Colors.greenAccent.shade400),
                         ];
                       }
                     },
@@ -268,9 +276,9 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> with Ticker
                     onFocusChange: (f) {
                       if (f && mounted) {
                         ref.read(focusedGamepadHintsProvider.notifier).state = [
-                          GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.grey.shade400),
-                          GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.grey.shade400),
-                          GamepadHint(buttonLabel: 'A', actionLabel: 'Add Repo', buttonColor: Colors.greenAccent.shade400),
+                          GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.grey.shade400),
+                          GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.grey.shade400),
+                          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintAddRepo, buttonColor: Colors.greenAccent.shade400),
                         ];
                       }
                     },
@@ -491,9 +499,9 @@ class _AddRepoTileState extends ConsumerState<_AddRepoTile> {
               setState(() => _isFocused = f);
               if (f && mounted) {
                 ref.read(focusedGamepadHintsProvider.notifier).state = [
-                  GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.grey.shade400),
-                  GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.grey.shade400),
-                  GamepadHint(buttonLabel: 'A', actionLabel: 'Add Repo', buttonColor: Colors.greenAccent.shade400),
+                  GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.grey.shade400),
+                  GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.grey.shade400),
+                  GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintAddRepo, buttonColor: Colors.greenAccent.shade400),
                 ];
               }
             },
@@ -545,21 +553,21 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
     }
   }
 
-  void _updateHints(bool hasFocus) {
+  void _updateHints(bool hasFocus, AppLocalizations l10n) {
     if (!mounted) return;
     if (hasFocus) {
       final allInstalled = widget.plugins.isNotEmpty && widget.plugins.every((p) => widget.state.installedPlugins.any((i) => !i.isDebug && i.packageName == p.packageName));
       ref.read(focusedGamepadHintsProvider.notifier).state = [
-        GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.grey.shade400),
-        GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.grey.shade400),
+        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.grey.shade400),
+        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.grey.shade400),
         GamepadHint(buttonLabel: 'A', actionLabel: _isExpanded ? 'Collapse' : 'Expand', buttonColor: Colors.greenAccent.shade400),
         if (!allInstalled && widget.plugins.isNotEmpty)
-          GamepadHint(buttonLabel: 'X', actionLabel: 'Download All', buttonColor: Colors.blueAccent.shade400),
-        GamepadHint(buttonLabel: 'Y', actionLabel: 'Delete Repo', buttonColor: Colors.redAccent.shade400),
+        GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintDownloadAll, buttonColor: Colors.blueAccent.shade400),
+        GamepadHint(buttonLabel: 'Y', actionLabel: l10n.hintDeleteRepo, buttonColor: Colors.redAccent.shade400),
       ];
     } else {
       final currentHints = ref.read(focusedGamepadHintsProvider);
-      if (currentHints?.any((h) => h.actionLabel == 'Delete Repo') == true) {
+      if (currentHints?.any((h) => h.actionLabel == l10n.hintDeleteRepo) == true) {
         ref.read(focusedGamepadHintsProvider.notifier).state = null;
       }
     }
@@ -600,8 +608,10 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isBigPicture = profile?.isTv == true || context.isDesktop || context.isTv;
+    
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     final allInstalled = widget.plugins.isNotEmpty && widget.plugins.every((p) => widget.state.installedPlugins.any((i) => !i.isDebug && i.packageName == p.packageName));
     final isRepoInstalling = widget.plugins.any((p) => widget.state.installingPlugins.contains(p.packageName));
@@ -650,11 +660,11 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
                   focusNode: _repoFocusNode,
                   onFocusChange: (f) {
                     setState(() => _isFocused = f);
-                    _updateHints(f);
+                    _updateHints(f, l10n);
                   },
                   onTap: () {
                     setState(() => _isExpanded = !_isExpanded);
-                    if (_repoFocusNode.hasPrimaryFocus) _updateHints(true); 
+                    if (_repoFocusNode.hasPrimaryFocus) _updateHints(true, l10n); 
                   },
                   contentPadding: const EdgeInsets.symmetric(horizontal: LayoutConstants.spacingMd, vertical: LayoutConstants.spacingXs),
                   title: Column(
@@ -671,6 +681,7 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Visual hints for Gamepad users
                       if (isBigPicture) ...[
                         if (!allInstalled && widget.plugins.isNotEmpty)
                           const Padding(padding: EdgeInsets.only(right: 8), child: Icon(Icons.download, color: Colors.blueAccent)),
@@ -685,6 +696,7 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
           ),
           
           if (_isExpanded) ...[
+            // Show interactive buttons for Desktop/Mobile users
             if (!isBigPicture)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.spacingMd, vertical: LayoutConstants.spacingXs),
@@ -788,26 +800,26 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
     }
   }
 
-  void _updateHints(bool hasFocus, bool isInstalled, bool hasSettings, dynamic updateAvailable) {
+  void _updateHints(bool hasFocus, bool isInstalled, bool hasSettings, dynamic updateAvailable, AppLocalizations l10n) {
     if (!mounted) return;
 
     if (hasFocus) {
       final bool showA = !isInstalled || (isInstalled && hasSettings);
 
       ref.read(focusedGamepadHintsProvider.notifier).state = [
-        GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.grey.shade400),
-        GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.grey.shade400),
+        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.grey.shade400),
+        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.grey.shade400),
         if (showA) GamepadHint(
           buttonLabel: 'A', 
-          actionLabel: isInstalled ? 'Settings' : 'Install', 
+          actionLabel: (isInstalled ? l10n.hintSettings : l10n.hintInstall) as String, 
           buttonColor: Colors.greenAccent.shade400
         ),
-        if (isInstalled && updateAvailable != null) GamepadHint(buttonLabel: 'X', actionLabel: 'Update', buttonColor: Colors.blueAccent.shade400),
-        if (isInstalled) GamepadHint(buttonLabel: 'Y', actionLabel: 'Delete', buttonColor: Colors.redAccent.shade400),
+        if (isInstalled && updateAvailable != null) GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintUpdate, buttonColor: Colors.blueAccent.shade400),
+        if (isInstalled) GamepadHint(buttonLabel: 'Y', actionLabel: l10n.delete, buttonColor: Colors.redAccent.shade400),
       ];
     } else {
       final currentHints = ref.read(focusedGamepadHintsProvider);
-      if (currentHints?.any((h) => h.actionLabel == 'Delete' || h.actionLabel == 'Settings' || h.actionLabel == 'Install') == true) {
+      if (currentHints?.any((h) => h.actionLabel == l10n.delete || h.actionLabel == l10n.hintSettings || h.actionLabel == l10n.hintInstall) == true) {
         ref.read(focusedGamepadHintsProvider.notifier).state = null;
       }
     }
@@ -857,8 +869,10 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isBigPicture = profile?.isTv == true || context.isDesktop || context.isTv;
+    
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     if (widget.isDebugSection) {
       return ListTile(
@@ -914,7 +928,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
 
         if (_tileFocusNode.hasFocus) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _updateHints(true, isInstalled, hasSettings, updateAvailable);
+            if (mounted) _updateHints(true, isInstalled, hasSettings, updateAvailable, l10n);
           });
         }
 
@@ -953,7 +967,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                 focusNode: _tileFocusNode,
                 onFocusChange: (f) {
                   setState(() => _isFocused = f);
-                  _updateHints(f, isInstalled, hasSettings, updateAvailable);
+                  _updateHints(f, isInstalled, hasSettings, updateAvailable, l10n);
                 },
                 onTap: () async {
                   if (isInstalled) {
@@ -986,6 +1000,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                         ? Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Visual hints for Gamepad users
                               if (isInstalled && updateAvailable != null) const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.download, color: Colors.blueAccent)),
                               if (isInstalled && hasSettings) const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.settings_outlined, color: Colors.grey)),
                               if (isInstalled) const Padding(padding: EdgeInsets.only(left: 8), child: Icon(Icons.delete_outline, color: Colors.redAccent)),
@@ -994,6 +1009,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Interactive buttons for Desktop/Mobile users
                               if (isInstalled && updateAvailable != null)
                                 IconButton(
                                   icon: const Icon(Icons.download, color: Colors.green),

@@ -45,9 +45,6 @@ class _PlayerOptionsResult {
   });
 }
 
-class _AdjustDownIntent extends Intent { const _AdjustDownIntent(); }
-class _AdjustUpIntent extends Intent { const _AdjustUpIntent(); }
-
 class PlayerBottomSheets {
   static Future<void> showSourceSelection({
     required BuildContext context,
@@ -1049,6 +1046,7 @@ class PlayerBottomSheets {
                     final playerState = ref.read(playerControllerProvider);
                     final selectedLang = ref.read(subtitleLanguageProvider);
 
+                    // Initial population and auto-search
                     if (queryController.text.isEmpty &&
                         playerState.playerTitle.isNotEmpty) {
                       queryController.text = playerState.playerTitle;
@@ -1155,6 +1153,8 @@ class PlayerBottomSheets {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // Language Selector (Targeted Consumer)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Consumer(
@@ -1223,6 +1223,7 @@ class PlayerBottomSheets {
                 ),
               ),
               const SizedBox(height: 12),
+
               Expanded(
                 child: Consumer(
                   builder: (context, ref, child) {
@@ -1310,7 +1311,7 @@ class PlayerBottomSheets {
                                     const SizedBox(height: 24),
                                     FilledButton.icon(
                                       onPressed: () {
-                                        Navigator.pop(ctx);
+                                        Navigator.pop(ctx); 
                                         if (parentContext.mounted) {
                                           ScaffoldMessenger.of(
                                             parentContext,
@@ -1383,13 +1384,11 @@ class PlayerBottomSheets {
                                     .downloadAndPrepare(sub);
 
                                 if (path != null) {
-                                  unawaited(
-                                    ref
-                                        .read(playerControllerProvider.notifier)
-                                        .loadExternalSubtitleFile(
-                                          filePath: path,
-                                        ),
-                                  );
+                                  ref
+                                      .read(playerControllerProvider.notifier)
+                                      .loadExternalSubtitleFile(
+                                        filePath: path,
+                                      );
                                   if (context.mounted) Navigator.pop(ctx);
                                 } else {
                                   if (context.mounted) {

@@ -19,6 +19,10 @@ import '../../../core/utils/app_utils.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../core/services/notification_service.dart';
 
+// Master Switch Imports
+import '../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 part 'playback_launcher.g.dart';
 
 @Riverpod(keepAlive: true)
@@ -243,6 +247,10 @@ class PlaybackLauncher {
         ExternalPlayerService.instance.getPlayerById(playerId)?.displayName ??
         playerId;
 
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -280,7 +288,8 @@ class PlaybackLauncher {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                       child: ListTile(
-                        autofocus: index == 0,
+                        // 🎯 Conditionally autofocus based on Master Switch
+                        autofocus: isBigPicture && index == 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),

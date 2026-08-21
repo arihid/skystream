@@ -6,15 +6,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
+
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/core/services/download_service.dart';
+import 'package:skystream/core/services/notification_service.dart';
 import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/storage/episode_watch_repository.dart';
-import 'package:skystream/core/services/download_service.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
-import 'package:skystream/features/library/presentation/library_provider.dart';
-import 'package:skystream/features/library/presentation/library_state.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../library/presentation/history_provider.dart';
 import '../details_controller.dart';
@@ -24,7 +24,12 @@ import 'download_progress_dialog.dart';
 import 'download_management_dialog.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/features/library/presentation/library_provider.dart';
+import 'package:skystream/features/library/presentation/library_state.dart';
 import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
 
 class EpisodeCard extends HookConsumerWidget {
   final Episode episode;
@@ -41,6 +46,12 @@ class EpisodeCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    
+    // Master Switch Evaluation
+    final profile = ref.watch(deviceProfileProvider).asData?.value;
+    final isTv = profile?.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+    
     final historyRepo = ref.watch(historyRepositoryProvider);
     final historyItem = ref.watch(
       watchHistoryProvider.select(
@@ -108,6 +119,7 @@ class EpisodeCard extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episode.url];
     
+    // Live Bookmark Status
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -191,25 +203,32 @@ class EpisodeCard extends HookConsumerWidget {
     final selectKeyDown = useRef(false);
     final longPressTriggered = useRef(false);
     
+    // Dynamic Contextual Gamepad Hints
     final playHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: isSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Play', buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
+      GamepadHint(
+        buttonLabel: 'A', 
+        actionLabel: (isSelectionMode ? (isSelected ? l10n.hintDeselect : l10n.hintSelect) : l10n.hintPlay), 
+        buttonColor: Colors.greenAccent.shade400,
+      ),
+      GamepadHint(buttonLabel: 'B', actionLabel: l10n.hintBack, buttonColor: Colors.redAccent.shade400),
       GamepadHint(
         buttonLabel: 'X', 
-        actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+        actionLabel: (isBookmarked ? l10n.hintRemoveBookmark : l10n.hintAddBookmark), 
         buttonColor: Colors.blueAccent.shade400,
       ),
       if (parentItem.contentType != MultimediaContentType.livestream)
         GamepadHint(
           buttonLabel: 'Y', 
-          actionLabel: downloadedFile != null ? 'Manage Download' : (isDownloading ? 'Downloading...' : 'Download'), 
+          actionLabel: (downloadedFile != null ? l10n.hintManageDownload : (isDownloading ? l10n.hintDownloading : l10n.hintDownload) ), 
           buttonColor: Colors.yellowAccent.shade700,
         ),
-      GamepadHint(buttonLabel: 'LS', actionLabel: 'Scroll', buttonColor: Colors.white),
-      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+      GamepadHint(buttonLabel: 'LS', actionLabel: l10n.hintScroll, buttonColor: Colors.white),
+      GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
     ];
 
     return Focus(
+      // Passive observer — let the inner InkWell be the real focus target so
+      // OK plays and Right can traverse into the download icon (a descendant).
       canRequestFocus: false,
       skipTraversal: true,
       onFocusChange: (f) {
@@ -220,10 +239,10 @@ class EpisodeCard extends HookConsumerWidget {
         }
         if (f) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (ref.context.mounted) {
+            // Show Hints and Auto-Scroll
+            if (ref.context.mounted && isBigPicture) {
               ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
             }
-            // Auto-scroll
             final ctx = FocusManager.instance.primaryFocus?.context;
             final ro = ctx?.findRenderObject();
             if (ctx != null && ctx.mounted && ro != null) {
@@ -235,9 +254,20 @@ class EpisodeCard extends HookConsumerWidget {
               );
             }
           });
+        } else {
+          // Clean up hints when focus leaves this card
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ref.context.mounted && isBigPicture) {
+              final currentHints = ref.read(focusedGamepadHintsProvider);
+              if (currentHints?.any((h) => h.actionLabel == l10n.hintScroll || h.actionLabel == l10n.hintPlay || h.actionLabel == l10n.hintSelect) == true) {
+                 ref.read(focusedGamepadHintsProvider.notifier).state = null;
+              }
+            }
+          });
         }
       },
       child: Actions(
+        // Route Gamepad buttons to their specific functions!
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
@@ -259,10 +289,24 @@ class EpisodeCard extends HookConsumerWidget {
               return null;
             }
           ),
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              // Fixed: Properly toggle the bookmark state for the Parent Series!
+              if (isBookmarked) {
+                ref.read(libraryProvider.notifier).removeItem(parentItem.url);
+                ref.read(notificationServiceProvider).showSuccess(l10n.removedFromLibrary);
+              } else {
+                ref.read(libraryProvider.notifier).addItem(parentItem);
+                ref.read(notificationServiceProvider).showSuccess(l10n.addedToLibrary);
+              }
+              return null;
+            }
+          ),
         },
         child: Focus(
           focusNode: bodyFocusNode,
           onKeyEvent: (node, event) {
+            // Menu key → trigger download immediately.
             final isMenu =
                 event.logicalKey == LogicalKeyboardKey.contextMenu ||
                 event.logicalKey == LogicalKeyboardKey.f10;
@@ -271,6 +315,7 @@ class EpisodeCard extends HookConsumerWidget {
               return KeyEventResult.handled;
             }
 
+            // Select / Enter / Space → long-press detection via KeyRepeatEvent.
             if (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.space) {
@@ -286,6 +331,7 @@ class EpisodeCard extends HookConsumerWidget {
                 return KeyEventResult.handled;
               } else if (event is KeyUpEvent) {
                 if (selectKeyDown.value && !longPressTriggered.value) {
+                  // Short press plays normally, or toggles when selecting.
                   handleEpisodeTap();
                 }
                 selectKeyDown.value = false;
@@ -357,6 +403,7 @@ class EpisodeCard extends HookConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: LayoutConstants.spacingXs),
+                      // Download icon
                       if (isSelectionMode)
                         Icon(
                           isSelected
@@ -378,6 +425,7 @@ class EpisodeCard extends HookConsumerWidget {
                           details,
                           downloadFocusNode,
                           bodyFocusNode,
+                          isBigPicture,
                         ),
                     ],
                   ),
@@ -405,7 +453,7 @@ class EpisodeCard extends HookConsumerWidget {
             ),
           ),
         ),
-      ),  
+      ),
     );
   }
 
@@ -419,6 +467,7 @@ class EpisodeCard extends HookConsumerWidget {
     MultimediaItem? details,
     FocusNode focusNode,
     FocusNode bodyFocusNode,
+    bool isBigPicture,
   ) {
     final raw = _buildRawActionButton(
       context,
@@ -431,7 +480,11 @@ class EpisodeCard extends HookConsumerWidget {
     );
     if (raw == null) return const SizedBox.shrink();
 
-    if (context.isDesktop) {
+    // On BigPicture/TV the download icon stays visible for mouse clicks but
+    // is NOT a separate D-pad focus target. Downloads are triggered via
+    // Gamepad 'Y' Button or long-press OK (handled in the outer Actions map).
+    // This keeps D-pad Right → next episode card in the grid.
+    if (context.isDesktop || isBigPicture) {
       return ExcludeFocus(child: raw);
     }
 
@@ -634,6 +687,8 @@ class EpisodeCard extends HookConsumerWidget {
   }
 }
 
+/// Wraps the small download icon so D-pad / Tab focus is unmistakable when it
+/// has focus (the IconButton's default focus ring is too subtle on TV).
 class _FocusableActionWrapper extends StatefulWidget {
   final Widget child;
   final FocusNode focusNode;
@@ -659,17 +714,21 @@ class _FocusableActionWrapperState extends State<_FocusableActionWrapper> {
       focusNode: widget.focusNode,
       onFocusChange: (f) => setState(() => _focused = f),
       onKeyEvent: (node, event) {
+        // Left from the download icon returns focus to the card body.
         if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
             event.logicalKey == LogicalKeyboardKey.arrowLeft &&
             widget.bodyFocusNode.canRequestFocus) {
           widget.bodyFocusNode.requestFocus();
           return KeyEventResult.handled;
         }
+        // Enter/Select on the download icon activates it (the child
+        // IconButton/InkWell already handles mouse tap, but D-pad
+        // select events may not propagate to the IconButton.onPressed).
         if (event is KeyDownEvent &&
             (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.space)) {
-          return KeyEventResult.ignored; 
+          return KeyEventResult.ignored; // Let it bubble to the IconButton
         }
         return KeyEventResult.ignored;
       },

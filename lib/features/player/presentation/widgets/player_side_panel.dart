@@ -38,7 +38,7 @@ const List<Shadow> _kGlassTextShadow = [
 /// chrome below.
 class PlayerSidePanel extends StatelessWidget {
   final bool isVisible;
-  final bool isTv;
+  final bool isBigPicture;
   final VoidCallback onDismiss;
   final Widget child;
 
@@ -47,7 +47,7 @@ class PlayerSidePanel extends StatelessWidget {
     required this.isVisible,
     required this.onDismiss,
     required this.child,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -256,7 +256,7 @@ class _PanelSurface extends StatelessWidget {
 class PlayerSourcesPanel extends ConsumerStatefulWidget {
   final Player player;
   final vv.VideoController? videoViewController;
-  final bool isTv;
+  final bool isBigPicture;
   final VoidCallback onClose;
 
   const PlayerSourcesPanel({
@@ -264,7 +264,7 @@ class PlayerSourcesPanel extends ConsumerStatefulWidget {
     required this.player,
     required this.onClose,
     this.videoViewController,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -616,7 +616,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'No sources matched your quality filter — showing all sources.',
+                    l10n.noSourcesQualityFilterFallback,
                     style: TextStyle(
                       color: Colors.amber.shade200,
                       fontSize: 11,
@@ -691,7 +691,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
               return _PanelOptionRow(
                 label: stream.source,
                 selected: selected,
-                isTv: widget.isTv,
+                isTv: widget.isBigPicture,
                 focusNode: isAnchor ? _anchorNode : null,
                 badge: badge != 'Auto' ? badge : null,
                 onTap: () {
@@ -743,7 +743,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: track.label,
           metadata: track.subtitle,
           selected: selected,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           focusNode: isAnchor ? _anchorNode : null,
           onTap: () {
             setState(() => _audioId = track.id);
@@ -777,7 +777,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
       _PanelOptionRow(
         label: l10n.off,
         selected: _subtitlesOff,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         focusNode: (_anchorId == _kOffId || _anchorId == null)
             ? _anchorNode
             : null,
@@ -795,7 +795,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: track.label,
           metadata: track.subtitle,
           selected: selected,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           focusNode: track.id == _anchorId ? _anchorNode : null,
           onTap: () {
             setState(() {
@@ -812,7 +812,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
         label: l10n.loadFromDevice,
         leadingIcon: Icons.file_open_outlined,
         selected: false,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         enabled: supportsExternal,
         onTap: () => controller.loadExternalSubtitleFile(),
       ),
@@ -820,7 +820,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
         label: l10n.searchOnline,
         leadingIcon: Icons.search_rounded,
         selected: false,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         enabled: supportsExternal,
         onTap: () => PlayerBottomSheets.showSubtitleSearch(context),
       ),
@@ -832,7 +832,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: l10n.syncDelay,
           leadingIcon: Icons.sync,
           selected: false,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           onTap: () {
             // Dismiss the side panel first
             widget.onClose();
@@ -852,7 +852,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: "Subtitle Appearance",
           leadingIcon: Icons.palette_outlined,
           selected: false,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           onTap: () {
             // Dismiss the side panel first
             widget.onClose();

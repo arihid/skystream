@@ -14,6 +14,8 @@ import '../library_provider.dart';
 
 import '../library_state.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+
+// TV/Gamepad Feature Imports
 import '../../../../core/widgets/focusable_wrapper.dart'; 
 import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 
@@ -42,7 +44,8 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
       LibraryError(message: final msg) => Center(child: Text(msg)),
       LibraryEmpty() => _buildEmpty(context),
       LibrarySuccess(items: final items) => GridView.builder(
-        scrollCacheExtent: ScrollCacheExtent.pixels(99999), padding: const EdgeInsets.fromLTRB(
+        scrollCacheExtent: const ScrollCacheExtent.pixels(99999), 
+        padding: const EdgeInsets.fromLTRB(
           LayoutConstants.spacingMd,
           LayoutConstants.spacingMd,
           LayoutConstants.spacingMd,
@@ -57,10 +60,6 @@ class _BookmarksTabState extends ConsumerState<BookmarksTab>
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          
-          final handleTap = () => DetailsRoute(
-            $extra: DetailsRouteExtra(item: item),
-          ).push<void>(context);
 
           return _BookmarkCard(
             item: item,
@@ -106,6 +105,7 @@ class _BookmarkCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final localNode = useFocusNode();
     final nodeToUse = firstItemFocusNode ?? localNode;
 
@@ -126,10 +126,10 @@ class _BookmarkCard extends HookConsumerWidget {
       onTap: handleTap,
       useScaleEffect: true,
       gamepadHints: [
-        GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
-        GamepadHint(buttonLabel: 'LB', actionLabel: 'Prev Tab', buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: 'RB', actionLabel: 'Next Tab', buttonColor: Colors.white), 
-        GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+        GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSelect, buttonColor: Colors.greenAccent.shade400),
+        GamepadHint(buttonLabel: 'LB', actionLabel: l10n.hintPrevTab, buttonColor: Colors.white), 
+        GamepadHint(buttonLabel: 'RB', actionLabel: l10n.hintNextTab, buttonColor: Colors.white), 
+        GamepadHint(buttonLabel: '≡', actionLabel: l10n.hintMenu, buttonColor: Colors.white),
       ],
       child: ExcludeFocus(
         child: MultimediaCard(

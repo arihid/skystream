@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gamepads/gamepads.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/utils/responsive_breakpoints.dart';
 import '../../../core/providers/device_info_provider.dart';
@@ -12,10 +12,13 @@ import 'widgets/search_result_section.dart';
 import 'widgets/search_header_bar.dart';
 import 'widgets/bouncy_entry_animation.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+
+// Gamepad Feature Imports
 import '../../../shared/widgets/virtual_keyboard.dart';
 import '../../../core/input/gamepad_intents.dart';
 import '../../../core/widgets/focusable_wrapper.dart';
 import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -33,12 +36,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final FocusNode _firstSuggestionFocusNode = FocusNode();
   final FocusNode _firstResultFocusNode = FocusNode();
 
+  // Big Picture Nodes & State
   final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
   final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
-  
-  StreamSubscription<GamepadEvent>? _gamepadSubscription;
-  DateTime _lastLTTime = DateTime.now();
-  DateTime _lastRTTime = DateTime.now(); 
   
   bool _isKeyboardVisible = false;
   bool _isKeyboardActiveRegion = true; 
@@ -51,6 +51,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _controller.text = initialQuery;
     _controller.addListener(_onTextChanged);
 
+    // If search is empty on boot, default to keyboard visibility for TV
     if (initialQuery.isEmpty) {
       _isKeyboardVisible = true;
       _isKeyboardActiveRegion = true;
@@ -108,25 +109,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          final suggestionState = ref.read(searchSuggestionControllerProvider);
-          final typedLongEnough = suggestionState.query.trim().length >= 2;
-          final hasSuggestionContent =
-              suggestionState.isLoading ||
-              suggestionState.suggestions.isNotEmpty;
-
-          if (typedLongEnough && hasSuggestionContent) {
-            _firstSuggestionFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          } else {
-            final resultsState = ref.read(searchResultsProvider).asData?.value;
-            final hasResults =
-                resultsState != null &&
-                resultsState.results.any((r) => r.results.isNotEmpty);
-            if (hasResults) {
-              _firstResultFocusNode.requestFocus();
-              return KeyEventResult.handled;
-            }
-          }
+          _navigateDownToContent();
+          return KeyEventResult.handled;
         }
       }
       return KeyEventResult.ignored;
@@ -143,25 +127,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          final suggestionState = ref.read(searchSuggestionControllerProvider);
-          final typedLongEnough = suggestionState.query.trim().length >= 2;
-          final hasSuggestionContent =
-              suggestionState.isLoading ||
-              suggestionState.suggestions.isNotEmpty;
-
-          if (typedLongEnough && hasSuggestionContent) {
-            _firstSuggestionFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          } else {
-            final resultsState = ref.read(searchResultsProvider).asData?.value;
-            final hasResults =
-                resultsState != null &&
-                resultsState.results.any((r) => r.results.isNotEmpty);
-            if (hasResults) {
-              _firstResultFocusNode.requestFocus();
-              return KeyEventResult.handled;
-            }
-          }
+          _navigateDownToContent();
+          return KeyEventResult.handled;
         }
       }
       return KeyEventResult.ignored;
@@ -180,41 +147,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
       return KeyEventResult.ignored;
     };
+  }
 
-    _gamepadSubscription = Gamepads.events.listen((event) {
-      if (!mounted) return;
-      if (!TickerMode.of(context)) return;
+  void _navigateDownToContent() {
+    final suggestionState = ref.read(searchSuggestionControllerProvider);
+    final typedLongEnough = suggestionState.query.trim().length >= 2;
+    final hasSuggestionContent =
+        suggestionState.isLoading || suggestionState.suggestions.isNotEmpty;
 
-      try {
-        final route = ModalRoute.of(context);
-        if (route != null && !route.isCurrent && !_isFilterDialogOpen) return;
-      } catch (_) {}
-
-      final key = event.key.toLowerCase();
-      final isLT = key == 'l2' || key == 'button 6' || (key.contains('trigger') && key.contains('left'));
-      final isRT = key == 'r2' || key == 'button 7' || (key.contains('trigger') && key.contains('right'));
-      
-      if (isLT) {
-        if ((event.type == KeyType.button && event.value == 1.0) ||
-            (event.type == KeyType.analog && event.value > 0.5)) {
-          if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
-            _lastLTTime = DateTime.now();
-            _toggleKeyboardAndList();
-          }
-        }
-      } else if (isRT) {
-        if ((event.type == KeyType.button && event.value == 1.0) ||
-            (event.type == KeyType.analog && event.value > 0.5)) {
-          if (DateTime.now().difference(_lastRTTime).inMilliseconds > 500) {
-            _lastRTTime = DateTime.now();
-            final profile = ref.read(deviceProfileProvider).asData?.value;
-            final isTv = profile?.isTv == true || context.isTv;
-            final isBigPicture = isTv || context.isDesktop;
-            if (isBigPicture) _toggleFilterMenu();
-          }
-        }
+    if (typedLongEnough && hasSuggestionContent) {
+      _firstSuggestionFocusNode.requestFocus();
+    } else {
+      final resultsState = ref.read(searchResultsProvider).asData?.value;
+      final hasResults =
+          resultsState != null &&
+          resultsState.results.any((r) => r.results.isNotEmpty);
+      if (hasResults) {
+        _firstResultFocusNode.requestFocus();
       }
-    });
+    }
   }
 
   void _onTextChanged() {
@@ -223,7 +174,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
-    _gamepadSubscription?.cancel();
     _keyboardProxyNode.dispose();
     _listProxyNode.dispose();
     _controller.removeListener(_onTextChanged);
@@ -247,6 +197,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ref.read(searchQueryProvider.notifier).set(trimmed);
     _focusNode.unfocus();
     
+    // Close virtual keyboard after submitting on BigPicture
     if (mounted) {
       setState(() {
         _isKeyboardVisible = false;
@@ -254,7 +205,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  void _fillSuggestion(String suggestion) {
+  void _fillSuggestion(String suggestion, bool isBigPicture) {
     _controller.value = TextEditingValue(
       text: suggestion,
       selection: TextSelection.collapsed(offset: suggestion.length),
@@ -263,14 +214,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         .read(searchSuggestionControllerProvider.notifier)
         .onQueryChanged(suggestion);
         
-    final profile = ref.read(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
-    final isDesktop = context.isDesktop;
-    final isBigPicture = isTv || isDesktop;
-
     if (!isBigPicture) {
       _focusNode.requestFocus();
     } else {
+      // On Big Picture: Force keyboard open and swap to it when a query is filled!
       setState(() {
         _isKeyboardVisible = true;
         _isKeyboardActiveRegion = true;
@@ -282,12 +229,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  void _toggleKeyboardAndList() {
-    final profile = ref.read(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
-    final isDesktop = context.isDesktop;
-    final isBigPicture = isTv || isDesktop;
-
+  void _toggleKeyboardAndList(bool isBigPicture) {
     if (!isBigPicture) {
       _focusNode.requestFocus();
       return;
@@ -334,16 +276,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     final theme = Theme.of(context);
     final filter = ref.read(searchFilterProvider);
+    final l10n = AppLocalizations.of(context)!;
     
+    // Big Picture-Friendly Dialog for Scope Switcher (Accessible via D-Pad)
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Search Scope'),
+        title: Text(l10n.searchScope),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Non Livestreams'),
+              autofocus: filter == SearchFilter.content,
+              title: Text(l10n.nonLivestreams),
               leading: const Text('🍿', style: TextStyle(fontSize: 24)),
               trailing: filter == SearchFilter.content ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
               onTap: () {
@@ -352,7 +297,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               },
             ),
             ListTile(
-              title: const Text('Livestreams'),
+              autofocus: filter == SearchFilter.live,
+              title: Text(l10n.liveStreams),
               leading: const Text('📺', style: TextStyle(fontSize: 24)),
               trailing: filter == SearchFilter.live ? Icon(Icons.check, color: theme.colorScheme.primary) : null,
               onTap: () {
@@ -373,10 +319,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+    final isTv = isBigPicture || profile?.isTv == true || context.isTv;
+    
     final isWidescreen = isTv || context.isTabletOrLarger;
-    final isBigPicture = isTv || context.isDesktop;
-
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -514,7 +460,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     moviesShowsFocusNode: _moviesShowsFocusNode,
                     liveTvFocusNode: _liveTvFocusNode,
                     isCompact: false,
-                    isBigPicture: isBigPicture,
+                    isBigPicture: isTv, // Pass TV State
                     onTapFakeInput: () {
                       _isKeyboardVisible = true;
                       _isKeyboardActiveRegion = true;
@@ -533,7 +479,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 24.0),
-                      child: _buildBody(context),
+                      child: _buildBody(context, isTv),
                     ),
                   ),
                 ],
@@ -543,54 +489,56 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       );
     } else {
-      content = _buildMobileLayout(context);
+      content = _buildMobileLayout(context, isTv);
     }
 
-    return Focus(
-      skipTraversal: true,
-      canRequestFocus: false,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.gameButtonLeft2) {
-          _toggleKeyboardAndList();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          AppBackIntent: CallbackAction<AppBackIntent>(
-            onInvoke: (_) {
-              if (_isKeyboardVisible) {
-                setState(() {
-                  _isKeyboardVisible = false;
-                });
-                return null; 
-              }
+    // Catch Gamepad Intents natively at the root of the screen!
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            _toggleKeyboardAndList(isTv);
+            return null;
+          }
+        ),
+        AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
+          onInvoke: (_) {
+            if (isTv) _toggleFilterMenu();
+            return null;
+          }
+        ),
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            if (_isKeyboardVisible && isTv) {
+              setState(() {
+                _isKeyboardVisible = false;
+              });
+              return null; 
+            }
 
-              final query = _controller.text;
-              if (query.isNotEmpty) {
-                setState(() {
-                  _isKeyboardVisible = true;
-                  _isKeyboardActiveRegion = true;
-                });
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _keyboardProxyNode.requestFocus();
-                  Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
-                });
-                return null;
-              }
-
-              Navigator.maybePop(context);
+            final query = _controller.text;
+            if (query.isNotEmpty && isTv) {
+              setState(() {
+                _isKeyboardVisible = true;
+                _isKeyboardActiveRegion = true;
+              });
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _keyboardProxyNode.requestFocus();
+                Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
+              });
               return null;
             }
-          ),
-        },
-        child: content,
-      ),
+
+            Navigator.maybePop(context);
+            return null;
+          }
+        ),
+      },
+      child: content,
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
+  Widget _buildMobileLayout(BuildContext context, bool isTv) {
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final filter = ref.watch(searchFilterProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -600,6 +548,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
+        automaticallyImplyLeading: !isTv, // Hides physical back button on BigPicture/TV
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -618,7 +567,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     children: [
                       const Text('🍿', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: 12),
-                      const Expanded(child: Text('Non Livestreams')),
+                      Expanded(child: Text(l10n.nonLivestreams)),
                       if (!isLive)
                         Icon(
                           Icons.check,
@@ -632,13 +581,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   value: SearchFilter.live,
                   child: Row(
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 18,
                         height: 18,
-                        child: Center(child: Text('📺', style: const TextStyle(fontSize: 14))),
+                        child: Center(child: Text('📺', style: TextStyle(fontSize: 14))),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(child: Text('Livestreams')),
+                      Expanded(child: Text(l10n.liveStreams)),
                       if (isLive)
                         Icon(
                           Icons.check,
@@ -777,11 +726,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
       ),
-      body: _buildBody(context),
+      body: _buildBody(context, isTv),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, bool isTv) {
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final suggestionState = ref.watch(searchSuggestionControllerProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -791,19 +740,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final hasSuggestionContent =
         suggestionState.isLoading || suggestionState.suggestions.isNotEmpty;
         
-    final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
-    final isDesktop = context.isDesktop;
-    final isBigPicture = isTv || isDesktop;
-
-    final forceSuggestions = isBigPicture ? _isKeyboardVisible : _focusNode.hasFocus;
+    final forceSuggestions = isTv ? _isKeyboardVisible : _focusNode.hasFocus;
     final showSuggestions = forceSuggestions || (typedLongEnough && hasSuggestionContent);
-    final shouldShowKeyboard = isBigPicture && (_isKeyboardVisible || query.isEmpty);
+    final shouldShowKeyboard = isTv && (_isKeyboardVisible || query.isEmpty);
 
     Widget content = showSuggestions
         ? ExcludeFocus(
             excluding: _isKeyboardActiveRegion && shouldShowKeyboard,
-            child: _buildSuggestionsView(context, suggestionState, shouldShowKeyboard),
+            child: _buildSuggestionsView(context, suggestionState, shouldShowKeyboard, isTv),
           )
         : searchResultsAsync.when(
             data: (state) {
@@ -812,9 +756,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   .toList();
 
               if (allResults.isEmpty && !state.isLoading) {
-                return _buildEmptyState(context);
+                return _buildEmptyState(context, isTv);
               } else if (allResults.isEmpty && state.isLoading) {
-                return  Center(child: AppLoadingIndicator());
+                return const Center(child: AppLoadingIndicator());
               }
 
               return RepaintBoundary(
@@ -850,6 +794,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 Center(child: Text(l10n.errorPrefix(err.toString()))),
           );
 
+    // If Big Picture Mode is active, inject the Virtual Keyboard
     if (shouldShowKeyboard) {
       return Column(
         children: [
@@ -865,9 +810,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   Future.microtask(() {
                     if (mounted) {
                       ref.read(focusedGamepadHintsProvider.notifier).state = [
-                        GamepadHint(buttonLabel: 'A', actionLabel: 'Type', buttonColor: Colors.greenAccent.shade400),
-                        GamepadHint(buttonLabel: 'LT', actionLabel: 'List', buttonColor: Colors.grey.shade400),
-                        GamepadHint(buttonLabel: 'RT', actionLabel: 'Filter', buttonColor: Colors.amberAccent.shade400),
+                        GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintType, buttonColor: Colors.greenAccent.shade400),
+                        GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintList, buttonColor: Colors.grey.shade400),
+                        GamepadHint(buttonLabel: 'RT', actionLabel: l10n.hintFilter, buttonColor: Colors.amberAccent.shade400),
                       ];
                     }
                   });
@@ -875,7 +820,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   Future.microtask(() {
                     if (mounted) {
                       final currentHints = ref.read(focusedGamepadHintsProvider);
-                      if (currentHints?.any((h) => h.actionLabel == 'Type') == true) {
+                      if (currentHints?.any((h) => h.actionLabel == l10n.hintType) == true) {
                         ref.read(focusedGamepadHintsProvider.notifier).state = null;
                       }
                     }
@@ -913,6 +858,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     BuildContext context,
     SearchSuggestionState suggestionState,
     bool shouldShowKeyboard,
+    bool isBigPicture,
   ) {
     if (suggestionState.isLoading) {
       return const Center(child: AppLoadingIndicator());
@@ -938,6 +884,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: _SuggestionCard(
+              isBigPicture: isBigPicture,
               suggestion: suggestion,
               shouldShowKeyboard: shouldShowKeyboard,
               focusNode: index == 0 ? _firstSuggestionFocusNode : null,
@@ -951,7 +898,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 }
               },
               onTap: () => _submitSearch(suggestion),
-              onFill: () => _fillSuggestion(suggestion),
+              onFill: () => _fillSuggestion(suggestion, isBigPicture),
             ),
           ),
         );
@@ -959,7 +906,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, bool isTv) {
     final l10n = AppLocalizations.of(context)!;
     final query = ref.watch(searchQueryProvider);
     final isInputEmpty = _controller.text.trim().isEmpty;
@@ -992,9 +939,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       );
     }
+    
     final nativeFont = Theme.of(context).textTheme.bodyLarge?.fontFamily;
-    final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
     final isWidescreen = isTv || context.isTabletOrLarger;
     final imageWidth = isWidescreen ? 320.0 : 200.0;
 
@@ -1026,7 +972,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-class _SuggestionCard extends StatelessWidget {
+class _SuggestionCard extends StatefulWidget {
   final String suggestion;
   final VoidCallback onTap;
   final VoidCallback onFill;
@@ -1034,6 +980,7 @@ class _SuggestionCard extends StatelessWidget {
   final bool isFirst;
   final bool shouldShowKeyboard;
   final VoidCallback onFocusSearch;
+  final bool isBigPicture; // Determines rendering path
 
   const _SuggestionCard({
     required this.suggestion,
@@ -1042,74 +989,316 @@ class _SuggestionCard extends StatelessWidget {
     required this.isFirst,
     required this.shouldShowKeyboard,
     required this.onFocusSearch,
+    required this.isBigPicture,
     this.focusNode,
   });
+
+  @override
+  State<_SuggestionCard> createState() => _SuggestionCardState();
+}
+
+class _SuggestionCardState extends State<_SuggestionCard> {
+  bool _isBodyHovered = false;
+  bool _isButtonHovered = false;
+
+  late final FocusNode _bodyNode;
+  late final FocusNode _buttonNode;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isBigPicture) {
+      _bodyNode = widget.focusNode ?? FocusNode();
+      _bodyNode.addListener(_onFocusChange);
+      _buttonNode = FocusNode();
+      _buttonNode.addListener(_onFocusChange);
+    }
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    if (!widget.isBigPicture) {
+      if (widget.focusNode == null) {
+        _bodyNode.dispose();
+      } else {
+        if (_bodyNode.hasFocus) _bodyNode.unfocus();
+        _bodyNode.removeListener(_onFocusChange);
+      }
+      _buttonNode.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final nativeFont = theme.textTheme.bodyLarge?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
 
-    return FocusableWrapper(
-      focusNode: focusNode,
-      onTap: onTap,           // 'A' to Search!
-      onSecondaryTap: onFill, // 'X' to Fill Query!
-      gamepadHints: [
-        GamepadHint(buttonLabel: 'A', actionLabel: 'Search', buttonColor: Colors.greenAccent.shade400),
-        GamepadHint(buttonLabel: 'X', actionLabel: 'Fill Query', buttonColor: Colors.blueAccent.shade400),
-        if (shouldShowKeyboard)
-          GamepadHint(buttonLabel: 'LT', actionLabel: 'Keyboard', buttonColor: Colors.grey.shade400),
-      ],
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.black.withValues(alpha: 0.65)
-              : theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant,
-            width: 1.5,
+    // TV/Gamepad Layout using FocusableWrapper
+    if (widget.isBigPicture) {
+      return FocusableWrapper(
+        focusNode: widget.focusNode,
+        onTap: widget.onTap,          // 'A' to Search!
+        onSecondaryTap: widget.onFill, // 'X' to Fill Query!
+        gamepadHints: [
+          GamepadHint(buttonLabel: 'A', actionLabel: l10n.hintSearch, buttonColor: Colors.greenAccent.shade400),
+          GamepadHint(buttonLabel: 'X', actionLabel: l10n.hintFillQuery, buttonColor: Colors.blueAccent.shade400),
+          if (widget.shouldShowKeyboard)
+            GamepadHint(buttonLabel: 'LT', actionLabel: l10n.hintKeyboard, buttonColor: Colors.grey.shade400),
+        ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.65)
+                : theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant,
+              width: 1.5,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Icon(Icons.search_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        suggestion,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: nativeFont,
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 16.0,
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search_rounded, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          widget.suggestion,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: nativeFont,
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 16.0,
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(width: 1.0, height: 24.0, color: theme.dividerColor.withValues(alpha: 0.2)),
+              ExcludeFocus(
+                child: IconButton(
+                  icon: const Icon(Icons.north_west_rounded, size: 20),
+                  color: theme.colorScheme.onSurfaceVariant,
+                  onPressed: widget.onFill,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Upstream Desktop/Mobile Layout
+    final isBodyHighlighted = _isBodyHovered || _bodyNode.hasFocus;
+    final isButtonHighlighted = _isButtonHovered || _buttonNode.hasFocus;
+    final isAnyHighlighted = isBodyHighlighted || isButtonHighlighted;
+
+    final baseBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.1)
+        : theme.colorScheme.outlineVariant;
+    final highlightColor = isDark
+        ? const Color(0xFF1F80E0)
+        : theme.colorScheme.primary;
+
+    final borderColor = isAnyHighlighted
+        ? highlightColor.withValues(alpha: 0.85)
+        : baseBorderColor;
+
+    final cardBgColor = isDark
+        ? Colors.black.withValues(alpha: 0.65)
+        : theme.colorScheme.surfaceContainer;
+
+    final bodyHighlightBg = isDark
+        ? const Color(0xFF1F80E0).withValues(alpha: 0.25)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+
+    final buttonHighlightBg = isDark
+        ? const Color(0xFF1F80E0).withValues(alpha: 0.35)
+        : theme.colorScheme.primary.withValues(alpha: 0.18);
+
+    final iconColor = isDark
+        ? Colors.white70
+        : theme.colorScheme.onSurfaceVariant;
+
+    final textColor = isDark ? Colors.white : theme.colorScheme.onSurface;
+
+    final buttonIconColor = isDark
+        ? Colors.white54
+        : theme.colorScheme.onSurfaceVariant;
+
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : theme.colorScheme.outlineVariant;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: cardBgColor, 
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: isAnyHighlighted
+            ? [
+                BoxShadow(
+                  color: highlightColor.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Focus(
+              focusNode: _bodyNode,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent) {
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                      widget.isFirst) {
+                    widget.onFocusSearch();
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                    _buttonNode.requestFocus();
+                    return KeyEventResult.handled;
+                  }
+                  if (event.logicalKey == LogicalKeyboardKey.select ||
+                      event.logicalKey == LogicalKeyboardKey.enter ||
+                      event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+                      event.logicalKey == LogicalKeyboardKey.space) {
+                    widget.onTap();
+                    return KeyEventResult.handled;
+                  }
+                }
+                return KeyEventResult.ignored;
+              },
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isBodyHovered = true),
+                onExit: (_) => setState(() => _isBodyHovered = false),
+                child: GestureDetector(
+                  onTap: widget.onTap,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
                     ),
-                  ],
+                    decoration: BoxDecoration(
+                      color: isBodyHighlighted
+                          ? bodyHighlightBg
+                          : Colors.transparent,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(11),
+                        bottomLeft: Radius.circular(11),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search_rounded,
+                          color: isBodyHighlighted ? highlightColor : iconColor,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            widget.suggestion,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: nativeFont,
+                              color: textColor,
+                              fontSize: 16.0,
+                              fontWeight: isBodyHighlighted
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-            Container(width: 1.0, height: 24.0, color: theme.dividerColor.withValues(alpha: 0.2)),
-            ExcludeFocus(
-              child: IconButton(
-                icon: const Icon(Icons.north_west_rounded, size: 20),
-                color: theme.colorScheme.onSurfaceVariant,
-                onPressed: onFill,
+          ),
+          Container(width: 1.0, height: 24.0, color: dividerColor),
+          Focus(
+            focusNode: _buttonNode,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent) {
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                    widget.isFirst) {
+                  widget.onFocusSearch();
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                  _bodyNode.requestFocus();
+                  return KeyEventResult.handled;
+                }
+                if (event.logicalKey == LogicalKeyboardKey.select ||
+                    event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.numpadEnter ||
+                    event.logicalKey == LogicalKeyboardKey.space) {
+                  widget.onFill();
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: MouseRegion(
+              onEnter: (_) => setState(() => _isButtonHovered = true),
+              onExit: (_) => setState(() => _isButtonHovered = false),
+              child: GestureDetector(
+                onTap: widget.onFill,
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isButtonHighlighted
+                        ? buttonHighlightBg
+                        : Colors.transparent,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(11),
+                      bottomRight: Radius.circular(11),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.north_west_rounded,
+                    color: isButtonHighlighted
+                        ? highlightColor
+                        : buttonIconColor,
+                    size: 20,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
-

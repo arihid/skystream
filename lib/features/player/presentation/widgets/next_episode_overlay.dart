@@ -18,7 +18,7 @@ class NextEpisodeOverlay extends StatefulWidget {
   final String? nextEpisodeDescription;
   final VoidCallback onPlayNext;
   final VoidCallback onDismiss;
-  final bool isTv;
+  final bool isBigPicture;
   final FocusNode? focusNode;
   final bool isPlaying;
 
@@ -33,7 +33,7 @@ class NextEpisodeOverlay extends StatefulWidget {
     this.nextEpisodeDescription,
     required this.onPlayNext,
     required this.onDismiss,
-    this.isTv = false,
+    this.isBigPicture = false,
     this.focusNode,
     this.isPlaying = true,
   });
@@ -65,6 +65,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     )..forward();
+    
     _entranceController.addStatusListener((status) {
       if (status == AnimationStatus.dismissed && _completed) {
         widget.onDismiss();
@@ -177,7 +178,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
     final l10n = AppLocalizations.of(context)!;
     final size = MediaQuery.sizeOf(context);
     final isCompact = size.shortestSide < 600;
-    final cardWidth = isCompact ? 280.0 : (widget.isTv ? 440.0 : 360.0);
+    final cardWidth = isCompact ? 280.0 : (widget.isBigPicture ? 440.0 : 360.0);
     final thumbHeight = cardWidth * 9 / 16;
 
     final cardContent = ClipRRect(
@@ -212,8 +213,8 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
         : cardContent;
 
     return PlayerPromptPlacement(
-      isTv: widget.isTv,
-      alignment: widget.isTv
+      isTv: widget.isBigPicture,
+      alignment: widget.isBigPicture
           ? PromptVerticalAlignment.center
           : PromptVerticalAlignment.bottom,
       child: FadeTransition(
@@ -538,7 +539,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
           Expanded(
             child: _PlayNowButton(
               onPressed: _handlePressed,
-              isTv: widget.isTv,
+              isBigPicture: widget.isBigPicture,
               isCompact: isCompact,
               label: l10n.playNow,
               isCompleted: _completed,
@@ -549,7 +550,7 @@ class _NextEpisodeOverlayState extends State<NextEpisodeOverlay>
           Expanded(
             child: _CancelButton(
               onPressed: _handleDismiss,
-              isTv: widget.isTv,
+              isBigPicture: widget.isBigPicture,
               isCompact: isCompact,
               label: MaterialLocalizations.of(context).closeButtonTooltip,
               isCompleted: _completed,
@@ -585,7 +586,7 @@ Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
 
 class _PlayNowButton extends StatefulWidget {
   final VoidCallback onPressed;
-  final bool isTv;
+  final bool isBigPicture;
   final bool isCompact;
   final String label;
   final bool isCompleted;
@@ -593,7 +594,7 @@ class _PlayNowButton extends StatefulWidget {
 
   const _PlayNowButton({
     required this.onPressed,
-    required this.isTv,
+    required this.isBigPicture,
     required this.isCompact,
     required this.label,
     required this.isCompleted,
@@ -622,7 +623,7 @@ class _PlayNowButtonState extends State<_PlayNowButton>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-    if (widget.isTv) {
+    if (widget.isBigPicture) {
       _focusNode = widget.focusNode ?? FocusNode();
       _focusNode!.addListener(() {
         if (mounted) setState(() => _isFocused = _focusNode!.hasFocus);
@@ -709,7 +710,7 @@ class _PlayNowButtonState extends State<_PlayNowButton>
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: widget.isCompleted ? null : widget.onPressed,
-                  onHover: widget.isTv ? null : _onHover,
+                  onHover: widget.isBigPicture ? null : _onHover,
                   splashColor: Colors.white.withValues(alpha: 0.15),
                   highlightColor: Colors.white.withValues(alpha: 0.05),
                   child: Transform(
@@ -728,7 +729,7 @@ class _PlayNowButtonState extends State<_PlayNowButton>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (widget.isTv)
+                              if (widget.isBigPicture)
                                 _buildGamepadBadge('Y', Colors.amberAccent.shade400, isCompact)
                               else
                                 Icon(
@@ -760,7 +761,7 @@ class _PlayNowButtonState extends State<_PlayNowButton>
       ),
     );
 
-    if (widget.isTv) {
+    if (widget.isBigPicture) {
       return Focus(
         focusNode: _focusNode,
         autofocus: true,
@@ -784,7 +785,7 @@ class _PlayNowButtonState extends State<_PlayNowButton>
 
 class _CancelButton extends StatefulWidget {
   final VoidCallback onPressed;
-  final bool isTv;
+  final bool isBigPicture;
   final bool isCompact;
   final String label;
   final bool isCompleted;
@@ -792,7 +793,7 @@ class _CancelButton extends StatefulWidget {
 
   const _CancelButton({
     required this.onPressed,
-    required this.isTv,
+    required this.isBigPicture,
     required this.isCompact,
     required this.label,
     required this.isCompleted,
@@ -814,7 +815,7 @@ class _CancelButtonState extends State<_CancelButton> {
   @override
   void initState() {
     super.initState();
-    if (widget.isTv) {
+    if (widget.isBigPicture) {
       _focusNode = widget.focusNode ?? FocusNode();
       _focusNode!.addListener(() {
         if (mounted) setState(() => _isFocused = _focusNode!.hasFocus);
@@ -895,7 +896,7 @@ class _CancelButtonState extends State<_CancelButton> {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: widget.isCompleted ? null : widget.onPressed,
-                  onHover: widget.isTv ? null : _onHover,
+                  onHover: widget.isBigPicture ? null : _onHover,
                   splashColor: Colors.white.withValues(alpha: 0.1),
                   highlightColor: Colors.white.withValues(alpha: 0.03),
                   child: Transform(
@@ -914,7 +915,7 @@ class _CancelButtonState extends State<_CancelButton> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (widget.isTv)
+                              if (widget.isBigPicture)
                                 _buildGamepadBadge('X', Colors.blueAccent.shade400, isCompact)
                               else
                                 AnimatedRotation(
@@ -950,7 +951,7 @@ class _CancelButtonState extends State<_CancelButton> {
       ),
     );
 
-    if (widget.isTv) {
+    if (widget.isBigPicture) {
       return Focus(
         focusNode: _focusNode,
         onKeyEvent: (node, event) {

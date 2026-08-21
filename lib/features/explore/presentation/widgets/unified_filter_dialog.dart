@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/input/gamepad_actions.dart';
+
 import '../../../../core/utils/layout_constants.dart';
 import '../../data/explore_filter_provider.dart';
 import '../../data/explore_language_provider.dart';
@@ -12,6 +13,10 @@ import '../../../../shared/widgets/loading_indicator.dart';
 
 import '../../../../core/input/gamepad_intents.dart';
 import '../../../../core/widgets/focusable_wrapper.dart';
+
+// Master Switch Imports
+import '../../../../core/providers/device_info_provider.dart';
+import '../../../../features/settings/presentation/big_picture_provider.dart';
 
 class UnifiedFilterDialog extends ConsumerStatefulWidget {
   const UnifiedFilterDialog({super.key});
@@ -65,6 +70,10 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
   @override
   Widget build(BuildContext context) {
     final isAnime = ref.watch(exploreModeProvider);
+    
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -143,10 +152,23 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                              const Spacer(),
+                              // Hide Close 'X' in Big Picture (use 'B' button)
+                              if (!isBigPicture)
+                                IconButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: Icon(
+                                    Icons.close,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  splashRadius: 24,
+                                ),
                             ],
                           ),
                         ),
+                        // Exclude TabBar from focus in Big Picture (use Bumpers)
                         ExcludeFocus(
+                          excluding: isBigPicture,
                           child: TabBar(
                             controller: _tabController,
                             indicatorColor: Theme.of(context).colorScheme.primary,
@@ -230,6 +252,8 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                       ],
                     ),
                   ),
+
+                  // Tab View Content
                   Flexible(
                     child: TabBarView(
                       controller: _tabController,
@@ -244,6 +268,8 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                       ],
                     ),
                   ),
+
+                  // Footer
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     decoration: BoxDecoration(
@@ -259,17 +285,46 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildMiniHint(context, 'A', 'Select', Colors.greenAccent.shade400),
-                            const SizedBox(width: 16),
-                            _buildMiniHint(context, 'B', 'Close', Colors.redAccent.shade400),
-                            const SizedBox(width: 16),
-                            _buildMiniHint(context, 'LB / RB', 'Switch Tab', Colors.white),
-                          ],
-                        ),
+                        
+                        // Adaptive Bottom Action Area
+                        if (isBigPicture) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildMiniHint(context, 'A', 'Select', Colors.greenAccent.shade400),
+                              const SizedBox(width: 16),
+                              _buildMiniHint(context, 'B', 'Close', Colors.redAccent.shade400),
+                              const SizedBox(width: 16),
+                              _buildMiniHint(context, 'LB / RB', 'Switch Tab', Colors.white),
+                            ],
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: LayoutConstants.spacingMd,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "Done",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

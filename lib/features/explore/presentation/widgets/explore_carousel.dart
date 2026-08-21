@@ -1,19 +1,23 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
-import 'package:skystream/core/input/gamepad_actions.dart';
-import '../../../../core/router/app_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import '../../../../core/utils/layout_constants.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/providers/device_info_provider.dart';
 
-import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/layout_constants.dart';
+import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../shared/widgets/cards_wrapper.dart';
+import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
+
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/input/gamepad_actions.dart';
+import '../../../../core/providers/device_info_provider.dart';
 
 /// Lightweight controller for the hero carousel.
 /// API-compatible with the old CarouselSliderController (nextPage/previousPage).
@@ -112,12 +116,12 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
     _fillController.forward();
 
+    // Defer focus requests so we don't yank focus away from the user 
+    // if they already started navigating before the carousel loaded.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.autofocus) return;
       final currentFocus = FocusManager.instance.primaryFocus;
       
-      // Only request focus if literally nothing is focused, or we are at the app root.
-      // If the user opened the Global Menu, or moved to the Search Bar, this backs off!
       if (currentFocus == null || currentFocus == FocusManager.instance.rootScope) {
         _carouselFocusNode.requestFocus();
       }
@@ -191,8 +195,10 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     final isDesktop =
         size.width > LayoutConstants.exploreCarouselDesktopBreakpoint;
 
+    // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv ?? context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     return VisibilityDetector(
       key: const Key('explore-carousel-visibility'),
@@ -209,7 +215,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       },
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
-        autofocus: false,
+        autofocus: false, // Managed by initState
         descendantsAreFocusable: false, 
         mouseCursor: SystemMouseCursors.click,
         shortcuts: const <ShortcutActivator, Intent>{
@@ -217,6 +223,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
         },
+        // Catch Gamepad directions purely through intents
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
@@ -263,6 +270,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
         },
         onShowFocusHighlight: (show) {
           setState(() => _isFocusHighlighted = show);
+          // Force the screen to scroll to the top if the carousel gets focus
           if (show && widget.scrollController != null && widget.scrollController!.hasClients) {
              widget.scrollController!.animateTo(
                0.0,
@@ -307,7 +315,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                           height: heroHeight,
                           child: _buildCarouselStack(
                             heroHeight,
-                            isDesktop: isDesktop || isTv,
+                            isDesktop: isDesktop || isBigPicture,
                           ),
                         ),
                       ),
@@ -330,7 +338,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                       height: heroHeight,
                       child: _buildCarouselStack(
                         heroHeight,
-                        isDesktop: isDesktop || isTv,
+                        isDesktop: isDesktop || isBigPicture,
                       ),
                     ),
                   ),
@@ -432,7 +440,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _navigateToDetails(BuildContext context, MultimediaItem movie) {
-    // Standardize media type mapping (prevents TMDB ID collisions)
     final String mediaType = movie.tmdbMediaType;
 
     TmdbDetailsRoute(
@@ -810,6 +817,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 }
 
+/// A single progress dot whose width animates with spring physics.
 class _ProgressDot extends StatefulWidget {
   final bool isActive;
   final AnimationController fillController;
