@@ -15,6 +15,10 @@ import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+// Master Switch Imports
+import '../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 part 'download_launcher.g.dart';
 
 @Riverpod(keepAlive: true)
@@ -89,6 +93,19 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+    final firstItemFocusNode = FocusNode();
+    if (isBigPicture) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (firstItemFocusNode.canRequestFocus) {
+          firstItemFocusNode.requestFocus();
+        }
+      });
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -122,6 +139,8 @@ class DownloadLauncher {
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
                     return ListTile(
+                      // Conditionally autofocus based on Master Switch
+                      autofocus: isBigPicture && index == 0,
                       leading: const Icon(Icons.file_download_outlined),
                       title: Text(label),
                       subtitle: host.isNotEmpty ? Text(host) : null,
@@ -150,6 +169,10 @@ class DownloadLauncher {
     final l10n = AppLocalizations.of(context)!;
     final downloadService = _ref.read(downloadServiceProvider);
 
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+
     // 1. Show verification dialog
     // Use root navigator context if current context is unmounted
     final navContext = rootNavigatorKey.currentContext ?? context;
@@ -174,6 +197,8 @@ class DownloadLauncher {
               actions: [
                 CustomButton(
                   isPrimary: false,
+                  // Conditionally autofocus based on Master Switch
+                  autofocus: isBigPicture,
                   onPressed: () {
                     isCanceled = true;
                     Navigator.of(ctx).pop();
@@ -245,6 +270,8 @@ class DownloadLauncher {
                 child: Text(l10n.cancel),
               ),
               ElevatedButton(
+                // Conditionally autofocus based on Master Switch
+                autofocus: isBigPicture,
                 onPressed: () async {
                   Navigator.pop(ctx);
 
@@ -319,6 +346,11 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -330,6 +362,8 @@ class DownloadLauncher {
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
+            // Conditionally autofocus based on Master Switch
+            autofocus: isBigPicture,
             onPressed: () {
               Navigator.pop(ctx);
               launch(

@@ -1,18 +1,26 @@
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+
 import '../../../../core/router/app_router.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
-
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../shared/widgets/multimedia_card.dart';
 import '../view_all_screen.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/utils/image_utils.dart';
 
-class MediaHorizontalList extends StatefulWidget {
+// TV/Gamepad Feature Imports
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
+
+class MediaHorizontalList extends ConsumerStatefulWidget {
   final String title;
   final List<MultimediaItem> mediaList;
   final ViewAllCategory category;
@@ -31,10 +39,11 @@ class MediaHorizontalList extends StatefulWidget {
   });
 
   @override
-  State<MediaHorizontalList> createState() => _MediaHorizontalListState();
+  ConsumerState<MediaHorizontalList> createState() =>
+      _MediaHorizontalListState();
 }
 
-class _MediaHorizontalListState extends State<MediaHorizontalList> {
+class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
   late ScrollController _scrollController;
   bool _isPortrait = true;
 
@@ -127,17 +136,38 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
     );
   }
 
+  void _navigateToViewAll() {
+    ViewAllRoute(
+      $extra: ViewAllRouteExtra(
+        title: widget.title,
+        initialMediaList: widget.mediaList,
+        category: widget.category,
+        onTap: widget.onTap,
+      ),
+    ).push<void>(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.mediaList.isEmpty) return const SizedBox.shrink();
+
     final l10n = AppLocalizations.of(context)!;
 
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     final isDesktop = context.isDesktop;
+
+    // Limit inline items and show the physical "View All" card in Big Picture
+    const int maxItems = 15;
+    final displayList = widget.mediaList.take(maxItems).toList();
+    final bool renderViewAll = widget.showViewAll && isBigPicture;
+    final int totalCount = displayList.length + (renderViewAll ? 1 : 0);
 
     final double cardWidth = isDesktop
         ? (_isPortrait ? 200.0 : 300.0)
         : (_isPortrait ? 130.0 : 200.0);
-
     final double imageHeight = cardWidth / (_isPortrait ? (2 / 3) : (16 / 9));
     final double listHeight = imageHeight + 40.0;
 
@@ -188,8 +218,8 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                 ),
               ),
 
-              // Desktop arrow buttons — before the View All chip
-              if (isDesktop) ...[
+              // Show desktop scroll arrows ONLY if not in Big Picture mode
+              if (isDesktop && !isBigPicture) ...[
                 const SizedBox(width: 8),
                 _HeaderArrowButton(
                   icon: Icons.arrow_back_ios_new,
@@ -202,21 +232,13 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                 ),
               ],
 
-              if (widget.showViewAll)
+              if (widget.showViewAll && !isBigPicture)
                 const SizedBox(width: LayoutConstants.spacingXs),
 
-              if (widget.showViewAll)
+              // Show the text "View All" pill ONLY if not in Big Picture mode
+              if (widget.showViewAll && !isBigPicture)
                 CardsWrapper(
-                  onTap: () {
-                    ViewAllRoute(
-                      $extra: ViewAllRouteExtra(
-                        title: widget.title,
-                        initialMediaList: widget.mediaList,
-                        category: widget.category,
-                        onTap: widget.onTap,
-                      ),
-                    ).push<void>(context);
-                  },
+                  onTap: _navigateToViewAll,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -257,7 +279,7 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
           ),
         ),
 
-        // List — no DesktopScrollWrapper overlay; arrows are in the header
+        // List
         SizedBox(
           height: listHeight, // Adjusted for 2:3 ratio within list
           child: Builder(
@@ -266,48 +288,89 @@ class _MediaHorizontalListState extends State<MediaHorizontalList> {
                   ? LayoutConstants.spacingLg
                   : LayoutConstants.spacingSm;
 
-              return ListView.builder(
-                controller: _scrollController,
-                clipBehavior: Clip.none,
-                padding: EdgeInsets.symmetric(
-                  horizontal: isDesktop
-                      ? LayoutConstants.dashboardContentPadding
-                      : LayoutConstants.spacingMd,
+              return ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false,
+                  dragDevices: {
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.trackpad,
+                  },
                 ),
-                scrollDirection: Axis.horizontal,
-                itemCount: widget.mediaList.length,
-                itemExtent: cardWidth + spacing,
-                itemBuilder: (context, index) {
-                  final item = widget.mediaList[index];
-                  final imageUrl = item.posterImageUrl;
-                  final itemTitle = item.title;
-                  final prefix = widget.heroTagPrefix ?? 'list';
-                  final uniqueTag =
-                      '${prefix}_${widget.title}_${item.id}_${itemTitle.hashCode}_$index';
+                child: ListView.builder(
+                  controller: _scrollController,
+                  clipBehavior: Clip.none,
+                  cacheExtent: 99999, // Prevents node disposal during scroll
+                  physics: const ClampingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop
+                        ? LayoutConstants.dashboardContentPadding
+                        : LayoutConstants.spacingMd,
+                  ),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: totalCount,
+                  itemExtent: cardWidth + spacing,
+                  itemBuilder: (context, index) {
+                    // The physical "View All" card at the end of the list for Gamepads
+                    // The physical "View All" card at the end of the list
+                    if (index == displayList.length) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: spacing),
+                        child: _ViewAllCard(onTap: _navigateToViewAll),
+                      );
+                    }
 
-                  return Padding(
-                    padding: EdgeInsets.only(right: spacing),
-                    child: MultimediaCard(
-                      imageUrl: imageUrl,
-                      title: itemTitle,
-                      heroTag: uniqueTag,
-                      isPortrait: _isPortrait,
-                      onTap: () {
-                        if (widget.onTap != null) {
-                          widget.onTap!(item);
-                        } else {
-                          TmdbDetailsRoute(
-                            movieId: item.id,
-                            mediaType: item.tmdbMediaType,
+                    // Normal Media Card
+                    final item = displayList[index];
+                    final imageUrl = item.posterImageUrl;
+                    final itemTitle = item.title;
+                    final prefix = widget.heroTagPrefix ?? 'list';
+                    final uniqueTag =
+                        '${prefix}_${widget.title}_${item.id}_${itemTitle.hashCode}_$index';
+
+                    final handleTap = () {
+                      if (widget.onTap != null) {
+                        widget.onTap!(item);
+                      } else {
+                        TmdbDetailsRoute(
+                          movieId: item.id,
+                          mediaType: item.tmdbMediaType,
+                          heroTag: uniqueTag,
+                          placeholderPoster: imageUrl,
+                          source: item
+                              .source, // Ensure source gets passed downstream
+                        ).push<void>(context);
+                      }
+                    };
+
+                    return Padding(
+                      padding: EdgeInsets.only(right: spacing),
+                      child: FocusableWrapper(
+                        onTap: handleTap,
+                        gamepadHints: [
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: l10n.hintSelect,
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: '≡',
+                            actionLabel: l10n.hintMenu,
+                            buttonColor: Colors.white,
+                          ),
+                        ],
+                        child: ExcludeFocus(
+                          child: MultimediaCard(
+                            imageUrl: imageUrl,
+                            title: itemTitle,
                             heroTag: uniqueTag,
-                            placeholderPoster: imageUrl,
-                            source: item.source,
-                          ).push<void>(context);
-                        }
-                      },
-                    ),
-                  );
-                },
+                            isPortrait: _isPortrait,
+                            onTap: handleTap,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -342,6 +405,74 @@ class _HeaderArrowButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, size: 12, color: theme.colorScheme.onSurface),
+      ),
+    );
+  }
+}
+
+class _ViewAllCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ViewAllCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return FocusableWrapper(
+      onTap: onTap,
+      gamepadHints: [
+        GamepadHint(
+          buttonLabel: 'A',
+          actionLabel: l10n.hintViewAll,
+          buttonColor: Colors.greenAccent.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: '≡',
+          actionLabel: l10n.hintMenu,
+          buttonColor: Colors.white,
+        ),
+      ],
+      child: CardsWrapper(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 32,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.viewAll,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
