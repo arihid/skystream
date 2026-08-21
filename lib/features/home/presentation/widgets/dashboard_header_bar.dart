@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
@@ -7,7 +8,11 @@ import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/features/home/presentation/delegates/home_search_delegate.dart';
 import 'package:skystream/features/home/presentation/home_provider.dart';
 import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
-import 'dart:async';
+
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/widgets/focusable_wrapper.dart';
+import 'package:skystream/core/providers/device_info_provider.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 
 /// A custom header bar for the widescreen dashboard layout.
 ///
@@ -36,6 +41,10 @@ class DashboardHeaderBar extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final activeProvider = ref.watch(activeProviderProvider);
 
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     final hasCarousel = onPrevious != null && onNext != null;
 
     return Container(
@@ -45,50 +54,48 @@ class DashboardHeaderBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Carousel prev / next arrows
-          CardsWrapper(
-            scaleFactor: 1.01,
-            onTap: () => onPrevious?.call(),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.arrow_back_ios_new,
-                size: 14,
-                color: hasCarousel
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+          // Conditionally hide Carousel Arrows in Big Picture mode (users use D-Pad)
+          if (hasCarousel && !isBigPicture) ...[
+            CardsWrapper(
+              scaleFactor: 1.01,
+              onTap: () => onPrevious?.call(),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 4),
-          CardsWrapper(
-            scaleFactor: 1.01,
-            onTap: () => onNext?.call(),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: hasCarousel
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            const SizedBox(width: 4),
+            CardsWrapper(
+              scaleFactor: 1.01,
+              onTap: () => onNext?.call(),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
-          ),
-
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
 
           // Capsule search bar
           Expanded(
-            child: CardsWrapper(
-              scaleFactor: 1.01,
+            child: FocusableWrapper(
+              useScaleEffect: false,
               focusNode: searchFocusNode,
+              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
               onTap: () {
                 unawaited(
                   showSearch<void>(
@@ -99,7 +106,6 @@ class DashboardHeaderBar extends ConsumerWidget {
                   ),
                 );
               },
-              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
               child: Container(
                 height: 38,
                 constraints: const BoxConstraints(maxWidth: 500),
@@ -138,10 +144,9 @@ class DashboardHeaderBar extends ConsumerWidget {
           const SizedBox(width: 16),
 
           // Refresh button
-          CardsWrapper(
-            scaleFactor: 1.01,
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(18),
             onTap: () => ref.read(homeDataProvider.notifier).fetch(),
-            borderRadius: BorderRadius.circular(50),
             child: Container(
               width: 36,
               height: 36,
@@ -162,31 +167,70 @@ class DashboardHeaderBar extends ConsumerWidget {
 
           const SizedBox(width: 12),
 
-          HoverBorderGradient(
+          // Provider chip
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
             onTap: onShowProviderSelector,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.extension,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  activeProvider?.name ?? l10n.none,
-                  style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+            child: isBigPicture
+                // Clean pill layout for TV
+                ? Container(
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(
+                        LayoutConstants.radiusPill,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.extension,
+                          color: theme.colorScheme.primary,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          activeProvider?.name ?? l10n.none,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                // Fancy HoverBorder for Desktop
+                : HoverBorderGradient(
+                    onTap: onShowProviderSelector,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.extension,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          activeProvider?.name ?? l10n.none,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

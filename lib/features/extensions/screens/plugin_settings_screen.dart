@@ -13,6 +13,12 @@ import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../settings/presentation/widgets/settings_widgets.dart';
 
+// TV/Gamepad Feature Imports
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../core/widgets/focusable_wrapper.dart';
+import '../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 class PluginSettingsScreen extends ConsumerStatefulWidget {
   final ExtensionPlugin plugin;
 
@@ -24,6 +30,7 @@ class PluginSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
+  final FocusNode _screenFocusNode = FocusNode(debugLabel: 'PluginSettings');
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -42,10 +49,16 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
   @override
   void dispose() {
+    _screenFocusNode.dispose();
     for (final controller in _controllers.values) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  bool _isBigPicture() {
+    final isTv = ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    return ref.read(bigPictureModeProvider).isEnabled || isTv;
   }
 
   Future<void> _load() async {
@@ -156,12 +169,10 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     String? rawValue,
   ]) {
     final values = <String, bool>{
-      for (final option in definition.options)
-        option.value: option.defaultBool,
+      for (final option in definition.options) option.value: option.defaultBool,
     };
 
-    final raw =
-        rawValue ?? _values[definition.key] ?? definition.defaultValue;
+    final raw = rawValue ?? _values[definition.key] ?? definition.defaultValue;
     if (raw.trim().isEmpty) return values;
 
     try {
@@ -244,6 +255,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     if (_saving || definition.options.isEmpty) return;
 
     final values = _toggleGroupValues(definition);
+    final isBigPicture = _isBigPicture();
 
     await showDialog<void>(
       context: context,
@@ -256,28 +268,34 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: definition.options.map((option) {
-                    final description = option.description?.trim();
+                  children: definition.options
+                      .map((option) {
+                        final description = option.description?.trim();
 
-                    return SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(_toggleGroupOptionIcon(option)),
-                      title: Text(option.label),
-                      subtitle: description == null || description.isEmpty
-                          ? null
-                          : Text(description),
-                      value: values[option.value] ?? option.defaultBool,
-                      onChanged: (enabled) {
-                        values[option.value] = enabled;
-                        setDialogState(() {});
+                        return SwitchListTile(
+                          // Conditionally autofocus first item for Gamepad
+                          autofocus:
+                              isBigPicture &&
+                              definition.options.indexOf(option) == 0,
+                          contentPadding: EdgeInsets.zero,
+                          secondary: Icon(_toggleGroupOptionIcon(option)),
+                          title: Text(option.label),
+                          subtitle: description == null || description.isEmpty
+                              ? null
+                              : Text(description),
+                          value: values[option.value] ?? option.defaultBool,
+                          onChanged: (enabled) {
+                            values[option.value] = enabled;
+                            setDialogState(() {});
 
-                        if (!mounted) return;
-                        setState(() {
-                          _values[definition.key] = jsonEncode(values);
-                        });
-                      },
-                    );
-                  }).toList(growable: false),
+                            if (!mounted) return;
+                            setState(() {
+                              _values[definition.key] = jsonEncode(values);
+                            });
+                          },
+                        );
+                      })
+                      .toList(growable: false),
                 ),
               ),
               actions: [
@@ -380,6 +398,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Extension settings saved')));
+
+      Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -417,9 +437,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     final description = definition.description?.trim();
 
     final value = switch (definition.type) {
-      PluginSettingType.toggle => _boolValue(definition.key)
-          ? 'Enabled'
-          : 'Disabled',
+      PluginSettingType.toggle =>
+        _boolValue(definition.key) ? 'Enabled' : 'Disabled',
       PluginSettingType.toggleGroup => _toggleGroupSummary(definition),
       PluginSettingType.select => _selectedOptionLabel(definition),
       PluginSettingType.text || PluginSettingType.url =>
@@ -440,12 +459,11 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     setState(() => _values[key] = value ? 'true' : 'false');
   }
 
-  Future<void> _showSelectDialog(
-    PluginSettingDefinition definition,
-  ) async {
+  Future<void> _showSelectDialog(PluginSettingDefinition definition) async {
     if (_saving || definition.options.isEmpty) return;
 
     final current = _values[definition.key] ?? definition.defaultValue;
+    final isBigPicture = _isBigPicture();
 
     await showDialog<void>(
       context: context,
@@ -465,6 +483,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               children: definition.options
                   .map(
                     (option) => ListTile(
+                      // Conditionally autofocus selected item for Gamepad
+                      autofocus: isBigPicture && current == option.value,
                       title: Text(option.label),
                       leading: Radio<String>(value: option.value),
                       onTap: () {
@@ -484,9 +504,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     );
   }
 
-  Future<void> _showTextDialog(
-    PluginSettingDefinition definition,
-  ) async {
+  Future<void> _showTextDialog(PluginSettingDefinition definition) async {
     if (_saving) return;
 
     final editor = TextEditingController(
@@ -496,6 +514,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
           definition.defaultValue,
     );
 
+    final isBigPicture = _isBigPicture();
+
     final value = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -503,7 +523,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         title: Text(definition.title),
         content: CustomTextField(
           controller: editor,
-          autofocus: true,
+          // Conditionally remove autofocus to stop TV keyboard popup
+          autofocus: !isBigPicture,
           keyboardType: definition.type == PluginSettingType.url
               ? TextInputType.url
               : TextInputType.text,
@@ -520,6 +541,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         ),
         actions: [
           TextButton(
+            // Seed focus on the Cancel button for TV users
+            autofocus: isBigPicture,
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
@@ -543,6 +566,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
   Future<void> _showDomainDialog(List<PluginDomain> domains) async {
     if (_saving || domains.isEmpty) return;
 
+    final isBigPicture = _isBigPicture();
+
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -561,6 +586,8 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               children: domains
                   .map(
                     (domain) => ListTile(
+                      // Conditionally autofocus selected domain for Gamepad
+                      autofocus: isBigPicture && _selectedDomain == domain.url,
                       title: Text(domain.name),
                       subtitle: Text(domain.url),
                       leading: Radio<String>(value: domain.url),
@@ -591,11 +618,13 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
   Widget _buildSettingTile(
     PluginSettingDefinition definition, {
     required bool isLast,
+    bool isFirst = false,
   }) {
     switch (definition.type) {
       case PluginSettingType.toggle:
         final value = _boolValue(definition.key);
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: definition.description,
@@ -605,25 +634,23 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                 ? null
                 : (next) => _setToggleValue(definition.key, next),
           ),
-          onTap: _saving
-              ? null
-              : () => _setToggleValue(definition.key, !value),
+          onTap: _saving ? null : () => _setToggleValue(definition.key, !value),
           isLast: isLast,
         );
 
       case PluginSettingType.toggleGroup:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
-          onTap: _saving
-              ? null
-              : () => _showToggleGroupDialog(definition),
+          onTap: _saving ? null : () => _showToggleGroupDialog(definition),
           isLast: isLast,
         );
 
       case PluginSettingType.select:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
@@ -634,6 +661,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       case PluginSettingType.text:
       case PluginSettingType.url:
         return SettingsTile(
+          autofocus: isFirst,
           icon: _iconForSetting(definition),
           title: definition.title,
           subtitle: _settingSubtitle(definition),
@@ -643,7 +671,13 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
     }
   }
 
-  Widget _buildContent(List<PluginDomain> domains, bool hasScriptBaseUrl) {
+  Widget _buildContent(
+    List<PluginDomain> domains,
+    bool hasScriptBaseUrl,
+    bool isBigPicture,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -660,6 +694,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                   _definitions.length,
                   (index) => _buildSettingTile(
                     _definitions[index],
+                    isFirst: isBigPicture && index == 0,
                     isLast: index == _definitions.length - 1,
                   ),
                 ),
@@ -673,6 +708,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                 title: 'Website address',
                 children: [
                   SettingsTile(
+                    autofocus: isBigPicture && _definitions.isEmpty,
                     icon: Icons.language_rounded,
                     title: 'Selected website',
                     subtitle: _selectedDomainLabel(domains),
@@ -693,6 +729,11 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
                   final enabled = _providerEnabled[provider.id] ?? true;
 
                   return SettingsTile(
+                    autofocus:
+                        isBigPicture &&
+                        _definitions.isEmpty &&
+                        domains.isEmpty &&
+                        index == 0,
                     icon: Icons.extension_rounded,
                     title: provider.name,
                     subtitle: provider.id,
@@ -722,19 +763,23 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
               padding: const EdgeInsets.symmetric(
                 horizontal: LayoutConstants.spacingMd,
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: _saving
-                      ? const AppLoadingIndicator(
-                          constraints: BoxConstraints.tightFor(
-                            width: 18,
-                            height: 18,
-                          ),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: const Text('Save settings'),
+              child: FocusableWrapper(
+                useScaleEffect: true,
+                onTap: _saving ? null : _save,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const AppLoadingIndicator(
+                            constraints: BoxConstraints.tightFor(
+                              width: 18,
+                              height: 18,
+                            ),
+                          )
+                        : const Icon(Icons.save_outlined),
+                    label: Text(l10n.saveSettings),
+                  ),
                 ),
               ),
             ),
@@ -756,54 +801,105 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         _providers.isNotEmpty ||
         (domains.isNotEmpty && !hasScriptBaseUrl);
 
+    final isBigPicture = _isBigPicture();
+
     return Scaffold(
       appBar: AppBar(
+        // Hide back button on Big Picture to trap D-pad inside content
+        automaticallyImplyLeading: !isBigPicture,
         title: Text(l10n.pluginSettings(widget.plugin.name)),
         actions: [
-          IconButton(
-            tooltip: 'Save',
-            onPressed: _loading || _saving ? null : _save,
-            icon: _saving
-                ? const AppLoadingIndicator(
-                    constraints: BoxConstraints.tightFor(width: 20, height: 20),
-                  )
-                : const Icon(Icons.save_outlined),
-          ),
+          // Keep standard Save button for Touch users
+          if (!isBigPicture)
+            IconButton(
+              tooltip: 'Save',
+              onPressed: _loading || _saving ? null : _save,
+              icon: _saving
+                  ? const AppLoadingIndicator(
+                      constraints: BoxConstraints.tightFor(
+                        width: 20,
+                        height: 20,
+                      ),
+                    )
+                  : const Icon(Icons.save_outlined),
+            ),
         ],
       ),
-      body: _loading
-          ? const Center(child: AppLoadingIndicator())
-          : _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+      body: Focus(
+        focusNode: _screenFocusNode,
+        canRequestFocus: false,
+        onFocusChange: (hasFocus) {
+          if (hasFocus && isBigPicture) {
+            Future.microtask(() {
+              if (mounted) {
+                ref.read(focusedGamepadHintsProvider.notifier).state = [
+                  GamepadHint(
+                    buttonLabel: 'A',
+                    actionLabel: l10n.hintSelectToggle,
+                    buttonColor: Colors.greenAccent.shade400,
+                  ),
+                  GamepadHint(
+                    buttonLabel: 'B',
+                    actionLabel: l10n.hintBack,
+                    buttonColor: Colors.redAccent.shade400,
+                  ),
+                ];
+              }
+            });
+          } else {
+            Future.microtask(() {
+              if (mounted) {
+                final currentHints = ref.read(focusedGamepadHintsProvider);
+                if (currentHints?.any(
+                      (h) => h.actionLabel == l10n.hintSelectToggle,
+                    ) ==
+                    true) {
+                  ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                }
+              }
+            });
+          }
+        },
+        child: FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
+          child: _loading
+              ? const Center(child: AppLoadingIndicator())
+              : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          onPressed: _load,
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    FilledButton(onPressed: _load, child: const Text('Retry')),
-                  ],
-                ),
-              ),
-            )
-          : !hasContent
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'This extension does not define configurable settings.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
-          : _buildContent(domains, hasScriptBaseUrl),
+                  ),
+                )
+              : !hasContent
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      l10n.noConfigurableSettings,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : _buildContent(domains, hasScriptBaseUrl, isBigPicture),
+        ),
+      ),
     );
   }
 }

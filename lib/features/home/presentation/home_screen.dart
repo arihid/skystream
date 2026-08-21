@@ -32,6 +32,9 @@ import '../../../../core/providers/device_info_provider.dart';
 import 'dart:async';
 import 'widgets/dashboard_header_bar.dart';
 
+// Master Switch Import
+import '../../settings/presentation/big_picture_provider.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -76,7 +79,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    return isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
+
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -127,11 +136,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     // Use profile?.isLargeScreen so this matches AppScaffold's sidebar
     // decision even when the HomeScreen's context width is narrowed
     // by the sidebar (e.g. iPad portrait).
     final isWidescreen =
-        isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     // On widescreen: no AppBar, no FAB — we use the DashboardHeaderBar instead.
     // The header lives outside the scroll view in a plain Column so there is
@@ -165,6 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 generalSettings.watchHistoryEnabled,
                 syncedProgressAsync,
                 isWidescreen: true,
+                isBigPicture: isBigPicture,
               ),
             ),
           ],
@@ -299,6 +315,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         history,
         generalSettings.watchHistoryEnabled,
         syncedProgressAsync,
+        isWidescreen: false,
+        isBigPicture: isBigPicture,
       ),
     );
   }
@@ -310,6 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool watchHistoryEnabled,
     AsyncValue<List<SyncProgressItem>> syncedProgressAsync, {
     bool isWidescreen = false,
+    bool isBigPicture = false, // Received from build method
   }) {
     final l10n = AppLocalizations.of(context)!;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
@@ -354,9 +373,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data['Trending']!.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {
@@ -369,9 +395,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               else if (data.isNotEmpty)
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data.values.first.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {

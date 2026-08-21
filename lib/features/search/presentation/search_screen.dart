@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/utils/responsive_breakpoints.dart';
 import '../../../core/providers/device_info_provider.dart';
@@ -10,6 +12,13 @@ import 'widgets/search_result_section.dart';
 import 'widgets/search_header_bar.dart';
 import 'widgets/bouncy_entry_animation.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+
+// Gamepad Feature Imports
+import '../../../shared/widgets/virtual_keyboard.dart';
+import '../../../core/input/gamepad_intents.dart';
+import '../../../core/widgets/focusable_wrapper.dart';
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -27,12 +36,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final FocusNode _firstSuggestionFocusNode = FocusNode();
   final FocusNode _firstResultFocusNode = FocusNode();
 
+  // Big Picture Nodes & State
+  final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
+  final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
+
+  bool _isKeyboardVisible = false;
+  bool _isKeyboardActiveRegion = true;
+  bool _isFilterDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
-    // Restore any previously committed query into the text field.
-    _controller.text = ref.read(searchQueryProvider);
+    final initialQuery = ref.read(searchQueryProvider);
+    _controller.text = initialQuery;
     _controller.addListener(_onTextChanged);
+
+    // If search is empty on boot, default to keyboard visibility for TV
+    if (initialQuery.isEmpty) {
+      _isKeyboardVisible = true;
+      _isKeyboardActiveRegion = true;
+    }
 
     _focusNode.onKeyEvent = (node, event) {
       if (event is KeyDownEvent) {
@@ -86,25 +109,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          final suggestionState = ref.read(searchSuggestionControllerProvider);
-          final typedLongEnough = suggestionState.query.trim().length >= 2;
-          final hasSuggestionContent =
-              suggestionState.isLoading ||
-              suggestionState.suggestions.isNotEmpty;
-
-          if (typedLongEnough && hasSuggestionContent) {
-            _firstSuggestionFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          } else {
-            final resultsState = ref.read(searchResultsProvider).asData?.value;
-            final hasResults =
-                resultsState != null &&
-                resultsState.results.any((r) => r.results.isNotEmpty);
-            if (hasResults) {
-              _firstResultFocusNode.requestFocus();
-              return KeyEventResult.handled;
-            }
-          }
+          _navigateDownToContent();
+          return KeyEventResult.handled;
         }
       }
       return KeyEventResult.ignored;
@@ -121,25 +127,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          final suggestionState = ref.read(searchSuggestionControllerProvider);
-          final typedLongEnough = suggestionState.query.trim().length >= 2;
-          final hasSuggestionContent =
-              suggestionState.isLoading ||
-              suggestionState.suggestions.isNotEmpty;
-
-          if (typedLongEnough && hasSuggestionContent) {
-            _firstSuggestionFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          } else {
-            final resultsState = ref.read(searchResultsProvider).asData?.value;
-            final hasResults =
-                resultsState != null &&
-                resultsState.results.any((r) => r.results.isNotEmpty);
-            if (hasResults) {
-              _firstResultFocusNode.requestFocus();
-              return KeyEventResult.handled;
-            }
-          }
+          _navigateDownToContent();
+          return KeyEventResult.handled;
         }
       }
       return KeyEventResult.ignored;
@@ -160,12 +149,33 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     };
   }
 
+  void _navigateDownToContent() {
+    final suggestionState = ref.read(searchSuggestionControllerProvider);
+    final typedLongEnough = suggestionState.query.trim().length >= 2;
+    final hasSuggestionContent =
+        suggestionState.isLoading || suggestionState.suggestions.isNotEmpty;
+
+    if (typedLongEnough && hasSuggestionContent) {
+      _firstSuggestionFocusNode.requestFocus();
+    } else {
+      final resultsState = ref.read(searchResultsProvider).asData?.value;
+      final hasResults =
+          resultsState != null &&
+          resultsState.results.any((r) => r.results.isNotEmpty);
+      if (hasResults) {
+        _firstResultFocusNode.requestFocus();
+      }
+    }
+  }
+
   void _onTextChanged() {
     if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _keyboardProxyNode.dispose();
+    _listProxyNode.dispose();
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
@@ -185,11 +195,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
     ref.read(searchSuggestionControllerProvider.notifier).clear();
     ref.read(searchQueryProvider.notifier).set(trimmed);
-    // Dismiss keyboard after submitting, just like YouTube / browser.
     _focusNode.unfocus();
+
+    // Close virtual keyboard after submitting on BigPicture
+    if (mounted) {
+      setState(() {
+        _isKeyboardVisible = false;
+      });
+    }
   }
 
-  void _fillSuggestion(String suggestion) {
+  void _fillSuggestion(String suggestion, bool isBigPicture) {
     _controller.value = TextEditingValue(
       text: suggestion,
       selection: TextSelection.collapsed(offset: suggestion.length),
@@ -197,24 +213,132 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ref
         .read(searchSuggestionControllerProvider.notifier)
         .onQueryChanged(suggestion);
-    _focusNode.requestFocus();
+
+    if (!isBigPicture) {
+      _focusNode.requestFocus();
+    } else {
+      // On Big Picture: Force keyboard open and swap to it when a query is filled!
+      setState(() {
+        _isKeyboardVisible = true;
+        _isKeyboardActiveRegion = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _keyboardProxyNode.requestFocus();
+        Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
+      });
+    }
+  }
+
+  void _toggleKeyboardAndList(bool isBigPicture) {
+    if (!isBigPicture) {
+      _focusNode.requestFocus();
+      return;
+    }
+
+    if (_isFilterDialogOpen) return;
+
+    if (!_isKeyboardVisible) {
+      setState(() {
+        _isKeyboardVisible = true;
+        _isKeyboardActiveRegion = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _keyboardProxyNode.requestFocus();
+        Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
+      });
+      return;
+    }
+
+    final nextRegionIsKeyboard = !_isKeyboardActiveRegion;
+    setState(() {
+      _isKeyboardActiveRegion = nextRegionIsKeyboard;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (nextRegionIsKeyboard) {
+        _keyboardProxyNode.requestFocus();
+      } else {
+        _listProxyNode.requestFocus();
+      }
+      Future.microtask(() => FocusManager.instance.primaryFocus?.nextFocus());
+    });
+  }
+
+  void _toggleFilterMenu() {
+    if (!mounted) return;
+
+    if (_isFilterDialogOpen) {
+      Navigator.of(context, rootNavigator: true).pop();
+      return;
+    }
+
+    _isFilterDialogOpen = true;
+
+    final theme = Theme.of(context);
+    final filter = ref.read(searchFilterProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    // Big Picture-Friendly Dialog for Scope Switcher (Accessible via D-Pad)
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.searchScope),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              autofocus: filter == SearchFilter.content,
+              title: Text(l10n.nonLivestreams),
+              leading: const Text('🍿', style: TextStyle(fontSize: 24)),
+              trailing: filter == SearchFilter.content
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                ref
+                    .read(searchFilterProvider.notifier)
+                    .set(SearchFilter.content);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              autofocus: filter == SearchFilter.live,
+              title: Text(l10n.liveStreams),
+              leading: const Text('📺', style: TextStyle(fontSize: 24)),
+              trailing: filter == SearchFilter.live
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
+                  : null,
+              onTap: () {
+                ref.read(searchFilterProvider.notifier).set(SearchFilter.live);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        _isFilterDialogOpen = false;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
-    final isWidescreen = isTv || context.isTabletOrLarger;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+    final isTv = isBigPicture || profile?.isTv == true || context.isTv;
 
+    final isWidescreen = isTv || context.isTabletOrLarger;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    Widget content;
+
     if (isWidescreen) {
-      return Scaffold(
+      content = Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: Stack(
           children: [
-            // Cinematic Background Image - Local Asset (Dark Mode only)
             if (isDark)
               Positioned.fill(
                 child: Image.asset(
@@ -224,18 +348,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       const SizedBox.shrink(),
                 ),
               ),
-            // Rich Architectural Stage Overlay (Vignette + Dark overlay - Dark Mode only)
             if (isDark)
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(
-                      alpha: 0.7,
-                    ), // Rich dark overlay
+                    color: Colors.black.withValues(alpha: 0.7),
                   ),
                 ),
               ),
-            // Radial Vignette Overlay centered on search area (Dark Mode only)
             if (isDark)
               Positioned.fill(
                 child: Container(
@@ -253,13 +373,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
               ),
-            // Left-to-right fade to blend backdrop image with the sidebar / background (Dark Mode only)
             if (isDark)
               Positioned(
                 left: 0,
                 top: 0,
                 bottom: 0,
-                width: 320, // Wide fanning width to ease the transition
+                width: 320,
                 child: IgnorePointer(
                   child: Container(
                     decoration: BoxDecoration(
@@ -279,7 +398,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
               ),
-            // Top-to-bottom edge vignette to mask out top/bottom image boundaries/black letterboxing (Dark Mode only)
             if (isDark)
               Positioned.fill(
                 child: IgnorePointer(
@@ -302,10 +420,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
               ),
-            // Focus Spotlight (Stage Lighting - Soft fanning semi-circle)
             Positioned(
-              top:
-                  76, // Anchored immediately below the search bar (24 top padding + 52 height)
+              top: 76,
               left: 0,
               right: 0,
               height: 250,
@@ -319,25 +435,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   return IgnorePointer(
                     child: Center(
                       child: Container(
-                        width: 900, // Broader fanning footprint
+                        width: 900,
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
-                            center: Alignment
-                                .topCenter, // Fanning downward from the bottom edge of the search bar
+                            center: Alignment.topCenter,
                             radius: 1.3,
                             colors: [
                               spotlightColor.withValues(
                                 alpha: isDark ? 0.35 : 0.22,
-                              ), // Soft center source point
+                              ),
                               spotlightColor.withValues(
                                 alpha: isDark ? 0.18 : 0.10,
-                              ), // Smooth bleed
+                              ),
                               spotlightColor.withValues(
                                 alpha: isDark ? 0.06 : 0.03,
-                              ), // Gentle falloff
-                              spotlightColor.withValues(
-                                alpha: 0.0,
-                              ), // Fade to transparent
+                              ),
+                              spotlightColor.withValues(alpha: 0.0),
                             ],
                             stops: const [0.0, 0.35, 0.70, 1.0],
                           ),
@@ -348,8 +461,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 },
               ),
             ),
-
-            // Content layout in Column: Still header and Body directly below it
             Positioned.fill(
               child: Column(
                 children: [
@@ -361,6 +472,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     moviesShowsFocusNode: _moviesShowsFocusNode,
                     liveTvFocusNode: _liveTvFocusNode,
                     isCompact: false,
+                    isBigPicture: isTv, // Pass TV State
+                    onTapFakeInput: () {
+                      _isKeyboardVisible = true;
+                      _isKeyboardActiveRegion = true;
+                      setState(() {});
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _keyboardProxyNode.requestFocus();
+                      });
+                    },
                     onSubmitted: _submitSearch,
                     onChanged: (val) {
                       ref
@@ -370,9 +490,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                   Expanded(
                     child: Padding(
-                      // Fixed top padding below the top search bar (24px)
                       padding: const EdgeInsets.only(top: 24.0),
-                      child: _buildBody(context),
+                      child: _buildBody(context, isTv),
                     ),
                   ),
                 ],
@@ -381,13 +500,59 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
       );
+    } else {
+      content = _buildMobileLayout(context, isTv);
     }
 
-    // Mobile layout: existing AppBar
-    return _buildMobileLayout(context);
+    // Catch Gamepad Intents natively at the root of the screen!
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            _toggleKeyboardAndList(isTv);
+            return null;
+          },
+        ),
+        AppRightTriggerIntent: CallbackAction<AppRightTriggerIntent>(
+          onInvoke: (_) {
+            if (isTv) _toggleFilterMenu();
+            return null;
+          },
+        ),
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            if (_isKeyboardVisible && isTv) {
+              setState(() {
+                _isKeyboardVisible = false;
+              });
+              return null;
+            }
+
+            final query = _controller.text;
+            if (query.isNotEmpty && isTv) {
+              setState(() {
+                _isKeyboardVisible = true;
+                _isKeyboardActiveRegion = true;
+              });
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _keyboardProxyNode.requestFocus();
+                Future.microtask(
+                  () => FocusManager.instance.primaryFocus?.nextFocus(),
+                );
+              });
+              return null;
+            }
+
+            Navigator.maybePop(context);
+            return null;
+          },
+        ),
+      },
+      child: content,
+    );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
+  Widget _buildMobileLayout(BuildContext context, bool isTv) {
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final filter = ref.watch(searchFilterProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -397,6 +562,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 16,
+        automaticallyImplyLeading:
+            !isTv, // Hides physical back button on BigPicture/TV
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -404,7 +571,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               tooltip: 'Search scope',
               onSelected: (value) {
                 ref.read(searchFilterProvider.notifier).set(value);
-                // Sync current text to search query instantly on scope switch
                 final text = _controller.text.trim();
                 ref.read(searchQueryProvider.notifier).set(text);
               },
@@ -416,7 +582,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     children: [
                       const Text('🍿', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: 12),
-                      const Expanded(child: Text('Non Livestreams')),
+                      Expanded(child: Text(l10n.nonLivestreams)),
                       if (!isLive)
                         Icon(
                           Icons.check,
@@ -433,10 +599,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       const SizedBox(
                         width: 18,
                         height: 18,
-                        child: Center(child: WaveformEqualizer(isActive: true)),
+                        child: Center(
+                          child: Text('📺', style: TextStyle(fontSize: 14)),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(child: Text('Livestreams')),
+                      Expanded(child: Text(l10n.liveStreams)),
                       if (isLive)
                         Icon(
                           Icons.check,
@@ -461,7 +629,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: Center(child: WaveformEqualizer(isActive: true)),
+                        child: Center(
+                          child: Text('📺', style: TextStyle(fontSize: 14)),
+                        ),
                       )
                     : const Text('🍿', style: TextStyle(fontSize: 18)),
               ),
@@ -575,21 +745,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
       ),
-      body: _buildBody(context),
+      body: _buildBody(context, isTv),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, bool isTv) {
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final suggestionState = ref.watch(searchSuggestionControllerProvider);
     final l10n = AppLocalizations.of(context)!;
+    final query = ref.watch(searchQueryProvider);
+
     final typedLongEnough = suggestionState.query.trim().length >= 2;
     final hasSuggestionContent =
         suggestionState.isLoading || suggestionState.suggestions.isNotEmpty;
-    final showSuggestions = typedLongEnough && hasSuggestionContent;
 
-    return showSuggestions
-        ? _buildSuggestionsView(context, suggestionState)
+    final forceSuggestions = isTv ? _isKeyboardVisible : _focusNode.hasFocus;
+    final showSuggestions =
+        forceSuggestions || (typedLongEnough && hasSuggestionContent);
+    final shouldShowKeyboard = isTv && (_isKeyboardVisible || query.isEmpty);
+
+    Widget content = showSuggestions
+        ? ExcludeFocus(
+            excluding: _isKeyboardActiveRegion && shouldShowKeyboard,
+            child: _buildSuggestionsView(
+              context,
+              suggestionState,
+              shouldShowKeyboard,
+              isTv,
+            ),
+          )
         : searchResultsAsync.when(
             data: (state) {
               final allResults = state.results
@@ -597,32 +781,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   .toList();
 
               if (allResults.isEmpty && !state.isLoading) {
-                return _buildEmptyState(context);
+                return _buildEmptyState(context, isTv);
               } else if (allResults.isEmpty && state.isLoading) {
                 return const Center(child: AppLoadingIndicator());
               }
 
-              // RepaintBoundary isolates list repaints from the rest of the
-              // screen (app bar, background) so each incremental result update
-              // only repaints the list — not the entire scaffold.
               return RepaintBoundary(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(
-                    bottom: 100,
+                child: ExcludeFocus(
+                  excluding: _isKeyboardActiveRegion && shouldShowKeyboard,
+                  child: Focus(
+                    focusNode: _listProxyNode,
+                    skipTraversal: true,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: state.results.length,
+                      itemBuilder: (context, index) {
+                        final pResult = state.results[index];
+                        return SearchResultSection(
+                          key: ValueKey(pResult.providerId),
+                          providerName: pResult.providerName,
+                          providerId: pResult.providerId,
+                          results: pResult.results,
+                          firstCardFocusNode: index == 0
+                              ? _firstResultFocusNode
+                              : null,
+                        );
+                      },
+                    ),
                   ),
-                  itemCount: state.results.length,
-                  itemBuilder: (context, index) {
-                    final pResult = state.results[index];
-                    return SearchResultSection(
-                      key: ValueKey(pResult.providerId),
-                      providerName: pResult.providerName,
-                      providerId: pResult.providerId,
-                      results: pResult.results,
-                      firstCardFocusNode: index == 0
-                          ? _firstResultFocusNode
-                          : null,
-                    );
-                  },
                 ),
               );
             },
@@ -630,11 +816,92 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             error: (err, stack) =>
                 Center(child: Text(l10n.errorPrefix(err.toString()))),
           );
+
+    // If Big Picture Mode is active, inject the Virtual Keyboard
+    if (shouldShowKeyboard) {
+      return Column(
+        children: [
+          Expanded(child: content),
+          ExcludeFocus(
+            excluding: !_isKeyboardActiveRegion,
+            child: Focus(
+              focusNode: _keyboardProxyNode,
+              skipTraversal: true,
+              canRequestFocus: true,
+              onFocusChange: (hasFocus) {
+                if (hasFocus) {
+                  Future.microtask(() {
+                    if (mounted) {
+                      ref.read(focusedGamepadHintsProvider.notifier).state = [
+                        GamepadHint(
+                          buttonLabel: 'A',
+                          actionLabel: l10n.hintType,
+                          buttonColor: Colors.greenAccent.shade400,
+                        ),
+                        GamepadHint(
+                          buttonLabel: 'LT',
+                          actionLabel: l10n.hintList,
+                          buttonColor: Colors.grey.shade400,
+                        ),
+                        GamepadHint(
+                          buttonLabel: 'RT',
+                          actionLabel: l10n.hintFilter,
+                          buttonColor: Colors.amberAccent.shade400,
+                        ),
+                      ];
+                    }
+                  });
+                } else {
+                  Future.microtask(() {
+                    if (mounted) {
+                      final currentHints = ref.read(
+                        focusedGamepadHintsProvider,
+                      );
+                      if (currentHints?.any(
+                            (h) => h.actionLabel == l10n.hintType,
+                          ) ==
+                          true) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state =
+                            null;
+                      }
+                    }
+                  });
+                }
+              },
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _controller,
+                builder: (context, value, child) {
+                  return VirtualKeyboard(
+                    query: value.text,
+                    onQueryChanged: (val) {
+                      _controller.value = TextEditingValue(
+                        text: val,
+                        selection: TextSelection.collapsed(offset: val.length),
+                      );
+                      ref
+                          .read(searchSuggestionControllerProvider.notifier)
+                          .onQueryChanged(val);
+                    },
+                    onSearch: () {
+                      _submitSearch(_controller.text);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return content;
   }
 
   Widget _buildSuggestionsView(
     BuildContext context,
     SearchSuggestionState suggestionState,
+    bool shouldShowKeyboard,
+    bool isBigPicture,
   ) {
     if (suggestionState.isLoading) {
       return const Center(child: AppLoadingIndicator());
@@ -660,7 +927,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: _SuggestionCard(
+              isBigPicture: isBigPicture,
               suggestion: suggestion,
+              shouldShowKeyboard: shouldShowKeyboard,
               focusNode: index == 0 ? _firstSuggestionFocusNode : null,
               isFirst: index == 0,
               onFocusSearch: () {
@@ -672,7 +941,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 }
               },
               onTap: () => _submitSearch(suggestion),
-              onFill: () => _fillSuggestion(suggestion),
+              onFill: () => _fillSuggestion(suggestion, isBigPicture),
             ),
           ),
         );
@@ -680,7 +949,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, bool isTv) {
     final l10n = AppLocalizations.of(context)!;
     final query = ref.watch(searchQueryProvider);
     final isInputEmpty = _controller.text.trim().isEmpty;
@@ -713,13 +982,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       );
     }
+
     final nativeFont = Theme.of(context).textTheme.bodyLarge?.fontFamily;
-    final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
     final isWidescreen = isTv || context.isTabletOrLarger;
     final imageWidth = isWidescreen ? 320.0 : 200.0;
 
-    // No search results found: display No Results Found text and the image grouped vertically
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -754,14 +1021,18 @@ class _SuggestionCard extends StatefulWidget {
   final VoidCallback onFill;
   final FocusNode? focusNode;
   final bool isFirst;
+  final bool shouldShowKeyboard;
   final VoidCallback onFocusSearch;
+  final bool isBigPicture; // Determines rendering path
 
   const _SuggestionCard({
     required this.suggestion,
     required this.onTap,
     required this.onFill,
     required this.isFirst,
+    required this.shouldShowKeyboard,
     required this.onFocusSearch,
+    required this.isBigPicture,
     this.focusNode,
   });
 
@@ -779,29 +1050,29 @@ class _SuggestionCardState extends State<_SuggestionCard> {
   @override
   void initState() {
     super.initState();
-    _bodyNode = widget.focusNode ?? FocusNode();
-    _bodyNode.addListener(_onFocusChange);
-    _buttonNode = FocusNode();
-    _buttonNode.addListener(_onFocusChange);
+    if (!widget.isBigPicture) {
+      _bodyNode = widget.focusNode ?? FocusNode();
+      _bodyNode.addListener(_onFocusChange);
+      _buttonNode = FocusNode();
+      _buttonNode.addListener(_onFocusChange);
+    }
   }
 
   void _onFocusChange() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    if (widget.focusNode == null) {
-      _bodyNode.dispose();
-    } else {
-      if (_bodyNode.hasFocus) {
-        _bodyNode.unfocus();
+    if (!widget.isBigPicture) {
+      if (widget.focusNode == null) {
+        _bodyNode.dispose();
+      } else {
+        if (_bodyNode.hasFocus) _bodyNode.unfocus();
+        _bodyNode.removeListener(_onFocusChange);
       }
-      _bodyNode.removeListener(_onFocusChange);
+      _buttonNode.dispose();
     }
-    _buttonNode.dispose();
     super.dispose();
   }
 
@@ -810,7 +1081,97 @@ class _SuggestionCardState extends State<_SuggestionCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final nativeFont = theme.textTheme.bodyLarge?.fontFamily;
+    final l10n = AppLocalizations.of(context)!;
 
+    // TV/Gamepad Layout using FocusableWrapper
+    if (widget.isBigPicture) {
+      return FocusableWrapper(
+        focusNode: widget.focusNode,
+        onTap: widget.onTap, // 'A' to Search!
+        onSecondaryTap: widget.onFill, // 'X' to Fill Query!
+        gamepadHints: [
+          GamepadHint(
+            buttonLabel: 'A',
+            actionLabel: l10n.hintSearch,
+            buttonColor: Colors.greenAccent.shade400,
+          ),
+          GamepadHint(
+            buttonLabel: 'X',
+            actionLabel: l10n.hintFillQuery,
+            buttonColor: Colors.blueAccent.shade400,
+          ),
+          if (widget.shouldShowKeyboard)
+            GamepadHint(
+              buttonLabel: 'LT',
+              actionLabel: l10n.hintKeyboard,
+              buttonColor: Colors.grey.shade400,
+            ),
+        ],
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.65)
+                : theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : theme.colorScheme.outlineVariant,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search_rounded,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          widget.suggestion,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: nativeFont,
+                            color: theme.colorScheme.onSurface,
+                            fontSize: 16.0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                width: 1.0,
+                height: 24.0,
+                color: theme.dividerColor.withValues(alpha: 0.2),
+              ),
+              ExcludeFocus(
+                child: IconButton(
+                  icon: const Icon(Icons.north_west_rounded, size: 20),
+                  color: theme.colorScheme.onSurfaceVariant,
+                  onPressed: widget.onFill,
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Upstream Desktop/Mobile Layout
     final isBodyHighlighted = _isBodyHovered || _bodyNode.hasFocus;
     final isButtonHighlighted = _isButtonHovered || _buttonNode.hasFocus;
     final isAnyHighlighted = isBodyHighlighted || isButtonHighlighted;
@@ -856,7 +1217,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: cardBgColor, // Theme-aware card background
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: isAnyHighlighted
@@ -871,7 +1232,6 @@ class _SuggestionCardState extends State<_SuggestionCard> {
       ),
       child: Row(
         children: [
-          // Main Body Focus (Search text)
           Expanded(
             child: Focus(
               focusNode: _bodyNode,
@@ -948,9 +1308,7 @@ class _SuggestionCardState extends State<_SuggestionCard> {
               ),
             ),
           ),
-          // Vertical divider line between text block and arrow button
           Container(width: 1.0, height: 24.0, color: dividerColor),
-          // Fill Button Focus (Arrow icon button)
           Focus(
             focusNode: _buttonNode,
             onKeyEvent: (node, event) {

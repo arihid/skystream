@@ -1,6 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
+import 'dart:async';
+
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../data/explore_tmdb_provider.dart';
 import '../data/explore_mode_provider.dart';
@@ -8,18 +11,21 @@ import 'anilist_explore_screen.dart';
 import 'view_all_screen.dart';
 import 'widgets/explore_carousel.dart';
 import 'widgets/explore_header_bar.dart';
-import 'widgets/hover_border_gradient.dart';
 import 'widgets/media_horizontal_list.dart';
 import 'widgets/unified_filter_dialog.dart';
 import '../data/explore_filter_provider.dart';
 import 'delegates/explore_search_delegate.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
-import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import 'dart:async';
+
+// TV/Gamepad Feature Imports
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -48,7 +54,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   final ValueNotifier<bool> _isScrolledNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<double> _appBarOpacityNotifier = ValueNotifier<double>(0);
   final ValueNotifier<bool> _showBottomFade = ValueNotifier(false);
-  final FocusNode _firstActionFocusNode = FocusNode();
+  final FocusNode _firstActionFocusNode = FocusNode(
+    debugLabel: 'explore_header_search',
+  );
 
   /// Carousel controller exposed by ExploreCarousel via [onControllerReady].
   HeroCarouselController? _carouselController;
@@ -66,7 +74,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    return isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -109,19 +122,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
+    // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     // Use profile?.isLargeScreen so this matches AppScaffold's sidebar
     // decision even when the ExploreScreen's context width is narrowed
-    // by the sidebar (e.g. iPad portrait).
+    // by the sidebar (e.g. iPad portrait). BigPicture explicitly forces widescreen.
     final isWidescreen =
-        isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     if (isWidescreen) {
       return Scaffold(
         extendBodyBehindAppBar: false,
         backgroundColor: Colors.transparent,
-        body: _buildWidescreenBody(context),
+        body: _buildWidescreenBody(context, isBigPicture),
       );
     }
 
@@ -166,106 +184,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
             centerTitle: false,
             actions: [
-              // Explore Mode Toggle (Movies <-> Anime)
+              // 1. Search Action Button
               Padding(
                 padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
+                  right: LayoutConstants.spacingSm,
                 ),
                 child: CardsWrapper(
-                  onTap: () {
-                    final isAnime = ref.read(exploreModeProvider);
-                    ref
-                        .read(exploreModeProvider.notifier)
-                        .setAnimeMode(!isAnime);
-                  },
-                  borderRadius: BorderRadius.circular(50),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final isAnime = ref.watch(exploreModeProvider);
-                      final l10n = AppLocalizations.of(context)!;
-                      return Tooltip(
-                        message: isAnime
-                            ? l10n.exploreMovies
-                            : l10n.exploreAnime,
-                        child: CircleAvatar(
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.1),
-                          radius: 18,
-                          child: isAnime
-                              ? Icon(
-                                  Icons.movie,
-                                  color:
-                                      Theme.of(context).colorScheme.onSurface,
-                                  size: 18,
-                                )
-                              : SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CustomPaint(
-                                    painter: AnimeLogoPainter(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
-                ),
-                child: CardsWrapper(
-                  onTap: () {
-                    unawaited(
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) => const UnifiedFilterDialog(),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(50),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final filters = ref.watch(
-                        exploreFilterProvider,
-                      ); // Updated
-                      // Language exclusion: Only highlight for content filters
-                      final hasActiveFilter =
-                          filters.selectedGenre != null ||
-                          filters.selectedYear != null ||
-                          filters.minRating != null;
-
-                      return CircleAvatar(
-                        backgroundColor: hasActiveFilter
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.1),
-                        radius: 18,
-                        child: Icon(
-                          Icons.tune,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 18,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(
-                  right: LayoutConstants.spacingMd,
-                ),
-                child: CardsWrapper(
+                  focusNode: _firstActionFocusNode,
                   onTap: () {
                     unawaited(
                       showSearch<void>(
@@ -290,52 +215,326 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   ),
                 ),
               ),
+
+              // 2. Explore Mode Toggle (Movies <-> Anime)
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: CardsWrapper(
+                  onTap: () {
+                    final isAnime = ref.read(exploreModeProvider);
+                    ref
+                        .read(exploreModeProvider.notifier)
+                        .setAnimeMode(!isAnime);
+                  },
+                  borderRadius: BorderRadius.circular(50),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isAnime = ref.watch(exploreModeProvider);
+                      final l10n = AppLocalizations.of(context)!;
+                      return Tooltip(
+                        message: isAnime
+                            ? l10n.exploreMovies
+                            : l10n.exploreAnime,
+                        child: CircleAvatar(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.1),
+                          radius: 18,
+                          child: isAnime
+                              ? Icon(
+                                  Icons.movie,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  size: 18,
+                                )
+                              : SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CustomPaint(
+                                    painter: AnimeLogoPainter(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // 3. Filter Dialog Button
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: CardsWrapper(
+                  onTap: () {
+                    unawaited(
+                      showDialog<void>(
+                        context: context,
+                        builder: (context) => const UnifiedFilterDialog(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(50),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final filters = ref.watch(exploreFilterProvider);
+                      // Language exclusion: Only highlight for content filters
+                      final hasActiveFilter =
+                          filters.selectedGenre != null ||
+                          filters.selectedYear != null ||
+                          filters.minRating != null;
+
+                      return CircleAvatar(
+                        backgroundColor: hasActiveFilter
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.1),
+                        radius: 18,
+                        child: Icon(
+                          Icons.tune,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 18,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ],
           ),
           body: _withGradientEdgeHint(
             ref.watch(exploreModeProvider)
                 ? AnilistExploreScreen(
+                    autofocus: false,
                     scrollController: _scrollController,
                     firstActionFocusNode: _firstActionFocusNode,
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                   )
-                : _buildScrollView(context),
+                : _buildScrollView(context, isBigPicture),
           ),
         );
       },
     );
   }
 
-  Widget _buildWidescreenBody(BuildContext context) {
+  Widget _buildWidescreenBody(BuildContext context, bool isBigPicture) {
     final isAnime = ref.watch(exploreModeProvider);
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: ExploreHeaderBar(
-            searchFocusNode: _firstActionFocusNode,
-            onPrevious: _carouselController != null
-                ? () => _carouselController!.previousPage()
-                : null,
-            onNext: _carouselController != null
-                ? () => _carouselController!.nextPage()
-                : null,
-          ),
+          // Conditionally use TV header or Desktop header based on Master Switch
+          child: isBigPicture
+              ? _buildWidescreenHeader(context)
+              : ExploreHeaderBar(
+                  searchFocusNode: _firstActionFocusNode,
+                  onPrevious: _carouselController != null
+                      ? () => _carouselController!.previousPage()
+                      : null,
+                  onNext: _carouselController != null
+                      ? () => _carouselController!.nextPage()
+                      : null,
+                ),
         ),
         Expanded(
           child: _withGradientEdgeHint(
             isAnime
                 ? AnilistExploreScreen(
+                    autofocus: isBigPicture, // TV conditional autofocus
                     scrollController: _scrollController,
                     firstActionFocusNode: _firstActionFocusNode,
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                   )
-                : _buildScrollView(context),
+                : _buildScrollView(context, isBigPicture),
           ),
         ),
       ],
+    );
+  }
+
+  // Custom TV-Optimized Widescreen Header
+  Widget _buildWidescreenHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isAnime = ref.watch(exploreModeProvider);
+
+    return Container(
+      height: LayoutConstants.dashboardHeaderHeight,
+      padding: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.dashboardContentPadding,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: FocusableWrapper(
+              focusNode: _firstActionFocusNode,
+              useScaleEffect: false,
+              gamepadHints: [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSearch,
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+              ],
+              onTap: () {
+                unawaited(
+                  showSearch<void>(
+                    context: context,
+                    delegate: ExploreSearchDelegate(),
+                    useRootNavigator: false,
+                    maintainState: true,
+                  ),
+                );
+              },
+              child: Container(
+                height: 38,
+                constraints: const BoxConstraints(maxWidth: 500),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    LayoutConstants.radiusPill,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${l10n.search}...',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+            useScaleEffect: true,
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: isAnime ? l10n.exploreMovies : l10n.exploreAnime,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
+            onTap: () {
+              ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
+            },
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isAnime
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isAnime
+                        ? Icons.arrow_back_rounded
+                        : Icons.animation_rounded,
+                    size: 18,
+                    color: isAnime
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isAnime ? l10n.exploreMovies : l10n.exploreAnime,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isAnime
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(18),
+            useScaleEffect: true,
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: l10n.hintFilters,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
+            onTap: () {
+              unawaited(
+                showDialog<void>(
+                  context: context,
+                  builder: (context) => const UnifiedFilterDialog(),
+                ),
+              );
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
+              ),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final filters = ref.watch(exploreFilterProvider);
+                  final hasActiveFilter =
+                      filters.selectedGenre != null ||
+                      filters.selectedYear != null ||
+                      filters.minRating != null;
+
+                  return Icon(
+                    Icons.tune,
+                    color: hasActiveFilter
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                    size: 18,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -381,7 +580,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
-  Widget _buildScrollView(BuildContext context) {
+  Widget _buildScrollView(BuildContext context, bool isBigPicture) {
     final heroMoviesAsync = ref.watch(exploreHeroMovieProvider);
     final isNone = heroMoviesAsync.maybeWhen(
       data: (list) => list.isEmpty,
@@ -397,7 +596,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       slivers: [
         if (topPadding > 0)
           SliverToBoxAdapter(child: SizedBox(height: topPadding)),
-        ..._buildContentSlivers(context).map((sliver) {
+        ..._buildContentSlivers(context, isBigPicture).map((sliver) {
           return SliverSafeArea(
             top: false,
             bottom: false,
@@ -410,7 +609,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
-  List<Widget> _buildContentSlivers(BuildContext context) {
+  List<Widget> _buildContentSlivers(BuildContext context, bool isBigPicture) {
     final l10n = AppLocalizations.of(context)!;
 
     return [
@@ -423,6 +622,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
+                        autofocus: isBigPicture, // TV Conditional Autofocus
                         movies: value,
                         scrollController: _scrollController,
                         onNavigateUp: () =>
@@ -537,9 +737,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           ViewAllCategory.airingTodayTV,
         ),
       ),
-      const SliverPadding(
-        padding: EdgeInsets.only(bottom: 100),
-      ),
+      const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
     ];
   }
 

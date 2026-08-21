@@ -1,18 +1,23 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
-import '../../../../core/router/app_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import '../../../../core/utils/layout_constants.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/providers/device_info_provider.dart';
 
-import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
+import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/layout_constants.dart';
+import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../shared/widgets/cards_wrapper.dart';
+import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
+
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/input/gamepad_actions.dart';
+import '../../../../core/providers/device_info_provider.dart';
 
 /// Lightweight controller for the hero carousel.
 /// API-compatible with the old CarouselSliderController (nextPage/previousPage).
@@ -30,6 +35,7 @@ class ExploreCarousel extends ConsumerStatefulWidget {
   final ScrollController? scrollController;
   final void Function(MultimediaItem)? onTap;
   final VoidCallback? onNavigateUp;
+  final bool autofocus;
 
   /// Called once after initState with the internal [HeroCarouselController]
   /// so the parent can drive prev/next from an external UI (e.g. header arrows).
@@ -42,24 +48,11 @@ class ExploreCarousel extends ConsumerStatefulWidget {
     this.onTap,
     this.onNavigateUp,
     this.onControllerReady,
+    this.autofocus = false,
   });
 
   @override
   ConsumerState<ExploreCarousel> createState() => _ExploreCarouselState();
-}
-
-// Intents used by the carousel's keyboard shortcuts. Defined at file scope so
-// they're const-constructible and stable across rebuilds.
-class _CarouselUpIntent extends Intent {
-  const _CarouselUpIntent();
-}
-
-class _CarouselPrevIntent extends Intent {
-  const _CarouselPrevIntent();
-}
-
-class _CarouselNextIntent extends Intent {
-  const _CarouselNextIntent();
 }
 
 class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
@@ -68,24 +61,16 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   final HeroCarouselController _heroCarouselController =
       HeroCarouselController();
   final ValueNotifier<double> _scrollOffset = ValueNotifier(0.0);
-  // Single anchor focus node so the carousel acts as ONE focus target on TV/
-  // keyboard. Otherwise each slide is independently focusable and pages cause
-  // focus to drop into the next row when slides unmount.
   final FocusNode _carouselFocusNode = FocusNode(debugLabel: 'carousel_anchor');
   bool _isFocusHighlighted = false;
-  // True while the carousel occupies any visible viewport. Drives autoPlay
-  // so the 5s slide loop pauses when the user scrolls past it — eliminates
-  // off-screen frame work and the resulting battery / raster drain.
   bool _isVisibleOnScreen = true;
 
-  // Crossfade + scale transition
   late final AnimationController _transitionController;
   late final Animation<double> _transitionAnimation;
   int _currentSlide = 0;
   int? _previousSlide;
   bool _isTransitioning = false;
 
-  // Progress bar fill — also serves as the auto-advance timer (5s).
   late final AnimationController _fillController;
 
   @override
@@ -123,9 +108,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     _heroCarouselController.onPreviousPage = _goToPreviousSlide;
 
     widget.scrollController?.addListener(_onParentScroll);
-    // Expose the internal controller to the parent so header arrows can
-    // drive carousel navigation. Deferred to post-frame to avoid calling
-    // setState on an ancestor while the widget tree is still building.
     if (widget.onControllerReady != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onControllerReady!(_heroCarouselController);
@@ -133,6 +115,18 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     }
 
     _fillController.forward();
+
+    // Defer focus requests so we don't yank focus away from the user
+    // if they already started navigating before the carousel loaded.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.autofocus) return;
+      final currentFocus = FocusManager.instance.primaryFocus;
+
+      if (currentFocus == null ||
+          currentFocus == FocusManager.instance.rootScope) {
+        _carouselFocusNode.requestFocus();
+      }
+    });
   }
 
   void _goToNextSlide() {
@@ -168,15 +162,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _onParentScroll() {
-    // Always update — do NOT gate on _isVisibleOnScreen. Earlier we tried
-    // to skip rebuilds while the carousel was off-screen, but that left
-    // _scrollOffset frozen at a stale value; when the user scrolled back
-    // up, syncing the offset on visibility-change caused a visible snap
-    // (VisibilityDetector throttles, so the catch-up frame lands after
-    // the user has already scrolled past it). The rebuild cost here is
-    // negligible — Transform/RenderTransform reuses its RenderObject, the
-    // CachedNetworkImage is cache-hit, and the whole carousel page is
-    // wrapped in a RepaintBoundary so off-screen rebuilds don't ripple.
     if (widget.scrollController!.hasClients) {
       _scrollOffset.value = widget.scrollController!.offset;
     }
@@ -211,15 +196,13 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     final isDesktop =
         size.width > LayoutConstants.exploreCarouselDesktopBreakpoint;
 
+    // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv ?? context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     return VisibilityDetector(
       key: const Key('explore-carousel-visibility'),
-      // Visibility is still tracked — but only to gate the 5s auto-advance
-      // timer (so we don't fire page transitions for an audience that
-      // isn't watching). Parallax offset updates ignore this flag; see
-      // [_onParentScroll] for the rationale.
       onVisibilityChanged: (info) {
         final visible = info.visibleFraction > 0.1;
         if (visible != _isVisibleOnScreen && mounted) {
@@ -233,28 +216,15 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
       },
       child: FocusableActionDetector(
         focusNode: _carouselFocusNode,
-        // Only auto-focus on TV where D-pad is the primary input. On desktop
-        // we skip autofocus so the focus ring doesn't appear on app launch
-        // (Flutter defaults to 'traditional' highlight mode until a mouse
-        // event arrives, which would show the ring immediately).
-        autofocus: false,
+        autofocus: false, // Managed by initState
+        descendantsAreFocusable: false,
         mouseCursor: SystemMouseCursors.click,
-        // Arrow keys are wired as explicit Shortcuts/Actions at this level so
-        // they fire when _carouselFocusNode has focus. Using a nested
-        // Focus(onKeyEvent:) for arrows is unreliable here — that child Focus
-        // is a descendant of _carouselFocusNode, and key events only propagate
-        // UP from the focused node, so the child's handler never runs. Worse,
-        // unhandled arrow keys fall through to Flutter's default ScrollAction
-        // which then scrolls the outer vertical CustomScrollView — exactly the
-        // "Right pages carousel AND scrolls page vertically" bug we saw.
         shortcuts: const <ShortcutActivator, Intent>{
           SingleActivator(LogicalKeyboardKey.select): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowUp): _CarouselUpIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowLeft): _CarouselPrevIntent(),
-          SingleActivator(LogicalKeyboardKey.arrowRight): _CarouselNextIntent(),
         },
+        // Catch Gamepad directions purely through intents
         actions: <Type, Action<Intent>>{
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (_) {
@@ -262,27 +232,64 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
               return null;
             },
           ),
-          _CarouselUpIntent: CallbackAction<_CarouselUpIntent>(
-            onInvoke: (_) {
-              widget.onNavigateUp?.call();
+          GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
+            onInvoke: (intent) {
+              if (intent.direction == TraversalDirection.left) {
+                _goToPreviousSlide();
+              } else if (intent.direction == TraversalDirection.right) {
+                _goToNextSlide();
+              } else if (intent.direction == TraversalDirection.up) {
+                if (widget.onNavigateUp != null) {
+                  widget.onNavigateUp!.call();
+                } else {
+                  FocusManager.instance.primaryFocus?.focusInDirection(
+                    TraversalDirection.up,
+                  );
+                }
+              } else if (intent.direction == TraversalDirection.down) {
+                FocusManager.instance.primaryFocus?.focusInDirection(
+                  TraversalDirection.down,
+                );
+              }
               return null;
             },
           ),
-          _CarouselPrevIntent: CallbackAction<_CarouselPrevIntent>(
-            onInvoke: (_) {
-              _goToPreviousSlide();
-              return null;
-            },
-          ),
-          _CarouselNextIntent: CallbackAction<_CarouselNextIntent>(
-            onInvoke: (_) {
-              _goToNextSlide();
+          DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
+            onInvoke: (intent) {
+              if (intent.direction == TraversalDirection.left) {
+                _goToPreviousSlide();
+              } else if (intent.direction == TraversalDirection.right) {
+                _goToNextSlide();
+              } else if (intent.direction == TraversalDirection.up) {
+                if (widget.onNavigateUp != null) {
+                  widget.onNavigateUp!.call();
+                } else {
+                  FocusManager.instance.primaryFocus?.focusInDirection(
+                    TraversalDirection.up,
+                  );
+                }
+              } else if (intent.direction == TraversalDirection.down) {
+                FocusManager.instance.primaryFocus?.focusInDirection(
+                  TraversalDirection.down,
+                );
+              }
               return null;
             },
           ),
         },
-        onShowFocusHighlight: (show) =>
-            setState(() => _isFocusHighlighted = show),
+        onShowFocusHighlight: (show) {
+          setState(() => _isFocusHighlighted = show);
+          // Force the screen to scroll to the top if the carousel gets focus
+          if (show &&
+              widget.scrollController != null &&
+              widget.scrollController!.hasClients) {
+            widget.scrollController!.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        },
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onHorizontalDragEnd: (details) {
@@ -319,7 +326,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                           height: heroHeight,
                           child: _buildCarouselStack(
                             heroHeight,
-                            isDesktop: isDesktop || isTv,
+                            isDesktop: isDesktop || isBigPicture,
                           ),
                         ),
                       ),
@@ -342,7 +349,7 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
                       height: heroHeight,
                       child: _buildCarouselStack(
                         heroHeight,
-                        isDesktop: isDesktop || isTv,
+                        isDesktop: isDesktop || isBigPicture,
                       ),
                     ),
                   ),
@@ -354,7 +361,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 
   // ---------------------------------------------------------------------------
   // Custom carousel with crossfade + scale transition
-  // Entry: scale 0.8→1, opacity 0→1  |  Exit: scale 1→1.2, opacity 1→0  |  400ms
   // ---------------------------------------------------------------------------
 
   Widget _buildCarouselStack(double height, {required bool isDesktop}) {
@@ -445,7 +451,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
   }
 
   void _navigateToDetails(BuildContext context, MultimediaItem movie) {
-    // Standardize media type mapping (prevents TMDB ID collisions)
     final String mediaType = movie.tmdbMediaType;
 
     TmdbDetailsRoute(
@@ -824,15 +829,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
 }
 
 /// A single progress dot whose width animates with spring physics.
-///
-/// When [isActive] toggles the dot springs between inactive (11 px) and active
-/// (35 px) width. The active dot also renders a fill bar driven by
-/// [fillController] that grows from 0 % → 100 % over the auto-advance interval.
-///
-/// Each dot manages its own [AnimationController] for the spring width
-/// transition — only two dots tick per toggle. The fill bar is a separate
-/// [AnimatedBuilder] that exists only on the active dot, so per-frame fill
-/// rebuilds are limited to exactly one dot.
 class _ProgressDot extends StatefulWidget {
   final bool isActive;
   final AnimationController fillController;

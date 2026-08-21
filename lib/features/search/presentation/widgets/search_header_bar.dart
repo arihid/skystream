@@ -4,6 +4,11 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../search_provider.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/cards_wrapper.dart';
+import 'package:skystream/core/utils/layout_constants.dart';
+
+// Gamepad Imports
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class WaveformEqualizer extends StatefulWidget {
   final bool isActive;
@@ -300,7 +305,11 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
   final FocusNode liveTvFocusNode;
   final ValueChanged<String> onSubmitted;
   final ValueChanged<String> onChanged;
+
+  // BigPicture Layout Flags
   final bool isCompact;
+  final bool isBigPicture;
+  final VoidCallback onTapFakeInput;
 
   const SearchHeaderBar({
     super.key,
@@ -312,6 +321,8 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
     required this.onSubmitted,
     required this.onChanged,
     this.isCompact = false,
+    this.isBigPicture = false, // Defaults safely for upstream
+    required this.onTapFakeInput,
   });
 
   @override
@@ -319,15 +330,181 @@ class SearchHeaderBar extends ConsumerStatefulWidget {
 }
 
 class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
+  final GlobalKey<PopupMenuButtonState<SearchFilter>> _popupKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final filter = ref.watch(searchFilterProvider);
+    final isLive = filter == SearchFilter.live;
     final searchResultsAsync = ref.watch(searchResultsProvider);
     final isCompact = widget.isCompact;
     final isDark = theme.brightness == Brightness.dark;
 
+    // Use Big Picture Layout if active
+    if (widget.isBigPicture) {
+      return Container(
+        height: LayoutConstants.dashboardHeaderHeight,
+        padding: const EdgeInsets.symmetric(
+          horizontal: LayoutConstants.dashboardContentPadding,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 42,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.textController,
+                  builder: (context, value, child) {
+                    final query = value.text;
+
+                    return ListenableBuilder(
+                      listenable: widget.searchFocusNode,
+                      builder: (context, child) {
+                        final hasFocus = widget.searchFocusNode.hasFocus;
+                        return FocusableWrapper(
+                          focusNode: widget.searchFocusNode,
+                          useScaleEffect: true,
+                          borderRadius: BorderRadius.circular(
+                            LayoutConstants.radiusPill,
+                          ),
+                          onTap: widget.onTapFakeInput,
+                          gamepadHints: [
+                            GamepadHint(
+                              buttonLabel: 'A',
+                              actionLabel: query.isEmpty
+                                  ? l10n.searchHint
+                                  : 'Edit Search',
+                              buttonColor: Colors.greenAccent.shade400,
+                            ),
+                          ],
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: hasFocus ? 0.8 : 0.5),
+                              borderRadius: BorderRadius.circular(
+                                LayoutConstants.radiusPill,
+                              ),
+                              border: Border.all(
+                                color: hasFocus
+                                    ? theme.colorScheme.primary
+                                    : Colors.transparent,
+                                width: 2.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    query.isEmpty ? l10n.searchHint : query,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: query.isEmpty
+                                          ? theme.colorScheme.onSurfaceVariant
+                                          : theme.colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (query.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Icon(
+                                      Icons.edit_rounded,
+                                      size: 16,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            FocusableWrapper(
+              borderRadius: BorderRadius.circular(18),
+              useScaleEffect: true,
+              onTap: () => _popupKey.currentState?.showButtonMenu(),
+              child: PopupMenuButton<SearchFilter>(
+                key: _popupKey,
+                tooltip: 'Search scope',
+                onSelected: (value) =>
+                    ref.read(searchFilterProvider.notifier).set(value),
+                offset: const Offset(0, 48),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: SearchFilter.content,
+                    child: Row(
+                      children: [
+                        const Text('🍿', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 12),
+                        const Expanded(child: Text('Non Livestreams')),
+                        if (!isLive)
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: SearchFilter.live,
+                    child: Row(
+                      children: [
+                        const Text('📺', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 12),
+                        const Expanded(child: Text('Livestreams')),
+                        if (isLive)
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
+                  ),
+                  child: Text(
+                    isLive ? '📺' : '🍿',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Upstream Desktop/Mobile Layout
     return Center(
       child: Container(
         constraints: BoxConstraints(maxWidth: isCompact ? 360 : 580),
@@ -473,7 +650,7 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
 
             const SizedBox(height: 16),
 
-            // Toggle scope switcher below
+            // Toggle scope switcher below (Hides if compact/widescreen mode is active)
             AnimatedOpacity(
               opacity: isCompact ? 0.0 : 1.0,
               duration: const Duration(milliseconds: 300),
