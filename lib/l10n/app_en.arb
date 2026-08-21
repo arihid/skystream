@@ -424,8 +424,6 @@
   "titlePositionInsidePoster": "Inside Poster",
   "bigPictureMode": "Experimental: Big Picture Mode",
   "bigPictureModeSubtitle": "Optimized for Gamepads and TV screens",
-  "startInBigPicture": "Always start in Big Picture",
-  "keepBigPictureEnabled": "Keep Big Picture enabled across app restarts",
   "targetDisplay": "Preferred Display",
   "whichMonitorShouldBigPictureUse": "Which monitor should Big Picture use?",
   "language": "Language",

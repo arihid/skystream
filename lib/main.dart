@@ -645,14 +645,14 @@ class LaunchErrorApp extends StatelessWidget {
   }
 }
 
-class CustomTitleBar extends StatefulWidget {
+class CustomTitleBar extends ConsumerStatefulWidget {
   const CustomTitleBar({super.key});
 
   @override
-  State<CustomTitleBar> createState() => _CustomTitleBarState();
+  ConsumerState<CustomTitleBar> createState() => _CustomTitleBarState();
 }
 
-class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
+class _CustomTitleBarState extends ConsumerState<CustomTitleBar> with WindowListener {
   bool _hovered = false;
   bool _isMaximized = false;
   bool _isFullScreen = false;
@@ -768,13 +768,30 @@ class _CustomTitleBarState extends State<CustomTitleBar> with WindowListener {
                 top: 0,
                 bottom: 0,
                 child: Center(
-                  child: _PinButton(
-                    isActive: _isAlwaysOnTop,
-                    onPressed: () async {
-                      final nextState = !_isAlwaysOnTop;
-                      await windowManager.setAlwaysOnTop(nextState);
-                      await _updateStates();
-                    },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PinButton(
+                        isActive: _isAlwaysOnTop,
+                        onPressed: () async {
+                          final nextState = !_isAlwaysOnTop;
+                          await windowManager.setAlwaysOnTop(nextState);
+                          await _updateStates();
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      _TitleBarButton(
+                        onPressed: () {
+                          final current = ref.read(bigPictureModeProvider).isEnabled;
+                          ref.read(bigPictureModeProvider.notifier).toggleBigPicture(!current);
+                        },
+                        child: Icon(
+                          Icons.tv_rounded, 
+                          color: iconColor,
+                          size: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

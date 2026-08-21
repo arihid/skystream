@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/shared/widgets/custom_bottom_nav.dart';
 import 'package:skystream/shared/widgets/app_sidebar.dart';
-import 'package:dpad/dpad.dart'; // 🎯 Required for Upstream's DpadActiveNotifier
+import 'package:dpad/dpad.dart'; 
 
 import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:skystream/shared/widgets/global_system_menu.dart';
 import '../../features/settings/presentation/general_settings_provider.dart';
 import 'loading_indicator.dart';
 
-// 🎯 TV Feature Imports
 import 'package:skystream/shared/widgets/gamepad_hints_overlay.dart';
 import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+import 'package:skystream/core/input/gamepad_intents.dart';
 
 class AppScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -26,13 +28,12 @@ class AppScaffold extends ConsumerStatefulWidget {
 }
 
 class _AppScaffoldState extends ConsumerState<AppScaffold> {
-  // Owned here so the content-area LEFT key handler can focus them directly,
-  // crossing the Branch Navigator's FocusScope boundary. Count comes from
-  // [kSidebarDestinationCount] in app_sidebar.dart — single source of truth.
   late final List<FocusNode> _sidebarNodes = List.generate(
     kSidebarDestinationCount,
     (i) => FocusNode(debugLabel: 'sidebar_$i'),
   );
+
+  bool _isGlobalMenuVisible = false;
 
   @override
   void dispose() {
@@ -47,6 +48,10 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
+    // Hide menu after selection on TV
+    setState(() {
+      _isGlobalMenuVisible = false;
+    });
   }
 
   int _getRouteIndex(String route) {
@@ -66,11 +71,11 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     }
   }
 
-  // Intercepts D-pad LEFT only when the currently focused widget has no
-  // focusable neighbour to the left within the content area. In that case we
-  // explicitly focus the sidebar item (different FocusScope, so directional
-  // traversal can't bridge it on its own). Otherwise we let the event continue
-  // so normal in-row navigation works.
+  void _toggleMenu(bool isBigPicture) {
+    if (!isBigPicture) return;
+    GlobalSystemMenu.toggle(context);
+  }
+
   KeyEventResult _onContentKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
@@ -85,19 +90,22 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     if (moved) {
       return KeyEventResult.handled;
     }
-    // No focusable to the left in this scope — fall back to sidebar. Bail
-    // back to ignored if the target node is out of range or unfocusable so
-    // we don't silently swallow the Left key when focus can't move.
-    final idx = widget.navigationShell.currentIndex;
-    if (idx < 0 || idx >= _sidebarNodes.length) {
-      return KeyEventResult.ignored;
+    
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled;
+    
+    if (isBigPicture) {
+      GlobalSystemMenu.toggle(context);
+      return KeyEventResult.handled;
+    } else {
+      final idx = widget.navigationShell.currentIndex;
+      if (idx < 0 || idx >= _sidebarNodes.length) return KeyEventResult.ignored;
+      
+      final target = _sidebarNodes[idx];
+      if (!target.canRequestFocus) return KeyEventResult.ignored;
+      
+      target.requestFocus();
+      return KeyEventResult.handled;
     }
-    final target = _sidebarNodes[idx];
-    if (!target.canRequestFocus) {
-      return KeyEventResult.ignored;
-    }
-    target.requestFocus();
-    return KeyEventResult.handled;
   }
 
   @override
@@ -109,37 +117,80 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final defaultIndex = _getRouteIndex(defaultHome);
     final isAtDefaultHome = widget.navigationShell.currentIndex == defaultIndex;
     
-    // The Master Switch Check
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
 
     return deviceProfileAsync.when(
       data: (profile) {
         // FORK 1: Big Picture Layout
         if (isBigPicture) {
-          return PopScope(
-            canPop: isAtDefaultHome,
-            onPopInvokedWithResult: (didPop, result) {
-              if (!didPop) {
-                widget.navigationShell.goBranch(defaultIndex);
-              }
+          return Actions(
+            actions: <Type, Action<Intent>>{
+              AppMenuIntent: CallbackAction<AppMenuIntent>(
+                onInvoke: (_) {
+                  _toggleMenu(isBigPicture);
+                  return null;
+                }
+              ),
+              AppBackIntent: CallbackAction<AppBackIntent>(
+                onInvoke: (_) {
+                  if (_isGlobalMenuVisible) {
+                    setState(() => _isGlobalMenuVisible = false);
+                    return null; 
+                  }
+                  return null; // Bubble up back intent
+                }
+              ),
             },
-            child: Scaffold(
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              body: SafeArea(
-                bottom: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: widget.navigationShell),
-                    const GamepadHintsOverlay(),
-                  ],
+            child: PopScope(
+              canPop: isAtDefaultHome && !_isGlobalMenuVisible,
+              onPopInvokedWithResult: (didPop, result) {
+                if (!didPop) {
+                  if (_isGlobalMenuVisible) {
+                    setState(() => _isGlobalMenuVisible = false);
+                  } else {
+                    widget.navigationShell.goBranch(defaultIndex);
+                  }
+                }
+              },
+              child: Scaffold(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                body: SafeArea(
+                  bottom: false,
+                  child: Stack(
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: FocusTraversalGroup(
+                              policy: WidgetOrderTraversalPolicy(),
+                              child: Focus(
+                                canRequestFocus: false,
+                                skipTraversal: true,
+                                onKeyEvent: _onContentKeyEvent,
+                                child: widget.navigationShell,
+                              ),
+                            ),
+                          ),
+                          const GamepadHintsOverlay(),
+                        ],
+                      ),
+                      
+                      if (_isGlobalMenuVisible)
+                        Positioned.fill(
+                          child: GlobalSystemMenu(
+                            currentLocation: GoRouterState.of(context).uri.path,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         }
 
-        // FORK 2: Classic Upstream Desktop / Tablet Layout
+        // FORK 2: Classic Upstream Desktop / Tablet Layout (Dock is always visible here)
         if (profile.isTv || context.isTabletOrLarger) {
           return PopScope(
             canPop: isAtDefaultHome,
@@ -190,7 +241,6 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        // Content in its own traversal group, positioned first (bottom layer)
                         Positioned.fill(
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -207,7 +257,6 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                             ),
                           ),
                         ),
-                        // Sidebar in its own traversal group, positioned second (top layer)
                         Positioned(
                           left: 0,
                           top: 0,

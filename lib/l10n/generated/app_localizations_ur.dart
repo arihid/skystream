@@ -932,13 +932,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
 
   @override
-  String get startInBigPicture => 'Always start in Big Picture';
-
-  @override
-  String get keepBigPictureEnabled =>
-      'Keep Big Picture enabled across app restarts';
-
-  @override
   String get targetDisplay => 'Preferred Display';
 
   @override

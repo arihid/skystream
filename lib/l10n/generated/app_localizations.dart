@@ -1867,18 +1867,6 @@ abstract class AppLocalizations {
   /// **'Optimized for Gamepads and TV screens'**
   String get bigPictureModeSubtitle;
 
-  /// No description provided for @startInBigPicture.
-  ///
-  /// In en, this message translates to:
-  /// **'Always start in Big Picture'**
-  String get startInBigPicture;
-
-  /// No description provided for @keepBigPictureEnabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep Big Picture enabled across app restarts'**
-  String get keepBigPictureEnabled;
-
   /// No description provided for @targetDisplay.
   ///
   /// In en, this message translates to:

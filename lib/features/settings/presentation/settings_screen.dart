@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:screen_retriever/screen_retriever.dart';
 
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/utils/responsive_breakpoints.dart';
@@ -150,7 +149,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         icon: Icons.tv_rounded,
                         title: l10n.bigPictureMode,
                         subtitle: l10n.bigPictureModeSubtitle,
-                        isLast: !ref.watch(bigPictureModeProvider).isEnabled,
+                        isLast: true,
                         trailing: Switch(
                           value: ref.watch(bigPictureModeProvider).isEnabled,
                           onChanged: (val) => ref.read(bigPictureModeProvider.notifier).toggleBigPicture(val),
@@ -160,49 +159,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ref.read(bigPictureModeProvider.notifier).toggleBigPicture(!current);
                         },
                       ),
-                      if (ref.watch(bigPictureModeProvider).isEnabled) ...[
-                        SettingsTile(
-                          icon: Icons.power_settings_new_rounded,
-                          title: l10n.startInBigPicture,
-                          subtitle: l10n.keepBigPictureEnabled,
-                          trailing: Switch(
-                            value: ref.watch(bigPictureModeProvider).keepAcrossRestarts,
-                            onChanged: (val) => ref.read(bigPictureModeProvider.notifier).updateSettings(keepAcrossRestarts: val),
-                          ),
-                          onTap: () {
-                            final current = ref.read(bigPictureModeProvider).keepAcrossRestarts;
-                            ref.read(bigPictureModeProvider.notifier).updateSettings(keepAcrossRestarts: !current);
-                          },
-                        ),
-                        // Multi-Monitor Target Selector
-                        FutureBuilder<List<Display>>(
-                          future: screenRetriever.getAllDisplays(),
-                          builder: (context, snapshot) {
-                            final displays = snapshot.data ?? [];
-                            if (displays.length <= 1) return const SizedBox.shrink();
-
-                            final currentDisplay = ref.watch(bigPictureModeProvider).targetDisplayId ?? displays.first.id;
-
-                            return SettingsTile(
-                              icon: Icons.monitor_rounded,
-                              title: l10n.targetDisplay,
-                              subtitle: l10n.whichMonitorShouldBigPictureUse,
-                              isLast: true,
-                              trailing: DropdownButton<String>(
-                                value: displays.any((d) => d.id == currentDisplay) ? currentDisplay : displays.first.id,
-                                underline: const SizedBox(),
-                                items: displays.map((display) {
-                                  return DropdownMenuItem(
-                                    value: display.id,
-                                    child: Text(display.name ?? 'Display ${display.id}', style: const TextStyle(fontSize: 14)),
-                                  );
-                                }).toList(),
-                                onChanged: (id) => ref.read(bigPictureModeProvider.notifier).updateSettings(targetDisplayId: id),
-                              ),
-                            );
-                          }
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: LayoutConstants.spacingLg),
