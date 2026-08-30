@@ -242,10 +242,10 @@ class AppLocalizationsAs extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'এনিমে অন্বেষণ কৰক';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'চলচ্চিত্ৰ অন্বেষণ কৰক';
 
   @override
   String get popularMovies => 'জনপ্ৰিয় চলচ্চিত্ৰ';
@@ -478,13 +478,13 @@ class AppLocalizationsAs extends AppLocalizations {
   String get skip => 'বাদ দিয়ক';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'আৰম্ভণি এৰক';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'সামৰণি এৰক';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'পুনৰালোচনা এৰক';
 
   @override
   String get goLive => 'লাইভলৈ যাওক';
@@ -912,13 +912,13 @@ class AppLocalizationsAs extends AppLocalizations {
   String get defaultHomeScreen => 'ডিফৰ্ট হোম স্ক্ৰীণ';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'শিৰোনামৰ অৱস্থান';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'পʼষ্টাৰৰ তলত';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'পʼষ্টাৰৰ ভিতৰত';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1065,11 +1065,11 @@ class AppLocalizationsAs extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub প্ৰক্সি';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'ISP অৱৰোধ এৰাবলৈ এক্সটেনচন ডাউনলোড jsDelivr-ৰ যোগেদি পঠিয়াওক।';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi গুণগত অগ্ৰাধিকাৰ';
@@ -1243,7 +1243,7 @@ class AppLocalizationsAs extends AppLocalizations {
   String get subtitleAccounts => 'চাবটাইটল একাউণ্ট';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'একাউণ্ট';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1400,21 +1400,21 @@ class AppLocalizationsAs extends AppLocalizations {
   String get installed => 'ইনষ্টল হ\'ল';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'ৰিপʼজিটৰি';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'কোনো এক্সটেনচন ইনষ্টল কৰা নাই';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'এক্সটেনচন বিচাৰি ইনষ্টল কৰিবলৈ ৰিপʼজিটৰি টেব চাওক।';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'ৰিপʼজিটৰি চাওক';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'এক্সটেনচন প্লাগইন বিচাৰি ইনষ্টল কৰিবলৈ এটা ৰিপʼজিটৰি URL বা শ্বৰ্টক\'ড যোগ কৰক।';
 
   @override
   String updateTo(String version) {

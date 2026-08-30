@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -13,6 +14,10 @@ import '../controllers/explore_search_controller.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
+import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/addons/models/addon_meta.dart' show kAddonItemSource;
+import '../../../../shared/widgets/cards_wrapper.dart';
+import '../../data/explore_mode_provider.dart';
 
 import '../../../../shared/widgets/virtual_keyboard.dart';
 import '../../../../core/input/gamepad_intents.dart';
@@ -20,11 +25,42 @@ import '../../../../core/widgets/focusable_wrapper.dart';
 import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class ExploreSearchDelegate extends SearchDelegate<void> {
+  final FocusNode _firstSuggestionFocusNode = FocusNode();
+  final FocusNode _firstResultFocusNode = FocusNode();
+
   ExploreSearchDelegate()
     : super(
         searchFieldLabel: 'Search movies, tv shows...',
         searchFieldStyle: null,
-      );
+      ) {
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      final currentFocusWidget =
+          FocusManager.instance.primaryFocus?.context?.widget;
+      if (currentFocusWidget is EditableText) {
+        if (_firstSuggestionFocusNode.canRequestFocus) {
+          _firstSuggestionFocusNode.requestFocus();
+          return true;
+        } else if (_firstResultFocusNode.canRequestFocus) {
+          _firstResultFocusNode.requestFocus();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _firstSuggestionFocusNode.dispose();
+    _firstResultFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   ThemeData appBarTheme(BuildContext context) {
@@ -132,6 +168,7 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
     Widget content = _SearchResultsGrid(
       query: query,
       onJumpToSearch: () => showSuggestions(context),
+      firstItemFocusNode: _firstResultFocusNode,
     );
 
     if (isBigPicture) {
@@ -178,7 +215,10 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
 
     if (query.isEmpty) return const SizedBox.shrink();
 
-    return _SearchSuggestionsList(query: query);
+    return _SearchSuggestionsList(
+      query: query,
+      firstItemFocusNode: _firstSuggestionFocusNode,
+    );
   }
 }
 
@@ -363,11 +403,13 @@ class _SearchSuggestionsList extends ConsumerStatefulWidget {
   final String query;
   final void Function(String)? onSelect;
   final bool isKeyboardActiveRegion;
+  final FocusNode? firstItemFocusNode;
 
   const _SearchSuggestionsList({
     required this.query,
     this.onSelect,
     this.isKeyboardActiveRegion = false,
+    this.firstItemFocusNode,
   });
 
   @override
@@ -430,48 +472,138 @@ class _SearchSuggestionsListState
     final isBigPicture = MediaQuery.sizeOf(context).width > 600;
 
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         final item = suggestions[index];
-        final title = item.title;
-        final year = item.releaseDate.split('-').first;
+        final title = item.title ?? '';
         final mediaType = item.mediaType;
+        final year = item.releaseDate.split('-').first;
+        final posterUrl = item.thumbnailImageUrl.isNotEmpty
+            ? item.thumbnailImageUrl
+            : item.posterImageUrl;
 
-        final tile = ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CachedNetworkImage(
-              imageUrl: item.thumbnailImageUrl,
-              width: 40,
-              height: 60,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => ShimmerPlaceholder(borderRadius: 4),
-            ),
-          ),
-          title: Text(
-            item.title ?? '',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-          ),
-          subtitle: Text(
-            '$mediaType ${year.isNotEmpty ? '($year)' : ''}',
-            style: TextStyle(
+        final tapHandler = () {
+          if (widget.onSelect != null) {
+            widget.onSelect!(title);
+          } else {
+            _navigateToItem(
+              context,
+              item,
+              heroTag: 'search_${item.url}',
+              isStremioMode:
+                  ref.read(exploreModeProvider) == ExploreModeType.stremio,
+            );
+          }
+        };
+
+        // Upstream Beautiful Card UI
+        Widget cardContent = CardsWrapper(
+          focusNode: isBigPicture ? null : (index == 0 ? widget.firstItemFocusNode : null),
+          scaleFactor: 1.02,
+          borderRadius: BorderRadius.circular(12),
+          onTap: tapHandler,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 12,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: posterUrl,
+                    width: 52,
+                    height: 76,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => ShimmerPlaceholder(borderRadius: 8),
+                    errorWidget: (_, _, _) => Container(
+                      width: 52,
+                      height: 76,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.movie_outlined, size: 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          if (mediaType.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer
+                                    .withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                mediaType.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (year.isNotEmpty)
+                            Text(
+                              year,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                                fontSize: 13,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                const SizedBox(width: 6),
+              ],
             ),
           ),
-          onTap: () {
-            if (widget.onSelect != null) {
-              widget.onSelect!(item.title ?? '');
-            } else {
-              TmdbDetailsRoute(
-                movieId: item.id,
-                mediaType: item.tmdbMediaType,
-                heroTag: 'search_${item.id}',
-              ).push<void>(context);
-            }
-          },
         );
 
         if (isBigPicture) {
@@ -480,6 +612,7 @@ class _SearchSuggestionsListState
             child: Material(
               type: MaterialType.transparency,
               child: FocusableWrapper(
+                focusNode: index == 0 ? widget.firstItemFocusNode : null,
                 useScaleEffect: false,
                 gamepadHints: [
                   GamepadHint(
@@ -495,27 +628,85 @@ class _SearchSuggestionsListState
                     buttonColor: Colors.grey.shade400,
                   ),
                 ],
-                onTap: () {
-                  if (widget.onSelect != null)
-                    widget.onSelect!(item.title ?? '');
-                },
-                child: tile,
+                onTap: tapHandler,
+                child: ExcludeFocus(child: cardContent),
               ),
             ),
           );
         }
 
-        return Material(type: MaterialType.transparency, child: tile);
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Material(type: MaterialType.transparency, child: cardContent),
+        );
       },
     );
   }
 }
 
+void _navigateToItem(
+  BuildContext context,
+  MultimediaItem item, {
+  String? heroTag,
+  String? placeholderPoster,
+  bool isStremioMode = false,
+}) {
+  final isAddon =
+      item.source == kAddonItemSource ||
+      item.url.startsWith('addon:') ||
+      isStremioMode ||
+      item.url.startsWith('tt') ||
+      item.url.startsWith('kitsu:');
+
+  if (isAddon) {
+    final String type;
+    final String id;
+    final String? addonUrl;
+
+    if (item.url.startsWith('addon:')) {
+      final parts = item.url.split(':');
+      type = parts.length >= 2
+          ? parts[1]
+          : (item.contentType == MultimediaContentType.series
+                ? 'series'
+                : 'movie');
+      id = parts.length >= 3 ? parts[2] : item.url;
+      addonUrl = parts.length > 3 ? parts.sublist(3).join(':') : null;
+    } else {
+      type = item.contentType == MultimediaContentType.series
+          ? 'series'
+          : 'movie';
+      id = item.url;
+      addonUrl = null;
+    }
+
+    AddonDetailRoute(
+      type: type,
+      id: id,
+      addonUrl: addonUrl,
+    ).push<void>(context);
+    return;
+  }
+
+  TmdbDetailsRoute(
+    movieId: item.id,
+    mediaType: item.tmdbMediaType,
+    heroTag: heroTag,
+    placeholderPoster: placeholderPoster,
+    source: item.source,
+  ).push<void>(context);
+}
+
 class _SearchResultsGrid extends ConsumerStatefulWidget {
   final String query;
   final VoidCallback? onJumpToSearch;
+  final FocusNode? firstItemFocusNode;
 
-  const _SearchResultsGrid({required this.query, this.onJumpToSearch});
+  const _SearchResultsGrid({
+    required this.query,
+    this.onJumpToSearch,
+    this.firstItemFocusNode,
+  });
 
   @override
   ConsumerState<_SearchResultsGrid> createState() => _SearchResultsGridState();
@@ -677,10 +868,22 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
         final imageUrl = item.posterImageUrl;
         final title = item.title;
         final id = item.id;
-        final uniqueTag = 'search_result_${id}_$index';
+        final uniqueTag = 'search_result_${id != 0 ? id : item.url}_$index';
+
+        final tapHandler = () {
+          _navigateToItem(
+            context,
+            item,
+            heroTag: uniqueTag,
+            placeholderPoster: imageUrl,
+            isStremioMode:
+                ref.read(exploreModeProvider) == ExploreModeType.stremio,
+          );
+        };
 
         return FocusableWrapper(
-          autofocus: index == 0,
+          focusNode: index == 0 ? widget.firstItemFocusNode : null,
+          autofocus: index == 0 && widget.firstItemFocusNode == null,
           gamepadHints: [
             GamepadHint(
               buttonLabel: 'A',
@@ -693,26 +896,14 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
               buttonColor: Colors.grey.shade400,
             ),
           ],
-          onTap: () {
-            TmdbDetailsRoute(
-              movieId: id,
-              mediaType: item.tmdbMediaType,
+          onTap: tapHandler,
+          child: ExcludeFocus(
+            child: MultimediaCard(
+              imageUrl: imageUrl,
+              title: title ?? '',
               heroTag: uniqueTag,
-              placeholderPoster: imageUrl,
-            ).push<void>(context);
-          },
-          child: MultimediaCard(
-            imageUrl: imageUrl,
-            title: title ?? '',
-            heroTag: uniqueTag,
-            onTap: () {
-              TmdbDetailsRoute(
-                movieId: id,
-                mediaType: item.tmdbMediaType,
-                heroTag: uniqueTag,
-                placeholderPoster: imageUrl,
-              ).push<void>(context);
-            },
+              onTap: tapHandler,
+            ),
           ),
         );
       },

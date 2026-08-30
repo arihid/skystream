@@ -242,10 +242,10 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'アニメを探す';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => '映画を探す';
 
   @override
   String get popularMovies => '人気の映画';
@@ -470,13 +470,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get skip => 'スキップ';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'オープニングをスキップ';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'エンディングをスキップ';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'あらすじをスキップ';
 
   @override
   String get goLive => 'ライブへ移動';
@@ -892,13 +892,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get defaultHomeScreen => 'デフォルトのホーム画面';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'タイトルの位置';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'ポスターの下';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'ポスター内';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1045,11 +1045,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub プロキシ';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      '拡張機能のダウンロードを jsDelivr 経由にして ISP のブロックを回避します。';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi 画質設定';
@@ -1223,7 +1223,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get subtitleAccounts => '字幕アカウント';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'アカウント';
 
   @override
   String get notLoggedIn => 'ログインしていません';
@@ -1377,21 +1377,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get installed => 'インストール済み';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'リポジトリ';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => '拡張機能がインストールされていません';
 
   @override
-  String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+  String get browseRepositoriesToInstall => '「リポジトリ」タブから拡張機能を探してインストールできます。';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'リポジトリを見る';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'リポジトリの URL またはショートコードを追加して、拡張プラグインを探してインストールします。';
 
   @override
   String updateTo(String version) {

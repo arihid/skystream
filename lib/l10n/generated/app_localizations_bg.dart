@@ -242,10 +242,10 @@ class AppLocalizationsBg extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Разгледай аниме';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Разгледай филми';
 
   @override
   String get popularMovies => 'Популярни филми';
@@ -472,13 +472,13 @@ class AppLocalizationsBg extends AppLocalizations {
   String get skip => 'Пропусни';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Пропусни началото';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Пропусни финала';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Пропусни резюмето';
 
   @override
   String get goLive => 'На живо';
@@ -902,13 +902,13 @@ class AppLocalizationsBg extends AppLocalizations {
   String get defaultHomeScreen => 'Начален екран по подразбиране';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Позиция на заглавието';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Под постера';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Върху постера';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1055,11 +1055,11 @@ class AppLocalizationsBg extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub прокси';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Насочвайте изтеглянията на разширения през jsDelivr, за да заобиколите блокировки от доставчика.';
 
   @override
   String get wifiQualityPreference => 'Предпочитание за качество при Wi-Fi';
@@ -1234,7 +1234,7 @@ class AppLocalizationsBg extends AppLocalizations {
   String get subtitleAccounts => 'Акаунти за субтитри';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Профили';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1389,21 +1389,21 @@ class AppLocalizationsBg extends AppLocalizations {
   String get installed => 'Инсталирано';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Хранилища';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Няма инсталирани разширения';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Отворете раздела „Хранилища“, за да откриете и инсталирате разширения.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Разгледай хранилищата';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Добавете URL на хранилище или кратък код, за да откриете и инсталирате плъгини.';
 
   @override
   String updateTo(String version) {

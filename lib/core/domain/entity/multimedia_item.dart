@@ -492,7 +492,7 @@ class Episode {
       rating: (json['rating'] as num?)?.toDouble(),
       runtime: (json['runtime'] as int?) ?? (json['duration'] as int?),
       airDate: json['airDate'] as String?,
-      dubStatus: _parseDubStatus(json['dubStatus'], name),
+      dubStatus: _parseDubStatus(json['dubStatus']),
       playbackPolicy:
           (json['playbackPolicy'] as String?) ?? (json['vpnStatus'] as String?),
       streams: json['streams'] != null
@@ -507,21 +507,12 @@ class Episode {
     );
   }
 
-  static DubStatus _parseDubStatus(dynamic raw, [String? name]) {
-    if (raw != null) {
-      final str = raw.toString().toLowerCase();
-      if (str.contains('dub')) return DubStatus.dubbed;
-      if (str.contains('sub')) return DubStatus.subbed;
-    }
-
-    if (name != null) {
-      final lowerName = name.toLowerCase();
-      // Look for common patterns: (Dub), [Dub], - Dub, etc.
-      // Or just "Dub" as a word.
-      if (lowerName.contains('dub')) return DubStatus.dubbed;
-      if (lowerName.contains('sub')) return DubStatus.subbed;
-    }
-
+  static DubStatus _parseDubStatus(dynamic raw) {
+    if (raw == null) return DubStatus.none;
+    if (raw is DubStatus) return raw;
+    final str = raw.toString().trim().toLowerCase();
+    if (str == 'dub' || str == 'dubbed') return DubStatus.dubbed;
+    if (str == 'sub' || str == 'subbed') return DubStatus.subbed;
     return DubStatus.none;
   }
 
@@ -559,6 +550,10 @@ class Episode {
 class StreamResult {
   final String url;
   final String source;
+
+  /// Display name of the plugin/provider that produced this stream. It is shown
+  /// in the player source list and used by cross-provider source switching.
+  final String providerName;
   final Map<String, String>? headers;
   final List<SubtitleFile>? subtitles;
   final String? drmKid;
@@ -568,6 +563,7 @@ class StreamResult {
   const StreamResult({
     required this.url,
     required this.source,
+    this.providerName = 'Unknown',
     this.headers,
     this.subtitles,
     this.drmKid,
@@ -575,9 +571,35 @@ class StreamResult {
     this.licenseUrl,
   });
 
+  String get displaySource =>
+      providerName.trim().isEmpty ? source : '$providerName · $source';
+
+  StreamResult copyWith({
+    String? url,
+    String? source,
+    String? providerName,
+    Map<String, String>? headers,
+    List<SubtitleFile>? subtitles,
+    String? drmKid,
+    String? drmKey,
+    String? licenseUrl,
+  }) {
+    return StreamResult(
+      url: url ?? this.url,
+      source: source ?? this.source,
+      providerName: providerName ?? this.providerName,
+      headers: headers ?? this.headers,
+      subtitles: subtitles ?? this.subtitles,
+      drmKid: drmKid ?? this.drmKid,
+      drmKey: drmKey ?? this.drmKey,
+      licenseUrl: licenseUrl ?? this.licenseUrl,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
     'url': url,
     'source': source,
+    'providerName': providerName,
     'headers': headers,
     'subtitles': subtitles?.map((x) => x.toJson()).toList(),
     'drmKid': drmKid,
@@ -589,6 +611,7 @@ class StreamResult {
     return StreamResult(
       url: (json['url'] as String?) ?? '',
       source: (json['source'] as String?) ?? 'Unknown',
+      providerName: (json['providerName'] as String?) ?? 'Unknown',
       headers: json['headers'] != null
           ? Map<String, String>.from(json['headers'] as Map)
           : null,

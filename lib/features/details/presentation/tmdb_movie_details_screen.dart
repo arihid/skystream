@@ -20,6 +20,9 @@ import '../data/lightweight_details_provider.dart';
 import 'widgets/movie_trailers_carousel.dart';
 import 'widgets/movie_production_companies.dart';
 import 'widgets/movie_seasons_list.dart';
+import 'widgets/episode_picker_sheet.dart';
+import '../../sources/presentation/plugin_sources_sheet.dart';
+import 'package:dpad/dpad.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 
@@ -112,6 +115,71 @@ class _TmdbMovieDetailsScreenState
     }
 
     _scrollOffset.value = offset;
+  }
+
+  /// Movies open the sources sheet straight away; a series asks which episode
+  /// first. The button used to be rendered only `if (isMovie)`, so every
+  /// series poster looked like it had no plugin playback at all.
+  void _openPluginSources(TmdbDetails data, bool isMovie) {
+    if (isMovie) {
+      PluginSourcesSheet.open(context, data);
+      return;
+    }
+    final seasons = data.seasons;
+    EpisodePickerSheet.open(
+      context,
+      movieId: widget.movieId,
+      seasons: seasons,
+      target: data,
+      source: widget.source,
+    );
+  }
+
+  Widget _buildPlayFromPluginsButton(
+    TmdbDetails data,
+    bool isMovie,
+    ThemeData theme,
+    ColorScheme cs,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: DpadFocusable(
+        onSelect: () => _openPluginSources(data, isMovie),
+        child: const SizedBox.shrink(),
+        builder: (context, state, _) {
+          final isFocused = state.focused;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isFocused ? Colors.white : Colors.transparent,
+                width: 2.0,
+              ),
+            ),
+            child: FilledButton.icon(
+              onPressed: () => _openPluginSources(data, isMovie),
+              icon: const Icon(Icons.play_arrow_rounded, size: 22),
+              label: const Text(
+                'Play from Nuvio plugins',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: isFocused
+                    ? cs.primary
+                    : cs.primary.withValues(alpha: 0.9),
+                foregroundColor: cs.onPrimary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+                elevation: isFocused ? 6 : 2,
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -292,12 +360,24 @@ class _TmdbMovieDetailsScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
+                  _buildPlayFromPluginsButton(
+                    data,
+                    isMovie,
+                    theme,
+                    theme.colorScheme,
+                  ),
                   if (!isMovie) ...[
                     MovieSeasonsList(
                       movieId: widget.movieId,
                       seasons: seasons,
                       textColor: textColor,
                       source: widget.source,
+                      title: data.title,
+                      posterUrl: data.posterUrl,
+                      bannerUrl: data.bannerUrl,
+                      overview: data.overview,
+                      releaseDateFull: data.releaseDateFull,
+                      imdbId: data.imdbId,
                     ),
                   ],
                   if (isHeavyLoading || cast.isNotEmpty) ...[
@@ -359,6 +439,8 @@ class _TmdbMovieDetailsScreenState
     bool isHeavyLoading,
     bool isBigPicture,
   ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isMovie = widget.mediaType == 'movie';
 
     final backdropImageUrl = data.backdropImageUrl;
@@ -614,7 +696,8 @@ class _TmdbMovieDetailsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Source Search (Provider Integration)
+                // Cross-plugin stream launcher + provider results
+                _buildPlayFromPluginsButton(data, isMovie, theme, cs),
                 ProviderSearchSection(
                   query: title,
                   parentMediaType: isMovie ? 'movie' : 'tv',
@@ -820,6 +903,12 @@ class _TmdbMovieDetailsScreenState
                     movieId: widget.movieId,
                     seasons: data.seasons,
                     source: widget.source,
+                    title: data.title,
+                    posterUrl: data.posterUrl,
+                    bannerUrl: data.bannerUrl,
+                    overview: data.overview,
+                    releaseDateFull: data.releaseDateFull,
+                    imdbId: data.imdbId,
                   ),
                 ],
 

@@ -17,7 +17,11 @@ import 'widgets/bookmarks_tab.dart';
 import 'widgets/downloads_tab.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
-  const LibraryScreen({super.key});
+  /// 0 = Downloads, 1 = Bookmarks. Settings opens the screen on a given tab
+  /// now that Library is no longer a navigation destination.
+  final int initialTab;
+
+  const LibraryScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
@@ -36,7 +40,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    
+    final initial = widget.initialTab.clamp(0, 1);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: initial,
+    );
 
     // Autofocus the active tab's first item on launch
     WidgetsBinding.instance.addPostFrameCallback((_) {

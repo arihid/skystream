@@ -98,9 +98,7 @@ class _ContinueWatchingSectionState
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(
-                      LayoutConstants.radiusMd,
-                    ),
+                    borderRadius: BorderRadius.circular(LayoutConstants.radiusMd),
                     hoverColor: Colors.red.withValues(alpha: 0.15),
                     onTap: () {
                       final l10n = AppLocalizations.of(context)!;
@@ -122,7 +120,11 @@ class _ContinueWatchingSectionState
                                 Navigator.pop(context);
                                 ref
                                     .read(notificationServiceProvider)
-                                    .showSuccess(l10n.watchHistoryCleared);
+                                    .showSuccess(
+                                      l10n.watchHistoryCleared,
+                                      title: 'Watch History',
+                                      icon: Icons.delete_sweep_rounded,
+                                    );
                               },
                               child: Text(
                                 l10n.clearAll,

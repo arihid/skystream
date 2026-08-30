@@ -242,10 +242,10 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'அனிமேவை உலாவுக';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'திரைப்படங்களை உலாவுக';
 
   @override
   String get popularMovies => 'பிரபலமான திரைப்படங்கள்';
@@ -475,13 +475,13 @@ class AppLocalizationsTa extends AppLocalizations {
   String get skip => 'தவிர்';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'தொடக்கத்தைத் தவிர்';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'முடிவைத் தவிர்';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'சுருக்கத்தைத் தவிர்';
 
   @override
   String get goLive => 'நேரலை';
@@ -916,13 +916,13 @@ class AppLocalizationsTa extends AppLocalizations {
   String get defaultHomeScreen => 'இயல்புநிலை முகப்புத் திரை';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'தலைப்பு இடம்';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'போஸ்டருக்குக் கீழே';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'போஸ்டருக்குள்';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1069,11 +1069,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub ப்ராக்ஸி';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'ISP தடைகளைத் தவிர்க்க நீட்சி பதிவிறக்கங்களை jsDelivr வழியாக அனுப்பவும்.';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi தர விருப்பம்';
@@ -1247,7 +1247,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get subtitleAccounts => 'துணைத்தலைப்பு கணக்குகள்';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'கணக்குகள்';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1405,21 +1405,21 @@ class AppLocalizationsTa extends AppLocalizations {
   String get installed => 'நிறுவப்பட்டது';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'களஞ்சியங்கள்';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'நீட்சிகள் எதுவும் நிறுவப்படவில்லை';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'நீட்சிகளைக் கண்டறிந்து நிறுவ களஞ்சியங்கள் தாவலைப் பார்க்கவும்.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'களஞ்சியங்களை உலாவுக';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'நீட்சி செருகுநிரல்களைக் கண்டறிந்து நிறுவ களஞ்சிய URL அல்லது குறுங்குறியீட்டைச் சேர்க்கவும்.';
 
   @override
   String updateTo(String version) {

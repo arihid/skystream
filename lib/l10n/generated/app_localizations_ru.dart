@@ -242,10 +242,10 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Обзор аниме';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Обзор фильмов';
 
   @override
   String get popularMovies => 'Популярные фильмы';
@@ -482,13 +482,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get skip => 'Пропустить';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Пропустить заставку';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Пропустить титры';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Пропустить краткий обзор';
 
   @override
   String get goLive => 'В эфир';
@@ -916,13 +916,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get defaultHomeScreen => 'Главный экран по умолчанию';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Положение названия';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Под постером';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'На постере';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1069,11 +1069,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'Прокси GitHub';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Направлять загрузку расширений через jsDelivr, чтобы обойти блокировки провайдера.';
 
   @override
   String get wifiQualityPreference => 'Качество при Wi-Fi';
@@ -1247,7 +1247,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get subtitleAccounts => 'Аккаунты субтитров';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Аккаунты';
 
   @override
   String get notLoggedIn => 'Вход не выполнен';
@@ -1403,21 +1403,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get installed => 'Установлено';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Репозитории';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Расширения не установлены';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Откройте вкладку «Репозитории», чтобы найти и установить расширения.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Обзор репозиториев';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Добавьте URL репозитория или короткий код, чтобы найти и установить плагины расширений.';
 
   @override
   String updateTo(String version) {

@@ -242,10 +242,10 @@ class AppLocalizationsBe extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Агляд анімэ';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Агляд фільмаў';
 
   @override
   String get popularMovies => 'Папулярныя фільмы';
@@ -484,13 +484,13 @@ class AppLocalizationsBe extends AppLocalizations {
   String get skip => 'Прапусціць';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Прапусціць уступ';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Прапусціць канцоўку';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Прапусціць агляд';
 
   @override
   String get goLive => 'У эфір';
@@ -917,13 +917,13 @@ class AppLocalizationsBe extends AppLocalizations {
   String get defaultHomeScreen => 'Галоўны экран па змаўчанні';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Пазіцыя назвы';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Пад пастарам';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Унутры пастара';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1070,11 +1070,11 @@ class AppLocalizationsBe extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'Проксі GitHub';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Накіроўваць спампоўку пашырэнняў праз jsDelivr, каб абыйсці блакіроўкі правайдара.';
 
   @override
   String get wifiQualityPreference => 'Перавага якасці Wi-Fi';
@@ -1248,7 +1248,7 @@ class AppLocalizationsBe extends AppLocalizations {
   String get subtitleAccounts => 'Уліковыя запісы субцітраў';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Уліковыя запісы';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1404,21 +1404,21 @@ class AppLocalizationsBe extends AppLocalizations {
   String get installed => 'Усталявана';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Рэпазіторыі';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Пашырэнні не ўсталяваныя';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Адкрыйце ўкладку «Рэпазіторыі», каб знайсці і ўсталяваць пашырэнні.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Агляд рэпазіторыяў';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Дадайце URL рэпазіторыя або кароткі код, каб знайсці і ўсталяваць плагіны пашырэнняў.';
 
   @override
   String updateTo(String version) {

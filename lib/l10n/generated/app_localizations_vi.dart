@@ -242,10 +242,10 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Khám phá anime';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Khám phá phim';
 
   @override
   String get popularMovies => 'Phim phổ biến';
@@ -470,13 +470,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get skip => 'Bỏ qua';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Bỏ qua giới thiệu';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Bỏ qua kết thúc';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Bỏ qua tóm tắt';
 
   @override
   String get goLive => 'Xem trực tiếp';
@@ -900,13 +900,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get defaultHomeScreen => 'Màn hình chính mặc định';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Vị trí tiêu đề';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Dưới áp phích';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Trong áp phích';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1053,11 +1053,11 @@ class AppLocalizationsVi extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'Proxy GitHub';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Định tuyến tải xuống tiện ích mở rộng qua jsDelivr để vượt chặn của nhà mạng.';
 
   @override
   String get wifiQualityPreference => 'Ưu tiên chất lượng Wi-Fi';
@@ -1231,7 +1231,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get subtitleAccounts => 'Tài khoản phụ đề';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Tài khoản';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1387,21 +1387,21 @@ class AppLocalizationsVi extends AppLocalizations {
   String get installed => 'Đã cài đặt';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Kho lưu trữ';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Chưa cài tiện ích mở rộng nào';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Mở tab Kho lưu trữ để tìm và cài đặt tiện ích mở rộng.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Duyệt kho lưu trữ';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Thêm URL kho lưu trữ hoặc mã rút gọn để tìm và cài đặt plugin mở rộng.';
 
   @override
   String updateTo(String version) {

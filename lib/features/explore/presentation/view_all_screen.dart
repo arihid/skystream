@@ -28,6 +28,7 @@ enum ViewAllCategory {
   topRatedTV,
   airingTodayTV,
   trending,
+  trendingTV,
 
   /// Provider-sourced content from the home screen.
   /// No TMDB pagination — shows only the initial list.

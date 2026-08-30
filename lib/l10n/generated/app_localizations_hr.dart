@@ -242,10 +242,10 @@ class AppLocalizationsHr extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Istraži anime';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Istraži filmove';
 
   @override
   String get popularMovies => 'Popularni filmovi';
@@ -474,13 +474,13 @@ class AppLocalizationsHr extends AppLocalizations {
   String get skip => 'Preskoči';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Preskoči uvod';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Preskoči odjavnu špicu';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Preskoči sažetak';
 
   @override
   String get goLive => 'Uživo';
@@ -904,13 +904,13 @@ class AppLocalizationsHr extends AppLocalizations {
   String get defaultHomeScreen => 'Zadani početni zaslon';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Položaj naslova';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Ispod plakata';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Na plakatu';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1057,11 +1057,11 @@ class AppLocalizationsHr extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub proxy';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Preusmjeri preuzimanja proširenja preko jsDelivra radi zaobilaženja blokada pružatelja.';
 
   @override
   String get wifiQualityPreference => 'Kvaliteta na Wi-Fi mreži';
@@ -1235,7 +1235,7 @@ class AppLocalizationsHr extends AppLocalizations {
   String get subtitleAccounts => 'Računi za titlove';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Računi';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1390,21 +1390,21 @@ class AppLocalizationsHr extends AppLocalizations {
   String get installed => 'Instalirano';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Repozitoriji';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Nema instaliranih proširenja';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Otvorite karticu Repozitoriji za pronalaženje i instaliranje proširenja.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Pregledaj repozitorije';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Dodajte URL repozitorija ili kratki kôd za pronalaženje i instaliranje dodataka.';
 
   @override
   String updateTo(String version) {

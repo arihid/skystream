@@ -5,6 +5,9 @@ import 'package:skystream/features/home/presentation/home_screen.dart';
 import 'package:skystream/features/search/presentation/search_screen.dart';
 import '../../features/explore/presentation/explore_screen.dart';
 import 'package:skystream/features/library/presentation/library_screen.dart';
+import 'package:skystream/features/addons/presentation/addons_screen.dart';
+import 'package:skystream/features/addons/presentation/addon_detail_screen.dart';
+import 'package:skystream/features/addons/presentation/addon_catalog_screen.dart';
 import 'package:skystream/features/settings/presentation/settings_screen.dart';
 import '../../features/extensions/screens/extensions_screen.dart';
 import '../../features/settings/presentation/developer_options_screen.dart';
@@ -100,10 +103,22 @@ class LibraryBranchData extends StatefulShellBranchData {
 }
 
 class LibraryRoute extends GoRouteData with $LibraryRoute {
-  const LibraryRoute();
+  final int? tab;
+  const LibraryRoute({this.tab});
+
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const LibraryScreen();
+      LibraryScreen(initialTab: tab ?? 0);
+}
+
+@TypedGoRoute<AddonsRoute>(path: '/addons')
+class AddonsRoute extends GoRouteData with $AddonsRoute {
+  final int? initialTab;
+  const AddonsRoute({this.initialTab});
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      AddonsScreen(initialTab: initialTab ?? 0);
 }
 
 class SettingsBranchData extends StatefulShellBranchData {
@@ -111,10 +126,12 @@ class SettingsBranchData extends StatefulShellBranchData {
 }
 
 class SettingsRoute extends GoRouteData with $SettingsRoute {
-  const SettingsRoute();
+  final String? category;
+  const SettingsRoute({this.category});
+
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      const SettingsScreen();
+      SettingsScreen(initialCategory: category);
 }
 
 // --- Sub-routes of Settings ---
@@ -162,10 +179,15 @@ class PlayerRouteExtra {
     required this.item,
     required this.videoUrl,
     this.episode,
+    this.preloadedStreams,
   });
   final MultimediaItem item;
   final String videoUrl;
   final Episode? episode;
+
+  /// Cross-plugin stream links aggregated before opening the player. When
+  /// present, the player does not call loadStreams again for this item/episode.
+  final List<StreamResult>? preloadedStreams;
 }
 
 class ViewAllRouteExtra {
@@ -248,6 +270,44 @@ class PlayerRoute extends GoRouteData with $PlayerRoute {
       item: $extra.item,
       videoUrl: $extra.videoUrl,
       episode: $extra.episode,
+      preloadedStreams: $extra.preloadedStreams,
+    );
+  }
+}
+
+@TypedGoRoute<AddonDetailRoute>(path: '/addon-detail')
+class AddonDetailRoute extends GoRouteData with $AddonDetailRoute {
+  const AddonDetailRoute({required this.type, required this.id, this.addonUrl});
+  final String type;
+  final String id;
+  final String? addonUrl;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return AddonDetailScreen(type: type, id: id, addonUrl: addonUrl);
+  }
+}
+
+@TypedGoRoute<AddonCatalogRoute>(path: '/addon-catalog')
+class AddonCatalogRoute extends GoRouteData with $AddonCatalogRoute {
+  const AddonCatalogRoute({
+    required this.addonUrl,
+    required this.type,
+    required this.catalogId,
+    required this.title,
+  });
+  final String addonUrl;
+  final String type;
+  final String catalogId;
+  final String title;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) {
+    return AddonCatalogScreen(
+      addonUrl: addonUrl,
+      type: type,
+      catalogId: catalogId,
+      title: title,
     );
   }
 }
@@ -256,9 +316,21 @@ class PlayerRoute extends GoRouteData with $PlayerRoute {
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Branch roots the shell can start on. `/stream` no longer exists, so a
+/// preference saved by an older build has to be migrated instead of handing
+/// GoRouter an unknown initial location.
+const List<String> kShellBranchRoutes = [
+  '/home',
+  '/search',
+  '/explore',
+  '/library',
+  '/settings',
+];
+
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final initial = ref.read(settingsRepositoryProvider).getDefaultHomeScreen();
+  final saved = ref.read(settingsRepositoryProvider).getDefaultHomeScreen();
+  final initial = kShellBranchRoutes.contains(saved) ? saved : '/home';
 
   return GoRouter(
     initialLocation: initial,

@@ -242,10 +242,10 @@ class AppLocalizationsMl extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'അനിമേ കണ്ടെത്തുക';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'സിനിമകൾ കണ്ടെത്തുക';
 
   @override
   String get popularMovies => 'ജനപ്രിയ സിനിമകൾ';
@@ -474,13 +474,13 @@ class AppLocalizationsMl extends AppLocalizations {
   String get skip => 'ഒഴിവാക്കുക';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'ഇൻട്രോ ഒഴിവാക്കുക';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'ഔട്രോ ഒഴിവാക്കുക';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'സംഗ്രഹം ഒഴിവാക്കുക';
 
   @override
   String get goLive => 'ലൈവ്';
@@ -913,13 +913,13 @@ class AppLocalizationsMl extends AppLocalizations {
   String get defaultHomeScreen => 'ഡിഫോൾട്ട് ഹോം സ്ക്രീൻ';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'ശീർഷക സ്ഥാനം';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'പോസ്റ്ററിന് താഴെ';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'പോസ്റ്ററിനുള്ളിൽ';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1066,11 +1066,11 @@ class AppLocalizationsMl extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub പ്രോക്സി';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'ISP തടസ്സങ്ങൾ ഒഴിവാക്കാൻ എക്സ്റ്റൻഷൻ ഡൗൺലോഡുകൾ jsDelivr വഴി അയയ്ക്കുക.';
 
   @override
   String get wifiQualityPreference => 'വൈ-ഫൈ ഗുണനിലവാര മുൻഗണന';
@@ -1244,7 +1244,7 @@ class AppLocalizationsMl extends AppLocalizations {
   String get subtitleAccounts => 'സബ്‌ടൈറ്റിൽ അക്കൗണ്ടുകൾ';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'അക്കൗണ്ടുകൾ';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1404,21 +1404,22 @@ class AppLocalizationsMl extends AppLocalizations {
   String get installed => 'ഇൻസ്റ്റാൾ ചെയ്തു';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'റിപ്പോസിറ്ററികൾ';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled =>
+      'എക്സ്റ്റൻഷനുകളൊന്നും ഇൻസ്റ്റാൾ ചെയ്തിട്ടില്ല';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'എക്സ്റ്റൻഷനുകൾ കണ്ടെത്തി ഇൻസ്റ്റാൾ ചെയ്യാൻ റിപ്പോസിറ്ററി ടാബ് നോക്കുക.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'റിപ്പോസിറ്ററികൾ കാണുക';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'എക്സ്റ്റൻഷൻ പ്ലഗിനുകൾ കണ്ടെത്തി ഇൻസ്റ്റാൾ ചെയ്യാൻ ഒരു റിപ്പോസിറ്ററി URL അല്ലെങ്കിൽ ഷോർട്ട്കോഡ് ചേർക്കുക.';
 
   @override
   String updateTo(String version) {

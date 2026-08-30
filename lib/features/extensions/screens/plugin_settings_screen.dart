@@ -11,6 +11,7 @@ import '../../../core/storage/settings_repository.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../core/services/notification_service.dart';
 import '../../settings/presentation/widgets/settings_widgets.dart';
 
 // TV/Gamepad Feature Imports
@@ -395,16 +396,26 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Extension settings saved')));
+      
+      // Upstream formatting with our necessary navigation pop
+      ref
+          .read(notificationServiceProvider)
+          .showExtension(
+            'Extension settings saved',
+            title: widget.plugin.name,
+            icon: Icons.extension_rounded,
+          );
 
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save settings: $error')),
-      );
+      ref
+          .read(notificationServiceProvider)
+          .showError(
+            'Failed to save settings: $error',
+            title: widget.plugin.name,
+            icon: Icons.extension_rounded,
+          );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

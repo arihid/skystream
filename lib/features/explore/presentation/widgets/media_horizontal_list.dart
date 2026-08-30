@@ -27,6 +27,7 @@ class MediaHorizontalList extends ConsumerStatefulWidget {
   final void Function(MultimediaItem)? onTap;
   final bool showViewAll;
   final String? heroTagPrefix;
+  final VoidCallback? onViewAll;
 
   const MediaHorizontalList({
     super.key,
@@ -36,6 +37,7 @@ class MediaHorizontalList extends ConsumerStatefulWidget {
     this.onTap,
     this.showViewAll = true,
     this.heroTagPrefix,
+    this.onViewAll,
   });
 
   @override
@@ -137,6 +139,12 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
   }
 
   void _navigateToViewAll() {
+    // 🎯 Upstream requested check for custom ViewAll behavior
+    if (widget.onViewAll != null) {
+      widget.onViewAll!();
+      return;
+    }
+    
     ViewAllRoute(
       $extra: ViewAllRouteExtra(
         title: widget.title,
@@ -279,7 +287,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
           ),
         ),
 
-        // List
+        // List 
         SizedBox(
           height: listHeight, // Adjusted for 2:3 ratio within list
           child: Builder(
@@ -310,8 +318,8 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                   itemCount: totalCount,
                   itemExtent: cardWidth + spacing,
                   itemBuilder: (context, index) {
+                    
                     // The physical "View All" card at the end of the list for Gamepads
-                    // The physical "View All" card at the end of the list
                     if (index == displayList.length) {
                       return Padding(
                         padding: EdgeInsets.only(right: spacing),
@@ -336,8 +344,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                           mediaType: item.tmdbMediaType,
                           heroTag: uniqueTag,
                           placeholderPoster: imageUrl,
-                          source: item
-                              .source, // Ensure source gets passed downstream
+                          source: item.source, // Ensure source gets passed downstream
                         ).push<void>(context);
                       }
                     };

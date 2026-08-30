@@ -242,10 +242,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => '探索动漫';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => '探索电影';
 
   @override
   String get popularMovies => '热门电影';
@@ -465,13 +465,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get skip => '跳过';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => '跳过片头';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => '跳过片尾';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => '跳过前情回顾';
 
   @override
   String get goLive => '进入直播';
@@ -886,13 +886,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultHomeScreen => '默认启动页';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => '标题位置';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => '海报下方';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => '海报内';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1039,11 +1039,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub 代理';
 
   @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+  String get githubProxySubtitle => '通过 jsDelivr 转发扩展下载，以绕过运营商封锁。';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi 视频质量偏好';
@@ -1217,7 +1216,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get subtitleAccounts => '字幕账户';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => '账户';
 
   @override
   String get notLoggedIn => '未登录';
@@ -1368,21 +1367,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get installed => '已安装';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => '仓库';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => '未安装扩展';
 
   @override
-  String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+  String get browseRepositoriesToInstall => '打开“仓库”标签页，发现并安装扩展。';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => '浏览仓库';
 
   @override
-  String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+  String get addRepoDescription => '添加仓库 URL 或短代码，以发现并安装扩展插件。';
 
   @override
   String updateTo(String version) {
@@ -1695,6 +1692,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get loading => '載入中...';
 
   @override
+  String get exploreAnime => '探索動畫';
+
+  @override
+  String get exploreMovies => '探索電影';
+
+  @override
   String get popularMovies => '熱門電影';
 
   @override
@@ -1904,6 +1907,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get skip => '跳過';
+
+  @override
+  String get skipIntro => '略過片頭';
+
+  @override
+  String get skipOutro => '略過片尾';
+
+  @override
+  String get skipRecap => '略過前情提要';
 
   @override
   String get goLive => '進入直播';
@@ -2297,6 +2309,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get defaultHomeScreen => '預設啟動畫面';
 
   @override
+  String get titlePosition => '標題位置';
+
+  @override
+  String get titlePositionBelowPoster => '海報下方';
+
+  @override
+  String get titlePositionInsidePoster => '海報內';
+
+  @override
   String get language => '語言';
 
   @override
@@ -2428,6 +2449,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get canadianShield => 'Canadian Shield';
 
   @override
+  String get githubProxy => 'GitHub 代理';
+
+  @override
+  String get githubProxySubtitle => '透過 jsDelivr 轉送擴充功能下載，以繞過電信業者封鎖。';
+
+  @override
   String get wifiQualityPreference => 'Wi-Fi 视频质量偏好';
 
   @override
@@ -2456,6 +2483,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get subtitleAccounts => '字幕账户';
+
+  @override
+  String get accounts => '帳戶';
 
   @override
   String get notLoggedIn => '未登录';
@@ -2600,6 +2630,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get installed => '已完成安裝';
+
+  @override
+  String get repositories => '儲存庫';
+
+  @override
+  String get noExtensionsInstalled => '尚未安裝擴充功能';
+
+  @override
+  String get browseRepositoriesToInstall => '開啟「儲存庫」分頁，探索並安裝擴充功能。';
+
+  @override
+  String get browseRepositories => '瀏覽儲存庫';
+
+  @override
+  String get addRepoDescription => '新增儲存庫 URL 或短代碼，以探索並安裝擴充外掛。';
 
   @override
   String updateTo(String version) {

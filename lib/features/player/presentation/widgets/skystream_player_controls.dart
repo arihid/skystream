@@ -95,6 +95,23 @@ class SkyStreamPlayerControlsState
 
   bool _showTorrentInfo = false;
   Timer? _hideTimer;
+  DateTime? _lastHoverTime;
+
+  void _handleThrottledHover() {
+    if (_panelOpen) return;
+    final now = DateTime.now();
+    if (_lastHoverTime != null &&
+        now.difference(_lastHoverTime!).inMilliseconds < 80) {
+      return;
+    }
+    _lastHoverTime = now;
+
+    if (!_isVisible && mounted) {
+      setState(() => _isVisible = true);
+      widget.onVisibilityChanged?.call(true);
+    }
+    _startHideTimer();
+  }
 
   final GlobalKey<PlayerMetadataScrimState> _metadataScrimKey = GlobalKey();
   bool _isLocked = false;
@@ -155,10 +172,19 @@ class SkyStreamPlayerControlsState
             getDuration: () => _duration,
             getPosition: () => _position,
             canSeek: () => ref.read(playerControllerProvider).canSeek,
-            getMaxVolumeLevel: () =>
-                ref.read(playerControllerProvider).supportsVolumeBoost
-                ? 2.0
-                : 1.0,
+            getMaxVolumeLevel: () {
+              if (!ref.read(playerControllerProvider).supportsVolumeBoost) {
+                return 1.0;
+              }
+              final percent =
+                  ref
+                      .read(playerSettingsProvider)
+                      .asData
+                      ?.value
+                      .maxVolumePercent ??
+                  200;
+              return (percent / 100).clamp(1.0, 2.0);
+            },
             onInteraction: () {
               if (!mounted) return;
               if (!_isVisible) {
@@ -318,8 +344,11 @@ class SkyStreamPlayerControlsState
       final msg = ref
           .read(playerControllerProvider.notifier)
           .consumeRevertMessage();
-      if (msg != null && mounted)
-        ref.read(notificationServiceProvider).showInfo(msg);
+      if (msg != null && mounted) {
+        ref
+            .read(notificationServiceProvider)
+            .showInfo(msg, title: 'Playback', icon: Icons.sync_problem_rounded);
+      }
     });
   }
 
@@ -1045,22 +1074,8 @@ class SkyStreamPlayerControlsState
       cursor: (_isVisible || _panelOpen)
           ? SystemMouseCursors.basic
           : SystemMouseCursors.none,
-      onEnter: (_) {
-        if (_panelOpen) return;
-        if (!_isVisible) {
-          setState(() => _isVisible = true);
-          widget.onVisibilityChanged?.call(true);
-        }
-        _startHideTimer();
-      },
-      onHover: (_) {
-        if (_panelOpen) return;
-        if (!_isVisible && mounted) {
-          setState(() => _isVisible = true);
-          widget.onVisibilityChanged?.call(true);
-        }
-        _startHideTimer();
-      },
+      onEnter: (_) => _handleThrottledHover(),
+      onHover: (_) => _handleThrottledHover(),
       onExit: (_) {
         if (_isPlaying) _startHideTimer();
       },
@@ -1180,11 +1195,11 @@ class SkyStreamPlayerControlsState
                               right: isBigPicture
                                   ? HotstarPlayerStyle.tvEdgeInset
                                   : (MediaQuery.viewPaddingOf(context).right >
-                                            HotstarPlayerStyle.edgeInset
-                                        ? MediaQuery.viewPaddingOf(
-                                            context,
-                                          ).right
-                                        : HotstarPlayerStyle.edgeInset),
+                                          HotstarPlayerStyle.edgeInset
+                                      ? MediaQuery.viewPaddingOf(
+                                          context,
+                                        ).right
+                                      : HotstarPlayerStyle.edgeInset),
                               left: 12,
                             ),
                             child: ConstrainedBox(
@@ -1572,98 +1587,132 @@ class SkyStreamPlayerControlsState
         excluding: !chromeVisible,
         child: IgnorePointer(
           ignoring: !chromeVisible,
-          child: AnimatedOpacity(
-            opacity: chromeVisible ? 1.0 : 0.0,
-            duration: _animDuration,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.9),
-                    Colors.black.withValues(alpha: 0.6),
-                    Colors.transparent,
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                  stops: const [0.0, 0.2, 0.4, 0.8, 1.0],
+          child: RepaintBoundary(
+            child: AnimatedOpacity(
+              opacity: chromeVisible ? 1.0 : 0.0,
+              duration: _animDuration,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.9),
+                      Colors.black.withValues(alpha: 0.6),
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.7),
+                    ],
+                    stops: const [0.0, 0.2, 0.4, 0.8, 1.0],
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  ExcludeFocus(
-                    excluding: isBigPicture,
-                    child: _absorbGestures(
-                      Visibility(
-                        visible: !isBigPicture,
-                        child: PlayerTopBar(
-                          title: title,
-                          subtitle: subtitle,
-                          onBack: widget.onBackPointer ?? () => context.pop(),
-                          isTv: isBigPicture,
-                          backFocusNode: _backFocusNode,
+                child: Column(
+                  children: [
+                    ExcludeFocus(
+                      excluding: isBigPicture,
+                      child: _absorbGestures(
+                        Visibility(
+                          visible: !isBigPicture,
+                          child: PlayerTopBar(
+                            title: title,
+                            subtitle: subtitle,
+                            onBack: widget.onBackPointer ?? () => context.pop(),
+                            isTv: isBigPicture,
+                            backFocusNode: _backFocusNode,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const Expanded(child: SizedBox.expand()),
-                  _absorbGestures(
-                    PlayerBottomBar(
-                      isTv: isBigPicture,
-                      isTouch: isTouch,
-                      progressBar: ExcludeFocus(
-                        excluding: isBigPicture,
-                        child: PlayerProgressBar(
-                          player: widget.player,
-                          videoViewController: widget.videoViewController,
-                          onSeekStart: _cancelHideTimer,
-                          isTv: isBigPicture,
-                          focusNode: _scrubFocusNode,
-                          onArrowUp: () {},
+                    const Expanded(child: SizedBox.expand()),
+                    _absorbGestures(
+                      PlayerBottomBar(
+                        isTv: isBigPicture,
+                        isTouch: isTouch,
+                        progressBar: ExcludeFocus(
+                          excluding: isBigPicture,
+                          child: PlayerProgressBar(
+                            player: widget.player,
+                            videoViewController: widget.videoViewController,
+                            onSeekStart: _cancelHideTimer,
+                            isTv: isBigPicture,
+                            focusNode: _scrubFocusNode,
+                            onArrowUp: () {
+                              final resumePromptPosition = ref.read(
+                                playerControllerProvider.select(
+                                  (s) => s.resumePromptPosition,
+                                ),
+                              );
+                              final resumePromptPercentage = ref.read(
+                                playerControllerProvider.select(
+                                  (s) => s.resumePromptPercentage,
+                                ),
+                              );
+                              final showNextEpOverlay = ref.read(
+                                playerControllerProvider.select(
+                                  (s) => s.showNextEpisodeOverlay,
+                                ),
+                              );
+                              final nextEpTitle = ref.read(
+                                playerControllerProvider.select(
+                                  (s) => s.nextEpisodeTitle,
+                                ),
+                              );
+
+                              if (resumePromptPosition != null ||
+                                  resumePromptPercentage != null) {
+                                _resumeFocusNode.requestFocus();
+                              } else if (showNextEpOverlay && nextEpTitle != null) {
+                                _nextEpFocusNode.requestFocus();
+                              } else if (_isSkipActive) {
+                                _skipFocusNode.requestFocus();
+                              } else {
+                                _backFocusNode.requestFocus();
+                              }
+                            },
+                          ),
+                        ),
+                        leading: leading,
+                        actions: actions,
+                      ),
+                    ),
+                    if (isBigPicture)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildMiniHint(
+                              context,
+                              'A',
+                              l10n.hintSelect,
+                              Colors.greenAccent.shade400,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildMiniHint(
+                              context,
+                              'B',
+                              l10n.hintExit,
+                              Colors.redAccent.shade400,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildMiniHint(
+                              context,
+                              'LT / RT',
+                              l10n.hintSeek(seekDuration),
+                              Colors.white,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildMiniHint(
+                              context,
+                              '≡',
+                              l10n.hintMenu,
+                              Colors.white,
+                            ),
+                          ],
                         ),
                       ),
-                      leading: leading,
-                      actions: actions,
-                    ),
-                  ),
-                  if (isBigPicture)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildMiniHint(
-                            context,
-                            'A',
-                            l10n.hintSelect,
-                            Colors.greenAccent.shade400,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildMiniHint(
-                            context,
-                            'B',
-                            l10n.hintExit,
-                            Colors.redAccent.shade400,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildMiniHint(
-                            context,
-                            'LT / RT',
-                            l10n.hintSeek(seekDuration),
-                            Colors.white,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildMiniHint(
-                            context,
-                            '≡',
-                            l10n.hintMenu,
-                            Colors.white,
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1715,8 +1764,8 @@ class SkyStreamPlayerControlsState
         isBigPicture: isBigPicture,
         onSkip: canSkip
             ? () => ref
-                  .read(playerControllerProvider.notifier)
-                  .skipLoadingOverlay()
+                .read(playerControllerProvider.notifier)
+                .skipLoadingOverlay()
             : null,
         onGoLive: () => ref.read(playerControllerProvider.notifier).goLive(),
       ),

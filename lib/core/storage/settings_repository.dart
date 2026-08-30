@@ -37,6 +37,30 @@ class SettingsRepository {
     return _storageService.getDefaultHomeScreen();
   }
 
+  Future<void> setDownloadDirectory(String? path) =>
+      _storageService.setDownloadDirectory(path);
+
+  String? getDownloadDirectory() => _storageService.getDownloadDirectory();
+
+  Future<void> setDownloadConcurrency(int value) =>
+      _storageService.setDownloadConcurrency(value);
+
+  int getDownloadConcurrency() => _storageService.getDownloadConcurrency();
+
+  Future<void> setDownloadChunks(int value) =>
+      _storageService.setDownloadChunks(value);
+
+  int getDownloadChunks() => _storageService.getDownloadChunks();
+
+  /// User-supplied TMDB API key. Empty string means "not set" — callers fall
+  /// back to the compile-time `--dart-define=TMDB_API_KEY` value.
+  static const String kTmdbApiKey = 'tmdb_api_key';
+
+  Future<void> setTmdbApiKey(String value) =>
+      _storageService.setString(kTmdbApiKey, value.isEmpty ? null : value);
+
+  String getTmdbApiKey() => _storageService.getString(kTmdbApiKey) ?? '';
+
   Future<void> setTitlePosition(String position) async {
     await _storageService.setTitlePosition(position);
   }

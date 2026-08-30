@@ -9,6 +9,7 @@ import '../../../core/extensions/models/extension_repository.dart';
 import '../../../core/extensions/extension_manager.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../providers/extensions_controller.dart';
+import '../../nuvio/presentation/nuvio_plugins_view.dart';
 import 'plugin_settings_screen.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
@@ -19,7 +20,9 @@ import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../settings/presentation/big_picture_provider.dart';
 
 class ExtensionsScreen extends ConsumerStatefulWidget {
-  const ExtensionsScreen({super.key});
+  final bool isEmbedded;
+
+  const ExtensionsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<ExtensionsScreen> createState() => _ExtensionsScreenState();
@@ -38,13 +41,14 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // Upstream expanded to 3 tabs to include Nuvio plugins
+    _tabController = TabController(length: 3, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         if (_tabController.index == 0) {
           _installedFocusNode.requestFocus();
-        } else {
+        } else if (_tabController.index == 1) {
           _reposFocusNode.requestFocus();
         }
       }
@@ -58,7 +62,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
       if (!mounted) return;
       if (index == 0) {
         _installedFocusNode.requestFocus();
-      } else {
+      } else if (index == 1) {
         _reposFocusNode.requestFocus();
       }
     });
@@ -109,6 +113,68 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
 
     final state = ref.watch(extensionsControllerProvider);
 
+    if (widget.isEmbedded) {
+      return switch (state) {
+        ExtensionsLoading(repositories: []) => const Center(
+          child: AppLoadingIndicator(),
+        ),
+        _ => Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: LayoutConstants.dashboardContentPadding,
+              ),
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                  dividerColor: Theme.of(
+                    context,
+                  ).dividerColor.withValues(alpha: 0.2),
+                  tabs: [
+                    Tab(text: l10n.installed),
+                    Tab(text: l10n.repositories),
+                    const Tab(text: 'Nuvio'),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildInstalledTab(context, ref, state),
+                      _buildRepositoriesTab(context, ref, state),
+                      const NuvioPluginsView(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      };
+    }
+
     return switch (state) {
       ExtensionsLoading(repositories: []) => Scaffold(
         appBar: AppBar(
@@ -121,13 +187,13 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
         actions: <Type, Action<Intent>>{
           AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
             onInvoke: (_) {
-              _switchTab(_tabController.index == 0 ? 1 : 0);
+              _switchTab((_tabController.index - 1 + 3) % 3);
               return null;
             },
           ),
           AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
             onInvoke: (_) {
-              _switchTab(_tabController.index == 1 ? 0 : 1);
+              _switchTab((_tabController.index + 1) % 3);
               return null;
             },
           ),
@@ -163,6 +229,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
                   tabs: [
                     Tab(text: l10n.installed),
                     Tab(text: l10n.repositories),
+                    const Tab(text: 'Nuvio'),
                   ],
                 ),
               ),
@@ -177,6 +244,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
                 children: [
                   _buildInstalledTab(context, ref, state),
                   _buildRepositoriesTab(context, ref, state),
+                  const NuvioPluginsView(),
                 ],
               ),
             ),
@@ -291,18 +359,19 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
     }
 
     ExtensionPlugin? firstPlugin;
-    if (hasDebug)
+    if (hasDebug) {
       firstPlugin = debugPlugins.first;
-    else if (installedPlugins.isNotEmpty)
+    } else if (installedPlugins.isNotEmpty) {
       firstPlugin = installedPlugins.first;
-    else if (installedOnlyPlugins.isNotEmpty)
+    } else if (installedOnlyPlugins.isNotEmpty) {
       firstPlugin = installedOnlyPlugins.first;
+    }
 
     return FocusTraversalGroup(
       policy: WidgetOrderTraversalPolicy(),
       child: ListView(
         padding: const EdgeInsets.only(
-          bottom: 24,
+          bottom: 100, // Upstream spacing
           top: LayoutConstants.spacingMd,
         ),
         addAutomaticKeepAlives: false,
@@ -403,7 +472,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
       policy: WidgetOrderTraversalPolicy(),
       child: ListView.builder(
         padding: const EdgeInsets.only(
-          bottom: 24,
+          bottom: 100, // Upstream spacing
           top: LayoutConstants.spacingMd,
         ),
         addAutomaticKeepAlives: false,
@@ -412,7 +481,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
           if (index < state.repositories.length) {
             final repo = state.repositories[index];
             final plugins = state.availablePlugins[repo.url] ?? [];
-            return _RepoTile(
+            return _RepoExpansionCard(
               repo: repo,
               plugins: plugins,
               state: state,
@@ -749,15 +818,15 @@ class _AddRepoTileState extends ConsumerState<_AddRepoTile> {
 }
 
 // ---------------------------------------------------------------------------
-// Repo Tile Widget
+// Repo Expansion Tile (Upstream ExpansionTile + Gamepad Focus)
 // ---------------------------------------------------------------------------
-class _RepoTile extends ConsumerStatefulWidget {
+class _RepoExpansionCard extends ConsumerStatefulWidget {
   final ExtensionRepository repo;
   final List<ExtensionPlugin> plugins;
   final ExtensionsState state;
   final FocusNode? focusNode;
 
-  const _RepoTile({
+  const _RepoExpansionCard({
     required this.repo,
     required this.plugins,
     required this.state,
@@ -765,10 +834,10 @@ class _RepoTile extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_RepoTile> createState() => _RepoTileState();
+  ConsumerState<_RepoExpansionCard> createState() => _RepoExpansionCardState();
 }
 
-class _RepoTileState extends ConsumerState<_RepoTile> {
+class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
   late FocusNode _repoFocusNode;
   bool _ownsFocusNode = false;
 
@@ -899,220 +968,198 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
         left: LayoutConstants.spacingMd,
         right: LayoutConstants.spacingMd,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Actions(
-            actions: <Type, Action<Intent>>{
-              AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
-                onInvoke: (_) {
-                  if (!allInstalled && widget.plugins.isNotEmpty) {
-                    final pluginsToInstall = widget.plugins.where((p) {
-                      final installed = widget.state.installedPlugins
-                          .cast<ExtensionPlugin?>()
-                          .firstWhere(
-                            (inst) => inst?.packageName == p.packageName,
-                            orElse: () => null,
-                          );
-                      return installed == null || p.version > installed.version;
-                    }).toList();
-                    if (pluginsToInstall.isNotEmpty) {
-                      ref
-                          .read(extensionsControllerProvider.notifier)
-                          .installPlugins(pluginsToInstall);
-                    }
-                  }
-                  return null;
-                },
-              ),
-              AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
-                onInvoke: (_) {
-                  _confirmDeleteRepo(context, ref, widget.repo);
-                  return null;
-                },
-              ),
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              if (!allInstalled && widget.plugins.isNotEmpty) {
+                final pluginsToInstall = widget.plugins.where((p) {
+                  final installed = widget.state.installedPlugins
+                      .cast<ExtensionPlugin?>()
+                      .firstWhere(
+                        (inst) => inst?.packageName == p.packageName,
+                        orElse: () => null,
+                      );
+                  return installed == null || p.version > installed.version;
+                }).toList();
+                if (pluginsToInstall.isNotEmpty) {
+                  ref
+                      .read(extensionsControllerProvider.notifier)
+                      .installPlugins(pluginsToInstall);
+                }
+              }
+              return null;
             },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+          ),
+          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+            onInvoke: (_) {
+              _confirmDeleteRepo(context, ref, widget.repo);
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          focusNode: _repoFocusNode,
+          canRequestFocus: false, // The internal ExpansionTile takes focus natively
+          skipTraversal: true,
+          onFocusChange: (f) {
+            setState(() => _isFocused = f);
+            _updateHints(f, l10n);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: _isFocused
+                  ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              border: Border.all(
                 color: _isFocused
-                    ? theme.colorScheme.primary.withValues(alpha: 0.22)
+                    ? theme.colorScheme.primary
                     : Colors.transparent,
-                border: Border.all(
-                  color: _isFocused
-                      ? theme.colorScheme.primary
-                      : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: Material(
-                type: MaterialType.transparency,
-                child: ListTile(
-                  focusNode: _repoFocusNode,
-                  onFocusChange: (f) {
-                    setState(() => _isFocused = f);
-                    _updateHints(f, l10n);
-                  },
-                  onTap: () {
-                    setState(() => _isExpanded = !_isExpanded);
-                    if (_repoFocusNode.hasPrimaryFocus)
-                      _updateHints(true, l10n);
-                  },
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: LayoutConstants.spacingMd,
-                    vertical: LayoutConstants.spacingXs,
-                  ),
-                  title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.repo.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (widget.repo.description?.isNotEmpty ?? false) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          widget.repo.description!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Visual hints for Gamepad users
-                      if (isBigPicture) ...[
-                        if (!allInstalled && widget.plugins.isNotEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 8),
-                            child: Icon(
-                              Icons.download,
-                              color: Colors.blueAccent,
-                            ),
-                          ),
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            Icons.delete_outline,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                      Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-                    ],
-                  ),
-                ),
+                width: 2,
               ),
             ),
-          ),
-
-          if (_isExpanded) ...[
-            // Show interactive buttons for Desktop/Mobile users
-            if (!isBigPicture)
-              Padding(
-                padding: const EdgeInsets.symmetric(
+            child: Material(
+              type: MaterialType.transparency,
+              child: ExpansionTile(
+                key: PageStorageKey('repo_${widget.repo.url}'),
+                shape: const Border(),
+                collapsedShape: const Border(),
+                initiallyExpanded: false,
+                backgroundColor: Colors.transparent,
+                collapsedBackgroundColor: Colors.transparent,
+                onExpansionChanged: (expanded) {
+                  setState(() => _isExpanded = expanded);
+                  if (_isFocused) _updateHints(true, l10n);
+                },
+                tilePadding: const EdgeInsets.symmetric(
                   horizontal: LayoutConstants.spacingMd,
                   vertical: LayoutConstants.spacingXs,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isRepoInstalling)
-                      const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: AppLoadingIndicator(
-                          constraints: BoxConstraints(
-                            minWidth: 24,
-                            minHeight: 24,
-                            maxWidth: 24,
-                            maxHeight: 24,
-                          ),
-                        ),
-                      )
-                    else ...[
-                      TextButton.icon(
-                        icon: Icon(
-                          allInstalled
-                              ? Icons.check_circle_outline
-                              : Icons.download,
-                          color: allInstalled
-                              ? theme.colorScheme.primary
-                              : null,
-                        ),
-                        label: Text(
-                          allInstalled
-                              ? 'All installed'
-                              : l10n.downloadAllProviders,
-                        ),
-                        onPressed: allInstalled || widget.plugins.isEmpty
-                            ? null
-                            : () {
-                                final pluginsToInstall = widget.plugins.where((
-                                  p,
-                                ) {
-                                  final installed = widget
-                                      .state
-                                      .installedPlugins
-                                      .cast<ExtensionPlugin?>()
-                                      .firstWhere(
-                                        (inst) =>
-                                            inst?.packageName == p.packageName,
-                                        orElse: () => null,
-                                      );
-                                  return installed == null ||
-                                      p.version > installed.version;
-                                }).toList();
-                                if (pluginsToInstall.isNotEmpty) {
-                                  ref
-                                      .read(
-                                        extensionsControllerProvider.notifier,
-                                      )
-                                      .installPlugins(pluginsToInstall);
-                                }
-                              },
+                    Text(
+                      widget.repo.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: LayoutConstants.spacingSm),
-                      TextButton.icon(
-                        icon: const Icon(Icons.delete_outline),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
+                    ),
+                    if (widget.repo.description?.isNotEmpty ?? false) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.repo.description!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        label: Text(l10n.delete),
-                        onPressed: () =>
-                            _confirmDeleteRepo(context, ref, widget.repo),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ],
                 ),
-              ),
-            if (!isBigPicture) const Divider(height: 1),
-            ...widget.plugins.asMap().entries.map((entry) {
-              final isLast = entry.key == widget.plugins.length - 1;
-              return Column(
                 children: [
-                  _PluginTile(plugin: entry.value),
-                  if (!isLast)
-                    Divider(
-                      height: 1,
-                      indent: 56,
-                      endIndent: 16,
-                      color: theme.dividerColor.withValues(alpha: 0.5),
+                  if (!isBigPicture)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: LayoutConstants.spacingMd,
+                        vertical: LayoutConstants.spacingXs,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (isRepoInstalling)
+                            const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: AppLoadingIndicator(
+                                constraints: BoxConstraints(
+                                  minWidth: 24,
+                                  minHeight: 24,
+                                  maxWidth: 24,
+                                  maxHeight: 24,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            TextButton.icon(
+                              icon: Icon(
+                                allInstalled
+                                    ? Icons.check_circle_outline
+                                    : Icons.download,
+                                color: allInstalled
+                                    ? theme.colorScheme.primary
+                                    : null,
+                              ),
+                              label: Text(
+                                allInstalled
+                                    ? 'All installed'
+                                    : l10n.downloadAllProviders,
+                              ),
+                              onPressed: allInstalled || widget.plugins.isEmpty
+                                  ? null
+                                  : () {
+                                      final pluginsToInstall = widget.plugins.where((
+                                        p,
+                                      ) {
+                                        final installed = widget
+                                            .state
+                                            .installedPlugins
+                                            .cast<ExtensionPlugin?>()
+                                            .firstWhere(
+                                              (inst) =>
+                                                  inst?.packageName == p.packageName,
+                                              orElse: () => null,
+                                            );
+                                        return installed == null ||
+                                            p.version > installed.version;
+                                      }).toList();
+                                      if (pluginsToInstall.isNotEmpty) {
+                                        ref
+                                            .read(
+                                              extensionsControllerProvider.notifier,
+                                            )
+                                            .installPlugins(pluginsToInstall);
+                                      }
+                                    },
+                            ),
+                            const SizedBox(width: LayoutConstants.spacingSm),
+                            TextButton.icon(
+                              icon: const Icon(Icons.delete_outline),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                              ),
+                              label: Text(l10n.delete),
+                              onPressed: () =>
+                                  _confirmDeleteRepo(context, ref, widget.repo),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
+                  if (!isBigPicture) const Divider(height: 1),
+                  ...widget.plugins.asMap().entries.map((entry) {
+                    final isLast = entry.key == widget.plugins.length - 1;
+                    return Column(
+                      children: [
+                        _PluginTile(plugin: entry.value),
+                        if (!isLast)
+                          Divider(
+                            height: 1,
+                            indent: 56,
+                            endIndent: 16,
+                            color: theme.dividerColor.withValues(alpha: 0.5),
+                          ),
+                      ],
+                    );
+                  }),
                 ],
-              );
-            }),
-          ],
-        ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1121,7 +1168,6 @@ class _RepoTileState extends ConsumerState<_RepoTile> {
 // ---------------------------------------------------------------------------
 // Plugin Tile Widget
 // ---------------------------------------------------------------------------
-
 class _PluginTile extends ConsumerStatefulWidget {
   final ExtensionPlugin plugin;
   final bool isDebugSection;
@@ -1456,7 +1502,6 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                               PluginSettingsScreen(plugin: installedPlugin),
                         ),
                       );
-                      if (context.mounted) _tileFocusNode.requestFocus();
                     }
                   } else if (!isInstalling) {
                     await ref
@@ -1479,7 +1524,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                   child: Icon(
                     isInstalled
                         ? Icons.check_circle_rounded
-                        : Icons.download_rounded,
+                        : Icons.extension_outlined,
                     color: isInstalled
                         ? Colors.green
                         : theme.colorScheme.primary,
@@ -1511,7 +1556,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Visual hints for Gamepad users
+                          // Visual hints for Gamepad users (not individually focusable)
                           if (isInstalled && updateAvailable != null)
                             const Padding(
                               padding: EdgeInsets.only(left: 8),

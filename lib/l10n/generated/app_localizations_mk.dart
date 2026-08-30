@@ -242,10 +242,10 @@ class AppLocalizationsMk extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Истражи аниме';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Истражи филмови';
 
   @override
   String get popularMovies => 'Популарни филмови';
@@ -472,13 +472,13 @@ class AppLocalizationsMk extends AppLocalizations {
   String get skip => 'Прескокни';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Прескокни вовед';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Прескокни крај';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Прескокни резиме';
 
   @override
   String get goLive => 'Оди во живо';
@@ -907,13 +907,13 @@ class AppLocalizationsMk extends AppLocalizations {
   String get defaultHomeScreen => 'Стандарден почетен екран';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Позиција на насловот';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Под постерот';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Во постерот';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1060,11 +1060,11 @@ class AppLocalizationsMk extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub прокси';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Насочи ги преземањата на екстензии преку jsDelivr за да ги заобиколиш блокадите на операторот.';
 
   @override
   String get wifiQualityPreference => 'Преференца за Wi-Fi квалитет';
@@ -1238,7 +1238,7 @@ class AppLocalizationsMk extends AppLocalizations {
   String get subtitleAccounts => 'Сметки за превод';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Сметки';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1394,21 +1394,21 @@ class AppLocalizationsMk extends AppLocalizations {
   String get installed => 'Инсталирано';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Складишта';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Нема инсталирани екстензии';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Отвори го јазичето „Складишта“ за да откриеш и инсталираш екстензии.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Прегледај складишта';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Додај URL на складиште или краток код за да откриеш и инсталираш приклучоци.';
 
   @override
   String updateTo(String version) {

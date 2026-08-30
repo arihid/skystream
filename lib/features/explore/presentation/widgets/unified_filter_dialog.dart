@@ -69,7 +69,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
 
   @override
   Widget build(BuildContext context) {
-    final isAnime = ref.watch(exploreModeProvider);
+    final isAnime = ref.watch(exploreModeProvider) == ExploreModeType.anime;
 
     // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;

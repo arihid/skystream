@@ -289,8 +289,9 @@ class DpadColorCircle extends StatelessWidget {
       },
       child: DpadFocusable(
         onSelect: onTap,
-        builder: (context, focusState, child) {
-          final isFocused = Focus.of(context).hasFocus;
+        child: const SizedBox.shrink(),
+        builder: (context, state, child) {
+          final isFocused = state.focused;
           final size = isFocused ? 38.0 : 28.0;
 
           return AnimatedContainer(
@@ -329,7 +330,6 @@ class DpadColorCircle extends StatelessWidget {
             ),
           );
         },
-        child: const SizedBox.shrink(),
       ),
     );
   }
@@ -352,8 +352,9 @@ class DpadButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DpadFocusable(
       onSelect: onPressed,
-      builder: (context, focusState, child) {
-        final isFocused = Focus.of(context).hasFocus;
+      child: const SizedBox.shrink(),
+      builder: (context, state, child) {
+        final isFocused = state.focused;
 
         final baseColor = isPrimary
             ? HotstarPlayerStyle.accent
@@ -408,7 +409,6 @@ class DpadButton extends StatelessWidget {
           ),
         );
       },
-      child: const SizedBox.shrink(),
     );
   }
 }
@@ -532,12 +532,12 @@ class _SubtitleAppearanceDialogState
 
   Future<void> _pickCustomFont() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['ttf', 'otf'],
       );
-      if (result != null && result.files.single.path != null) {
-        final path = result.files.single.path!;
+      if (picked?.path != null) {
+        final path = picked!.path!;
         setState(() {
           _localSettings = _localSettings.copyWith(
             subTypefaceFilePath: () => path,

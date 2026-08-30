@@ -147,6 +147,8 @@ class PlaybackLauncher {
             .read(notificationServiceProvider)
             .showError(
               AppLocalizations.of(context)!.playerNotDetected(playerName),
+              title: playerName,
+              icon: Icons.play_circle_outline_rounded,
             );
         unawaited(
           PlayerRoute(
@@ -184,6 +186,8 @@ class PlaybackLauncher {
             AppLocalizations.of(
               context,
             )!.usingInternalPlayerError(e.toString()),
+            title: 'Playback Fallback',
+            icon: Icons.play_circle_outline_rounded,
           );
       unawaited(
         PlayerRoute(
@@ -227,6 +231,8 @@ class PlaybackLauncher {
           .read(notificationServiceProvider)
           .showError(
             AppLocalizations.of(context)!.playerNotDetected(playerName),
+            title: playerName,
+            icon: Icons.play_circle_outline_rounded,
           );
       unawaited(
         PlayerRoute(

@@ -470,8 +470,8 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     final theme = Theme.of(context);
     final scaffoldColor = theme.scaffoldBackgroundColor;
 
-    return CardsWrapper(
-      scaleFactor: 1.0,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         if (widget.onTap != null) {
           widget.onTap!(movie);
@@ -479,7 +479,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
           _navigateToDetails(context, movie);
         }
       },
-      borderRadius: BorderRadius.zero,
       child: RepaintBoundary(
         child: ValueListenableBuilder<double>(
           valueListenable: _scrollOffset,
@@ -515,8 +514,8 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
     bool isDesktop = false,
   }) {
     final theme = Theme.of(context);
-    return CardsWrapper(
-      scaleFactor: 1.0,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         if (widget.onTap != null) {
           widget.onTap!(movie);
@@ -524,7 +523,6 @@ class _ExploreCarouselState extends ConsumerState<ExploreCarousel>
           _navigateToDetails(context, movie);
         }
       },
-      borderRadius: BorderRadius.zero,
       child: _buildSlideBase(
         context: context,
         movie: movie,

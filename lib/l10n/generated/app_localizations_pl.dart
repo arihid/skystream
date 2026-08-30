@@ -242,10 +242,10 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Przeglądaj anime';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Przeglądaj filmy';
 
   @override
   String get popularMovies => 'Popularne filmy';
@@ -476,13 +476,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get skip => 'Pomiń';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Pomiń intro';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Pomiń napisy';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Pomiń streszczenie';
 
   @override
   String get goLive => 'Na żywo';
@@ -904,13 +904,13 @@ class AppLocalizationsPl extends AppLocalizations {
   String get defaultHomeScreen => 'Domyślny ekran główny';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Pozycja tytułu';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Pod plakatem';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Na plakacie';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1057,11 +1057,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'Proxy GitHuba';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Kieruj pobieranie rozszerzeń przez jsDelivr, aby ominąć blokady dostawcy internetu.';
 
   @override
   String get wifiQualityPreference => 'Preferencja jakości Wi-Fi';
@@ -1235,7 +1235,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get subtitleAccounts => 'Konta napisów';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Konta';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1391,21 +1391,21 @@ class AppLocalizationsPl extends AppLocalizations {
   String get installed => 'Zainstalowano';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Repozytoria';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Brak zainstalowanych rozszerzeń';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Otwórz kartę Repozytoria, aby znaleźć i zainstalować rozszerzenia.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Przeglądaj repozytoria';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Dodaj adres URL repozytorium lub krótki kod, aby znaleźć i zainstalować wtyczki rozszerzeń.';
 
   @override
   String updateTo(String version) {

@@ -11,6 +11,7 @@ import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:video_view/video_view.dart'
     show VideoController, SubtitleTrackConfig, VideoControllerPlaybackState;
 
@@ -405,6 +406,7 @@ class PlayerController extends Notifier<PlayerState> {
   late MultimediaItem _item;
   late String _videoUrl;
   Episode? _episode;
+  List<StreamResult>? _preloadedStreams;
   Timer? _torrentPollTimer;
   bool _isPolling = false;
   bool _isInitialized = false;
@@ -521,6 +523,17 @@ class PlayerController extends Notifier<PlayerState> {
   Timer? _stallRecoveryGuardTimer;
 
   final List<DateTime> _bufferDepletionTimes = [];
+
+  // Seek/buffer watchdog. The silent-stall watchdog below deliberately ignores
+  // buffering, so a seek that lands outside the cache (jump to 01:00:00 on a
+  // torrent or a CDN that answers the new Range badly) could sit on the
+  // spinner forever. This one escalates: nudge the seek, re-open the same
+  // source at the same position, then fail over to the next source.
+  Timer? _bufferWatchdogTimer;
+  DateTime? _bufferingSince;
+  Duration? _bufferingStartPosition;
+  int _bufferRecoveryStage = 0;
+
   Timer? _stallTimer;
   // Hide-debounce for the buffering overlay. Without this, a 250-350 ms
   // network blip would show the overlay (300 ms past the show-debounce)
@@ -564,12 +577,6 @@ class PlayerController extends Notifier<PlayerState> {
   // source equally.
   bool _forceSoftwareDecode = false;
 
-  // Bug 4 — provider stream URLs are usually short-lived signed links. After
-  // a long pause the token expires; on resume the fetch 403/410s. We
-  // re-resolve the SAME source once (fresh URL, same position) before falling
-  // back to a different source. Reset on every confirmed playback frame so
-  // each playback session gets one re-resolve attempt.
-  bool _staleUrlReResolveAttempted = false;
   bool _suppressNextEpisodeDetection = false;
   bool _isNextEpisodeOverlayForced = false;
   bool _userDismissedOverlay = false;
@@ -581,6 +588,26 @@ class PlayerController extends Notifier<PlayerState> {
   // to "no" before the error event fires, so we track it here via stream.track).
   String? _lastKnownAudioTrackId;
   DateTime? _audioFailoverLastTime;
+
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isAppBackgrounded = false;
+  int _midPlaybackRetryCount = 0;
+  bool _isReconnectingCurrentStream = false;
+  Timer? _midPlaybackRetryTimer;
+
+  void setAppBackgrounded(bool backgrounded) {
+    _isAppBackgrounded = backgrounded;
+    if (kDebugMode) {
+      debugPrint('[Player] App backgrounded state: $backgrounded');
+    }
+    if (!backgrounded &&
+        _hasConfirmedPlaybackFrame &&
+        state.uiPhase.kind == PlaybackUiPhaseKind.bufferingRuntime) {
+      // Returning to foreground while in buffering/reconnecting state — kick reconnection immediately
+      _midPlaybackRetryTimer?.cancel();
+      unawaited(_triggerMidPlaybackReconnect());
+    }
+  }
 
   String _phaseTitle([String? fallback]) {
     if (state.playerTitle.isNotEmpty) return state.playerTitle;
@@ -721,7 +748,7 @@ class PlayerController extends Notifier<PlayerState> {
       for (int i = 0; i < streams.length; i++)
         SourceAttemptEntry(
           index: i,
-          label: streams[i].source,
+          label: streams[i].displaySource,
           status: i == activeIndex
               ? (activeStatus ?? SourceAttemptStatus.pending)
               : SourceAttemptStatus.pending,
@@ -764,11 +791,6 @@ class PlayerController extends Notifier<PlayerState> {
   void _confirmPlaybackStarted() {
     _hasConfirmedPlaybackFrame = true;
     _manualSelectionPending = false; // source played — no longer pending
-    // A frame confirmed → this playback session is healthy. Re-arm the
-    // one-shot stale-URL re-resolve so the NEXT expiry (e.g. after another
-    // long pause) is also handled rather than falling straight to a
-    // different source.
-    _staleUrlReResolveAttempted = false;
     // Do NOT reset _suppressNextEpisodeDetection here. At the moment position
     // first exceeds zero, _player.state.duration may still hold the previous
     // episode's value (mpv resets it asynchronously). Resetting here would
@@ -800,6 +822,8 @@ class PlayerController extends Notifier<PlayerState> {
       _rateSub?.cancel();
       _logSub?.cancel();
       _trackSub?.cancel();
+      _connectivitySub?.cancel();
+      _midPlaybackRetryTimer?.cancel();
     });
     return const PlayerState();
   }
@@ -817,6 +841,7 @@ class PlayerController extends Notifier<PlayerState> {
     required MultimediaItem item,
     required String videoUrl,
     Episode? episode,
+    List<StreamResult>? preloadedStreams,
     VideoController? videoViewController,
   }) async {
     state = const PlayerState(); // Resets all fields including errorMessage
@@ -828,11 +853,18 @@ class PlayerController extends Notifier<PlayerState> {
     _revertMessage = null;
     // New item — reset session-scoped recovery flags.
     _forceSoftwareDecode = false;
-    _staleUrlReResolveAttempted = false;
+    _isAppBackgrounded = false;
+    _midPlaybackRetryCount = 0;
+    _isReconnectingCurrentStream = false;
+    _midPlaybackRetryTimer?.cancel();
+    _midPlaybackRetryTimer = null;
     _player = player;
     _videoViewController = videoViewController;
     _videoUrl = videoUrl;
     _episode = episode;
+    _preloadedStreams = preloadedStreams == null || preloadedStreams.isEmpty
+        ? null
+        : List<StreamResult>.from(preloadedStreams);
     _pendingResumeSeekPosition = null;
     _isApplyingPendingResumeSeek = false;
     _userAddedExternalSubtitles.clear();
@@ -899,6 +931,7 @@ class PlayerController extends Notifier<PlayerState> {
     _setupBufferingMonitor();
     _setupRateListener();
     _setupVideoViewListeners();
+    _setupConnectivityListener();
 
     state = state.copyWith(
       isLive:
@@ -1130,6 +1163,7 @@ class PlayerController extends Notifier<PlayerState> {
 
     _videoViewController!.loading.addListener(() {
       final isLoading = _videoViewController!.loading.value;
+      _onBufferingChanged(isLoading);
       if (isLoading) {
         _handleBufferStall();
         // Buffering started — cancel any pending HIDE (we're back in
@@ -1185,6 +1219,14 @@ class PlayerController extends Notifier<PlayerState> {
         pendingVideoViewSubtitleIdsBeforeReload = null;
         selectNewestVideoViewSubtitleAfterReload = false;
         if (kDebugMode) debugPrint("VideoView Player Error: $error");
+        if (_isAppBackgrounded) {
+          if (kDebugMode) {
+            debugPrint(
+              "VideoView: Ignoring transient error while backgrounded.",
+            );
+          }
+          return;
+        }
         if (!_hasConfirmedPlaybackFrame ||
             (_videoViewController!.position.value) == 0) {
           // Error before playback confirmed — try next source.
@@ -1217,6 +1259,12 @@ class PlayerController extends Notifier<PlayerState> {
             _beginStallRecovery(
               perform: changeStream(state.currentStream!, resetPosition: true),
             );
+            return;
+          }
+          if (_isReconnectingCurrentStream) return;
+          if (_midPlaybackRetryCount < 3 && state.currentStream != null) {
+            _midPlaybackRetryCount++;
+            unawaited(_triggerMidPlaybackReconnect());
             return;
           }
           _markSourceAttempt(
@@ -1278,6 +1326,14 @@ class PlayerController extends Notifier<PlayerState> {
         _confirmPlaybackStarted();
       }
 
+      if (_midPlaybackRetryCount > 0 &&
+          _videoViewController!.playbackState.value ==
+              VideoControllerPlaybackState.playing) {
+        _midPlaybackRetryCount = 0;
+        _isReconnectingCurrentStream = false;
+        _midPlaybackRetryTimer?.cancel();
+      }
+
       if (durationMs == 0) return;
 
       final currentPct = posMs / durationMs;
@@ -1296,27 +1352,8 @@ class PlayerController extends Notifier<PlayerState> {
         // Show next episode overlay if within last 15 seconds or video ended.
         // It persists until the user dismisses it or loads a new episode.
         if (remainingSecs <= 15.0) {
-          final currentEp = _episode ?? _resolveCurrentEpisode();
-          List<Episode>? episodes = _item.episodes;
-          if (isSeries &&
-              currentEp != null &&
-              currentEp.dubStatus != DubStatus.none) {
-            episodes = episodes
-                ?.where((e) => e.dubStatus == currentEp.dubStatus)
-                .toList();
-          }
-
-          int? currentIndex;
-          if (currentEp != null) {
-            currentIndex = episodes?.indexWhere((e) => e.url == currentEp.url);
-          } else {
-            currentIndex = episodes?.indexWhere((e) => e.url == _videoUrl);
-          }
-          if (currentIndex != null &&
-              currentIndex != -1 &&
-              episodes != null &&
-              currentIndex < episodes.length - 1) {
-            final next = episodes[currentIndex + 1];
+          final next = getNextEpisode();
+          if (next != null) {
             if (!_userDismissedOverlay && !state.showNextEpisodeOverlay) {
               state = state.copyWith(
                 showNextEpisodeOverlay: true,
@@ -1351,28 +1388,8 @@ class PlayerController extends Notifier<PlayerState> {
     }
     if (_userDismissedOverlay) return;
 
-    final currentEp = _episode ?? _resolveCurrentEpisode();
-    List<Episode>? episodes = _item.episodes;
-    if (isSeries &&
-        currentEp != null &&
-        currentEp.dubStatus != DubStatus.none) {
-      episodes = episodes
-          ?.where((e) => e.dubStatus == currentEp.dubStatus)
-          .toList();
-    }
-
-    int? currentIndex;
-    if (currentEp != null) {
-      currentIndex = episodes?.indexWhere((e) => e.url == currentEp.url);
-    } else {
-      currentIndex = episodes?.indexWhere((e) => e.url == _videoUrl);
-    }
-
-    if (currentIndex != null &&
-        currentIndex != -1 &&
-        episodes != null &&
-        currentIndex < episodes.length - 1) {
-      final next = episodes[currentIndex + 1];
+    final next = getNextEpisode();
+    if (next != null) {
       _isNextEpisodeOverlayForced = true;
       state = state.copyWith(
         showNextEpisodeOverlay: true,
@@ -1382,6 +1399,7 @@ class PlayerController extends Notifier<PlayerState> {
         nextEpisodeNumber: next.episode,
         nextEpisodeSeason: next.season,
         nextEpisodeRuntime: next.runtime,
+        nextEpisodeDescription: next.description,
       );
     }
   }
@@ -1428,6 +1446,7 @@ class PlayerController extends Notifier<PlayerState> {
   void _setupBufferingMonitor() {
     _bufferingSub?.cancel();
     _bufferingSub = _player.stream.buffering.listen((isBuffering) {
+      _onBufferingChanged(isBuffering);
       if (isBuffering) {
         _handleBufferStall();
         // Cancel pending hide and arm the show debounce. See ExoPlayer
@@ -1472,12 +1491,99 @@ class PlayerController extends Notifier<PlayerState> {
     });
   }
 
+  /// Current playback position regardless of which backend is in use.
+  Duration get _currentPosition => state.useExoPlayer
+      ? Duration(milliseconds: _videoViewController?.position.value ?? 0)
+      : _player.state.position;
+
+  /// Called whenever the backend flips its buffering flag.
+  void _onBufferingChanged(bool isBuffering) {
+    if (!isBuffering) {
+      _bufferingSince = null;
+      _bufferingStartPosition = null;
+      _bufferRecoveryStage = 0;
+      _bufferWatchdogTimer?.cancel();
+      _bufferWatchdogTimer = null;
+      return;
+    }
+    _bufferingSince ??= DateTime.now();
+    _bufferingStartPosition ??= _currentPosition;
+    _bufferWatchdogTimer ??= Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _checkBufferWatchdog(),
+    );
+  }
+
+  /// Escalating recovery for "I jumped to 01:00:00 and it just spins".
+  ///
+  /// 12 s → re-issue the seek and kick play (unsticks mpv when the demuxer
+  /// dropped the request after a Range response it disliked).
+  /// 25 s → re-open the *same* source at the same position, which makes a
+  /// fresh Range request; for torrents this re-prioritises pieces around the
+  /// new offset instead of waiting on the old read head.
+  /// 45 s → give up on this source and fail over to the next one.
+  void _checkBufferWatchdog() {
+    final since = _bufferingSince;
+    if (since == null) return;
+    if (!_hasConfirmedPlaybackFrame) return; // startup has its own handling
+    if (state.isLive) return; // live reconnect is handled elsewhere
+    if (_isRecoveringFromStall) return;
+
+    final position = _currentPosition;
+    final startedAt = _bufferingStartPosition;
+    if (startedAt != null &&
+        (position - startedAt).abs() > const Duration(seconds: 1)) {
+      // Playback moved on its own — treat this as a fresh buffering window.
+      _bufferingSince = DateTime.now();
+      _bufferingStartPosition = position;
+      _bufferRecoveryStage = 0;
+      return;
+    }
+
+    final stuckFor = DateTime.now().difference(since);
+    if (_bufferRecoveryStage == 0 && stuckFor.inSeconds >= 12) {
+      _bufferRecoveryStage = 1;
+      if (kDebugMode) {
+        debugPrint('Watchdog: buffering 12s — re-issuing seek to $position');
+      }
+      unawaited(() async {
+        await _safeSeekTo(position.inMilliseconds);
+        await play();
+      }());
+      return;
+    }
+
+    if (_bufferRecoveryStage == 1 && stuckFor.inSeconds >= 25) {
+      _bufferRecoveryStage = 2;
+      final current = state.currentStream;
+      if (current == null) return;
+      if (kDebugMode) {
+        debugPrint('Watchdog: buffering 25s — reopening source at $position');
+      }
+      _enterRuntimePhase(
+        kind: PlaybackUiPhaseKind.bufferingRuntime,
+        detail: 'Reconnecting to the source…',
+      );
+      _beginStallRecovery(perform: changeStream(current, resetPosition: false));
+      return;
+    }
+
+    if (_bufferRecoveryStage == 2 && stuckFor.inSeconds >= 45) {
+      _bufferRecoveryStage = 3;
+      if (kDebugMode) {
+        debugPrint('Watchdog: buffering 45s — moving to the next source');
+      }
+      _revertMessage =
+          'This source stopped responding after the seek. Trying the next one…';
+      unawaited(retryNextStream(sourceSessionId: state.sourceSessionId));
+    }
+  }
+
   void _handleBufferStall() {
     if (!_hasConfirmedPlaybackFrame) {
       return; // ignore stalls during source health check
     }
     if (_isLiveStream(_videoUrl)) return;
-
     final now = DateTime.now();
     _bufferDepletionTimes.add(now);
 
@@ -1522,7 +1628,12 @@ class PlayerController extends Notifier<PlayerState> {
 
     _errorSub = _player.stream.error.listen((error) {
       if (kDebugMode) debugPrint("Player Error: $error");
-      if (error.toString().toLowerCase().contains("abort")) return;
+      final errStr = error.toString().toLowerCase();
+      if (errStr.contains("abort") ||
+          errStr.contains("expected '='") ||
+          errStr.contains("option syntax")) {
+        return;
+      }
 
       final isAudioDecodeError = error.toString().toLowerCase().contains(
         'decoding audio',
@@ -1661,6 +1772,12 @@ class PlayerController extends Notifier<PlayerState> {
         }
       } else {
         // Error during active playback.
+        if (_isAppBackgrounded) {
+          if (kDebugMode) {
+            debugPrint('[Player] Ignoring transient error while backgrounded.');
+          }
+          return;
+        }
         if (state.isLive && state.currentStream != null) {
           if (_isRecoveringFromStall) return; // watchdog already reconnecting
           if (kDebugMode) {
@@ -1675,26 +1792,17 @@ class PlayerController extends Notifier<PlayerState> {
           );
           return;
         }
-        // Bug 4: a source that played fine and then errors mid-playback is
-        // almost always an expired signed URL (the user paused past the
-        // token TTL, or the CDN rotated the link). Re-resolve the SAME
-        // source once — it returns a fresh URL and resumes at the saved
-        // position — instead of switching to a worse/different source.
-        // Only fall back to a different source if the re-resolve also
-        // fails (changeStream → revertToPreviousStream on error).
-        if (!_staleUrlReResolveAttempted && state.currentStream != null) {
-          _staleUrlReResolveAttempted = true;
+        // During active playback, seamlessly reconnect/refresh the same source
+        // up to 3 times before considering failover to a different source.
+        if (_isReconnectingCurrentStream) return;
+        if (_midPlaybackRetryCount < 3 && state.currentStream != null) {
+          _midPlaybackRetryCount++;
           if (kDebugMode) {
             debugPrint(
-              '[Player] Mid-playback error — re-resolving current source '
-              '(likely expired stream URL).',
+              '[Player] Mid-playback error — attempting seamless reconnect ($_midPlaybackRetryCount/3).',
             );
           }
-          _enterRuntimePhase(
-            kind: PlaybackUiPhaseKind.switchingSource,
-            detail: "Refreshing stream...",
-          );
-          unawaited(changeStream(state.currentStream!, resetPosition: false));
+          unawaited(_triggerMidPlaybackReconnect());
           return;
         }
 
@@ -1708,6 +1816,134 @@ class PlayerController extends Notifier<PlayerState> {
         retryNextStream(sourceSessionId: state.sourceSessionId);
       }
     });
+  }
+
+  void _setupConnectivityListener() {
+    _connectivitySub?.cancel();
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final isConnected = results.any((r) => r != ConnectivityResult.none);
+      if (isConnected) {
+        // If we were stalled / reconnecting during active playback, kick reconnection immediately
+        if (_isReconnectingCurrentStream ||
+            (_hasConfirmedPlaybackFrame &&
+                state.uiPhase.kind == PlaybackUiPhaseKind.bufferingRuntime)) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Player] Network restored — triggering immediate stream reconnect.',
+            );
+          }
+          _midPlaybackRetryTimer?.cancel();
+          _triggerMidPlaybackReconnect();
+        }
+      }
+    });
+  }
+
+  Future<void> _triggerMidPlaybackReconnect() async {
+    if (state.currentStream == null || _isDisposed) return;
+    if (_isReconnectingCurrentStream) return;
+    _isReconnectingCurrentStream = true;
+
+    // Check connectivity first
+    bool hasConnection = true;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      hasConnection = results.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      hasConnection = true;
+    }
+
+    if (!hasConnection) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Player] Device is offline — waiting for network reconnection.',
+        );
+      }
+      _isReconnectingCurrentStream = false;
+      _enterRuntimePhase(
+        kind: PlaybackUiPhaseKind.bufferingRuntime,
+        detail: "Waiting for network connection...",
+      );
+      return;
+    }
+
+    final oldPos = state.useExoPlayer
+        ? Duration(milliseconds: _videoViewController?.position.value ?? 0)
+        : _player.state.position;
+
+    _enterRuntimePhase(
+      kind: PlaybackUiPhaseKind.bufferingRuntime,
+      detail: state.isLive
+          ? "Reconnecting to live stream..."
+          : "Reconnecting stream...",
+    );
+
+    try {
+      final stream = state.currentStream!;
+      final playUrl = await _resolveStreamUrl(stream);
+      if (playUrl == null) throw Exception("Failed to re-resolve stream URL");
+      if (_isDisposed) return;
+
+      final headers = _buildPlaybackHeaders(stream);
+      final resolvedIsLive = _detectResolvedLiveState(playUrl);
+      final useVideoView = _canUseVideoViewForStream(
+        playUrl,
+        stream,
+        isLive: resolvedIsLive,
+      );
+
+      await _applyPlaybackProperties(
+        headers,
+        stream,
+        useVideoView: useVideoView,
+      );
+      if (_isDisposed) return;
+
+      await _openResolvedStream(
+        playUrl,
+        stream,
+        headers,
+        useVideoView: useVideoView,
+      );
+      if (_isDisposed) return;
+
+      if (oldPos > Duration.zero) {
+        await _safeSeekTo(oldPos.inMilliseconds);
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[Player] Reconnect successful at position ${oldPos.inSeconds}s.',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Player] Reconnect attempt $_midPlaybackRetryCount failed: $e',
+        );
+      }
+      if (_midPlaybackRetryCount < 3) {
+        final delaySeconds = 1 << _midPlaybackRetryCount; // 2s, 4s, 8s
+        _midPlaybackRetryTimer?.cancel();
+        _midPlaybackRetryTimer = Timer(Duration(seconds: delaySeconds), () {
+          if (!_isDisposed && state.currentStream != null) {
+            _midPlaybackRetryCount++;
+            unawaited(_triggerMidPlaybackReconnect());
+          }
+        });
+      } else {
+        _isReconnectingCurrentStream = false;
+        _markSourceAttempt(
+          state.currentStreamIndex,
+          SourceAttemptStatus.failed,
+          isCurrent: false,
+        );
+        _revertMessage =
+            "Current source stopped unexpectedly. Trying next available source...";
+        unawaited(retryNextStream(sourceSessionId: state.sourceSessionId));
+      }
+      return;
+    }
+    _isReconnectingCurrentStream = false;
   }
 
   void skipLoadingOverlay() {
@@ -1806,6 +2042,11 @@ class PlayerController extends Notifier<PlayerState> {
         } else {
           _lastPosition = pos;
           _lastPositionUpdateTime = now;
+          if (_midPlaybackRetryCount > 0) {
+            _midPlaybackRetryCount = 0;
+            _isReconnectingCurrentStream = false;
+            _midPlaybackRetryTimer?.cancel();
+          }
         }
       } else {
         _lastPosition = pos;
@@ -1836,27 +2077,8 @@ class PlayerController extends Notifier<PlayerState> {
         // Show next episode overlay if within last 15 seconds or video ended.
         // It persists until the user dismisses it or loads a new episode.
         if (remainingSecs <= 15.0) {
-          final currentEp = _episode ?? _resolveCurrentEpisode();
-          List<Episode>? episodes = _item.episodes;
-          if (isSeries &&
-              currentEp != null &&
-              currentEp.dubStatus != DubStatus.none) {
-            episodes = episodes
-                ?.where((e) => e.dubStatus == currentEp.dubStatus)
-                .toList();
-          }
-
-          int? currentIndex;
-          if (currentEp != null) {
-            currentIndex = episodes?.indexWhere((e) => e.url == currentEp.url);
-          } else {
-            currentIndex = episodes?.indexWhere((e) => e.url == _videoUrl);
-          }
-          if (currentIndex != null &&
-              currentIndex != -1 &&
-              episodes != null &&
-              currentIndex < episodes.length - 1) {
-            final next = episodes[currentIndex + 1];
+          final next = getNextEpisode();
+          if (next != null) {
             if (!_userDismissedOverlay && !state.showNextEpisodeOverlay) {
               state = state.copyWith(
                 showNextEpisodeOverlay: true,
@@ -1940,7 +2162,11 @@ class PlayerController extends Notifier<PlayerState> {
     if (await _handleSpecialProviders()) return;
 
     final activeProvider = _resolveProvider();
-    if (activeProvider == null) {
+    final hasPreloadedStreams =
+        _preloadedStreams != null && _preloadedStreams!.isNotEmpty;
+    // Preloaded links (add-on sources, cross-plugin aggregation) are already
+    // resolved, so no plugin provider is required to play them.
+    if (activeProvider == null && !hasPreloadedStreams) {
       state = state.copyWith(errorMessage: "No provider selected.");
       return;
     }
@@ -1950,7 +2176,9 @@ class PlayerController extends Notifier<PlayerState> {
         state = state.copyWith(streamSubtitle: "Fetching sources...");
         if (await _handleFallbackTorrent()) return;
 
-        final rawStreams = await activeProvider.loadStreams(_videoUrl);
+        final rawStreams =
+            _preloadedStreams ?? await activeProvider!.loadStreams(_videoUrl);
+        _preloadedStreams = null;
         if (!_isCurrentSourceSession(sourceSessionId)) return;
         if (rawStreams.isNotEmpty) {
           // Filter then sort streams by quality preference based on network type.
@@ -2049,6 +2277,7 @@ class PlayerController extends Notifier<PlayerState> {
       final stream = StreamResult(
         url: _videoUrl,
         source: isTorrent ? "Torrent" : "Video",
+        providerName: _item.provider ?? "Local",
         headers: {},
       );
 
@@ -2065,6 +2294,7 @@ class PlayerController extends Notifier<PlayerState> {
       final stream = StreamResult(
         url: _videoUrl,
         source: "Torrent",
+        providerName: _item.provider ?? "Torrent",
         headers: {},
       );
       state = state.copyWith(streams: [stream], currentStreamIndex: 0);
@@ -2132,6 +2362,55 @@ class PlayerController extends Notifier<PlayerState> {
     if (_episode != null) return _episode;
     if (!isSeries) return null;
     return _item.episodes?.firstWhereOrNull((e) => e.url == _videoUrl);
+  }
+
+  /// Returns the effective list of episodes for playback and navigation.
+  /// If the series has both subbed and dubbed episodes (mixed), it filters by
+  /// the current episode's dub status. If unclassified or not mixed, all
+  /// episodes are returned for linear playback.
+  List<Episode>? getEffectiveEpisodes([Episode? currentEp]) {
+    final episodes = _item.episodes;
+    if (episodes == null || episodes.isEmpty) return null;
+    if (!isSeries) return episodes;
+
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final isMixed = hasSub && hasDub;
+
+    final ep = currentEp ?? _episode ?? _resolveCurrentEpisode();
+    if (isMixed && ep != null && ep.dubStatus != DubStatus.none) {
+      final filtered = episodes
+          .where((e) => e.dubStatus == ep.dubStatus)
+          .toList();
+      if (filtered.isNotEmpty) return filtered;
+    }
+    return episodes;
+  }
+
+  /// Resolves the next episode for the current media item.
+  Episode? getNextEpisode() {
+    if (!isSeries) return null;
+    final currentEp = _episode ?? _resolveCurrentEpisode();
+    final episodes = getEffectiveEpisodes(currentEp);
+    if (episodes == null || episodes.isEmpty) return null;
+
+    int currentIndex = -1;
+    if (currentEp != null) {
+      currentIndex = episodes.indexWhere((e) => e.url == currentEp.url);
+      if (currentIndex == -1 && currentEp.season > 0 && currentEp.episode > 0) {
+        currentIndex = episodes.indexWhere(
+          (e) => e.season == currentEp.season && e.episode == currentEp.episode,
+        );
+      }
+    }
+    if (currentIndex == -1) {
+      currentIndex = episodes.indexWhere((e) => e.url == _videoUrl);
+    }
+
+    if (currentIndex != -1 && currentIndex < episodes.length - 1) {
+      return episodes[currentIndex + 1];
+    }
+    return null;
   }
 
   List<SubtitleFile> _effectiveExternalSubtitles(
@@ -2746,6 +3025,7 @@ class PlayerController extends Notifier<PlayerState> {
     int index, {
     int? sourceSessionId,
     bool manualSelection = false,
+    bool allowResumePrompt = true,
   }) async {
     if (index < 0 || index >= state.streams.length) return;
     if (sourceSessionId != null && !_isCurrentSourceSession(sourceSessionId)) {
@@ -2753,8 +3033,11 @@ class PlayerController extends Notifier<PlayerState> {
     }
 
     final stream = state.streams[index];
-    final rawProviderName =
-        _item.provider ?? ref.read(activeProviderProvider)?.name ?? "Unknown";
+    final rawProviderName = stream.providerName.isNotEmpty
+        ? stream.providerName
+        : (_item.provider ??
+              ref.read(activeProviderProvider)?.name ??
+              "Unknown");
     final providerName = _getProviderDisplayName(rawProviderName);
     final subtitles = _effectiveExternalSubtitles(stream.subtitles);
     final attemptTotal = state.sourceAttempts.isEmpty
@@ -2778,7 +3061,7 @@ class PlayerController extends Notifier<PlayerState> {
     state = state.copyWith(
       currentStreamIndex: index,
       currentStream: stream,
-      streamSubtitle: "$providerName - ${stream.source}",
+      streamSubtitle: "$providerName - ${stream.displaySource}",
       externalSubtitles: subtitles,
       isLive:
           _item.contentType == MultimediaContentType.livestream ||
@@ -2791,7 +3074,7 @@ class PlayerController extends Notifier<PlayerState> {
     if (manualSelection && _hasConfirmedPlaybackFrame) {
       _enterRuntimePhase(
         kind: PlaybackUiPhaseKind.switchingSource,
-        detail: "Switching to ${stream.source}...",
+        detail: "Switching to ${stream.displaySource}...",
       );
     } else {
       _enterStartupPhase(
@@ -2829,7 +3112,7 @@ class PlayerController extends Notifier<PlayerState> {
         return;
       }
       state = state.copyWith(
-        streamSubtitle: "$providerName - ${stream.source}",
+        streamSubtitle: "$providerName - ${stream.displaySource}",
         isLive: resolvedIsLive,
         isSeekable: !useVideoView,
       );
@@ -2958,14 +3241,34 @@ class PlayerController extends Notifier<PlayerState> {
 
       if (savedPos > 0 && hasMeaningfulSync) {
         if (syncedTimestamp > localTimestamp) {
-          state = state.copyWith(resumePromptPercentage: syncedPct);
+          if (allowResumePrompt) {
+            state = state.copyWith(resumePromptPercentage: syncedPct);
+          } else {
+            _pendingResumeSeekPercentage = syncedPct;
+            unawaited(_flushPendingResumeSeek());
+          }
         } else {
-          state = state.copyWith(resumePromptPosition: savedPos);
+          if (allowResumePrompt) {
+            state = state.copyWith(resumePromptPosition: savedPos);
+          } else {
+            _pendingResumeSeekPosition = savedPos;
+            unawaited(_flushPendingResumeSeek());
+          }
         }
       } else if (savedPos > 0) {
-        state = state.copyWith(resumePromptPosition: savedPos);
+        if (allowResumePrompt) {
+          state = state.copyWith(resumePromptPosition: savedPos);
+        } else {
+          _pendingResumeSeekPosition = savedPos;
+          unawaited(_flushPendingResumeSeek());
+        }
       } else if (hasMeaningfulSync) {
-        state = state.copyWith(resumePromptPercentage: syncedPct);
+        if (allowResumePrompt) {
+          state = state.copyWith(resumePromptPercentage: syncedPct);
+        } else {
+          _pendingResumeSeekPercentage = syncedPct;
+          unawaited(_flushPendingResumeSeek());
+        }
       }
     } catch (e) {
       if (sourceSessionId != null &&
@@ -3039,7 +3342,9 @@ class PlayerController extends Notifier<PlayerState> {
   }) async {
     final matchingIndex = state.streams.indexWhere(
       (candidate) =>
-          candidate.url == stream.url && candidate.source == stream.source,
+          candidate.url == stream.url &&
+          candidate.source == stream.source &&
+          candidate.providerName == stream.providerName,
     );
     if (!isRevert) {
       state = state.copyWith(
@@ -3056,8 +3361,11 @@ class PlayerController extends Notifier<PlayerState> {
       _manualSelectionPending = true;
     }
 
-    final rawPName =
-        _item.provider ?? ref.read(activeProviderProvider)?.name ?? 'Unknown';
+    final rawPName = stream.providerName.isNotEmpty
+        ? stream.providerName
+        : (_item.provider ??
+              ref.read(activeProviderProvider)?.name ??
+              'Unknown');
     final pName = _getProviderDisplayName(rawPName);
 
     // Capture current position before we switch engines/streams.
@@ -3068,7 +3376,7 @@ class PlayerController extends Notifier<PlayerState> {
 
     _enterRuntimePhase(
       kind: PlaybackUiPhaseKind.switchingSource,
-      detail: "Switching to ${stream.source}...",
+      detail: "Switching to ${stream.displaySource}...",
     );
 
     try {
@@ -3093,7 +3401,7 @@ class PlayerController extends Notifier<PlayerState> {
         externalSubtitles: subtitles,
         isLive: resolvedIsLive,
         isSeekable: !useVideoView,
-        streamSubtitle: "$pName - ${stream.source}",
+        streamSubtitle: "$pName - ${stream.displaySource}",
       );
 
       if (playUrl.contains("index=")) {
@@ -3236,7 +3544,11 @@ class PlayerController extends Notifier<PlayerState> {
 
       _markSourceAttempt(targetIndex, SourceAttemptStatus.trying);
       unawaited(
-        loadStreamAtIndex(targetIndex, sourceSessionId: sourceSessionId),
+        loadStreamAtIndex(
+          targetIndex,
+          sourceSessionId: sourceSessionId,
+          allowResumePrompt: false,
+        ),
       );
     } else {
       // All sources exhausted — always show the blocking error overlay regardless
@@ -3294,6 +3606,7 @@ class PlayerController extends Notifier<PlayerState> {
         final newStream = StreamResult(
           url: url,
           source: "Torrent ($fileLabel)",
+          providerName: _item.provider ?? "Torrent",
           headers: {},
         );
         unawaited(changeStream(newStream, resetPosition: true));
@@ -3336,29 +3649,8 @@ class PlayerController extends Notifier<PlayerState> {
       return;
     }
 
-    final currentEp = _episode ?? _resolveCurrentEpisode();
-    List<Episode>? episodes = _item.episodes;
-    if (isSeries &&
-        currentEp != null &&
-        currentEp.dubStatus != DubStatus.none) {
-      episodes = episodes
-          ?.where((e) => e.dubStatus == currentEp.dubStatus)
-          .toList();
-    }
-
-    int? currentIndex;
-    if (currentEp != null) {
-      currentIndex = episodes?.indexWhere((e) => e.url == currentEp.url);
-    } else {
-      currentIndex = episodes?.indexWhere((e) => e.url == _videoUrl);
-    }
-
-    if (currentIndex != null &&
-        currentIndex != -1 &&
-        episodes != null &&
-        currentIndex < episodes.length - 1) {
-      final nextEpisode = episodes[currentIndex + 1];
-
+    final nextEpisode = getNextEpisode();
+    if (nextEpisode != null) {
       // Smart Next Episode: Check for downloaded version
       final downloadService = ref.read(downloadServiceProvider);
       final localFile = await downloadService.getDownloadedFile(
@@ -3576,16 +3868,8 @@ class PlayerController extends Notifier<PlayerState> {
             historyNotifier.removeFromHistory(_item.url);
             return;
           } else if (currentEpisode != null) {
-            // Find next episode
-            List<Episode> episodes = _item.episodes ?? const <Episode>[];
-            if (isSeries && currentEpisode.dubStatus != DubStatus.none) {
-              episodes = episodes
-                  .where((e) => e.dubStatus == currentEpisode.dubStatus)
-                  .toList();
-            }
-            final currentIndex = episodes.indexOf(currentEpisode);
-            if (currentIndex != -1 && currentIndex < episodes.length - 1) {
-              final nextEpisode = episodes[currentIndex + 1];
+            final nextEpisode = getNextEpisode();
+            if (nextEpisode != null) {
               // Save NEXT episode as current progress (reset to 0)
               historyNotifier.saveProgress(
                 itemToSave,
@@ -3703,6 +3987,8 @@ class PlayerController extends Notifier<PlayerState> {
     _torrentPollTimer = null;
     _stallTimer?.cancel();
     _stallTimer = null;
+    _bufferWatchdogTimer?.cancel();
+    _bufferWatchdogTimer = null;
     _bufferingHideTimer?.cancel();
     _bufferingHideTimer = null;
     _stallRecoveryGuardTimer?.cancel();
@@ -3721,6 +4007,10 @@ class PlayerController extends Notifier<PlayerState> {
     // net (line ~661). If the controller is disposed via this explicit path
     // it would leak the subscription — fixes audit finding H3.
     _trackSub?.cancel();
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
+    _midPlaybackRetryTimer?.cancel();
+    _midPlaybackRetryTimer = null;
 
     // Best-effort cleanup of subtitle temp files we wrote into the OS temp
     // dir. Don't await — the player has to close fast, and the next launch
@@ -4008,8 +4298,9 @@ class PlayerController extends Notifier<PlayerState> {
       }
 
       // 0. Hardware decoding preference
-      // Use auto-safe on Windows: 'auto' enables D3D11VA which can crash during
-      // DASH manifest negotiation before codec parameters are fully known.
+      // Use auto-copy on Windows: 'auto-copy' / 'd3d11va-copy' copies decoded
+      // frames to a staging surface, completely preventing DXGI KeyedMutex
+      // deadlocks and TDR crashes when the Flutter UI is restored after idle.
       // RC1: once a decode/codec failure has forced software decoding for this
       // session (weak TV decoder etc.), always use 'no' regardless of setting.
       final settings = ref.read(playerSettingsProvider).asData?.value;
@@ -4018,11 +4309,14 @@ class PlayerController extends Notifier<PlayerState> {
       } else if (settings?.hardwareDecoding ?? true) {
         await native.setProperty(
           'hwdec',
-          Platform.isWindows ? 'auto-safe' : 'auto',
+          Platform.isWindows ? 'auto-copy' : 'auto',
         );
       } else {
         await native.setProperty('hwdec', 'no');
       }
+
+      // 0b. HDR / tone-mapping.
+      await _applyHdrProperties(native, settings);
 
       // RC3: disable TLS cert verification for VOD too (was previously only
       // set on the live path). The libmpv builds differ per platform — the
@@ -4091,7 +4385,10 @@ class PlayerController extends Notifier<PlayerState> {
         // Playback
         await native.setProperty('framedrop', 'decoder');
         await native.setProperty('hr-seek-framedrop', 'yes');
-        await native.setProperty('hwdec', 'auto-safe');
+        await native.setProperty(
+          'hwdec',
+          Platform.isWindows ? 'auto-copy' : 'auto-safe',
+        );
 
         // H.264 resilience: wait for clean keyframe after reconnect
         await native.setProperty('vd-lavc-skiploopfilter', 'nonkey');
@@ -4102,19 +4399,16 @@ class PlayerController extends Notifier<PlayerState> {
         await native.setProperty('demuxer-readahead-secs', '$readahead');
         await native.setProperty('cache-secs', '$readahead');
         await native.setProperty('cache', 'yes');
+        await native.setProperty('cache-pause', 'yes');
+        await native.setProperty('cache-pause-wait', '2');
+        await native.setProperty('network-timeout', '30');
 
         // Tell FFmpeg's HTTP stream handler to treat the connection as
-        // byte-seekable. This propagates seekability all the way to the demuxer
-        // so mpv maintains its back-cache (demuxer-max-back-bytes) and performs
-        // instant cache-based backward seeks. Without this, streams routed
-        // through the local proxy are treated as "linear" — mpv refuses backward
-        // seeks and has to re-read forward to reach the target position.
-        // force-seekable=yes is a belt-and-suspenders override at the player
-        // level; seekable=1 fixes it at the stream/demuxer level.
-        // icy=0 disables FFmpeg's SHOUTcast/ICY detection header
-        // (Icy-MetaData: 1) which some CDNs interpret as an audio-only ICY
-        // stream request, causing 29-second audio-without-video playback.
-        await native.setProperty('stream-lavf-o', 'seekable=1,icy=0');
+        // byte-seekable and automatically reconnect on network switches or dropped sockets.
+        await native.setProperty(
+          'stream-lavf-o',
+          'seekable=1,icy=0,reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10',
+        );
         await native.setProperty('force-seekable', 'yes');
 
         // Force mpv to select the highest-bandwidth HLS variant so it never
@@ -4129,6 +4423,8 @@ class PlayerController extends Notifier<PlayerState> {
         demuxerLavfOpts.add(
           'icy=0',
         ); // suppress Icy-MetaData:1 on segment fetches too
+        demuxerLavfOpts.add('seg_max_retry=10');
+        demuxerLavfOpts.add('reconnect_delay_max=10');
 
         // HLS manifests declare codec/language via EXT-X-MEDIA and EXT-X-MAP
         // tags, so FFmpeg doesn't need deep probing to detect streams. The
@@ -4153,8 +4449,8 @@ class PlayerController extends Notifier<PlayerState> {
       }
 
       // Adaptive demuxer cache based on device profile.
-      // DASH streams on desktop are capped lower to prevent OOM from aggressive
-      // segment pre-fetch combined with high-bitrate representations.
+      // DASH streams on desktop and Windows playback are capped appropriately to prevent
+      // memory fragmentation and GPU staging texture starvation over long playback sessions.
       final profile = ref.read(deviceProfileProvider).asData?.value;
       final isDashStream = _isDashStreamUrl(stream.url);
       String cacheSize = "512MiB"; // Default
@@ -4162,7 +4458,9 @@ class PlayerController extends Notifier<PlayerState> {
         if (profile.isTv) {
           cacheSize = "128MiB"; // Less RAM on TVs
         } else if (profile.isDesktopOS || profile.isTablet) {
-          cacheSize = isDashStream ? "256MiB" : "1GiB";
+          cacheSize = isDashStream
+              ? "256MiB"
+              : (Platform.isWindows ? "256MiB" : "1GiB");
         }
       }
 
@@ -4171,7 +4469,7 @@ class PlayerController extends Notifier<PlayerState> {
       final backCacheSize = profile?.isTv == true
           ? '64MiB'
           : (profile?.isDesktopOS == true || profile?.isTablet == true)
-          ? '256MiB'
+          ? (Platform.isWindows ? '128MiB' : '256MiB')
           : '128MiB';
       await native.setProperty('demuxer-max-back-bytes', backCacheSize);
 
@@ -4594,41 +4892,142 @@ class PlayerController extends Notifier<PlayerState> {
           ref.read(playerSettingsProvider).asData?.value ??
           const PlayerSettings();
 
-      // MPV sub properties
-      await native.setProperty(
-        'sub-font-size',
-        settings.subtitleSize.toString(),
-      );
-      await native.setProperty(
-        'sub-pos',
-        settings.subtitlePosition.round().toString(),
-      );
-
-      // Colors are in MPV hex format (e.g. #RRGGBB or #AARRGGBB)
+      // Colors are in MPV hex format (e.g. #AARRGGBB)
       String colorToMpvHex(int color, [double opacity = 1.0]) {
-        final alpha = (opacity * 255).toInt().toRadixString(16).padLeft(2, '0');
+        final alpha = (opacity * 255)
+            .round()
+            .clamp(0, 255)
+            .toRadixString(16)
+            .padLeft(2, '0');
         final rgb = color.toRadixString(16).padLeft(8, '0').substring(2);
         return '#$alpha$rgb';
       }
 
-      await native.setProperty(
-        'sub-color',
-        colorToMpvHex(settings.subtitleColor),
-      );
-      if (settings.subtitleBackgroundColor != 0x00000000) {
+      // 1. Font Size
+      final fontSize = settings.subFixedTextSize ?? settings.subtitleSize;
+      await native.setProperty('sub-font-size', fontSize.toString());
+
+      // 2. Font Family / Custom Typeface
+      const List<String> builtInFonts = [
+        'sans-serif',
+        'Trebuchet MS',
+        'Netflix Sans',
+        'Google Sans',
+        'Open Sans',
+        'Futura',
+        'Consolas',
+        'Gotham',
+        'Lucida Grande',
+        'STIX General',
+        'Times New Roman',
+        'Verdana',
+        'Ubuntu',
+        'Comic Sans MS',
+        'Poppins',
+      ];
+
+      if (settings.subTypefaceFilePath != null &&
+          settings.subTypefaceFilePath!.isNotEmpty) {
+        final file = File(settings.subTypefaceFilePath!);
+        if (file.existsSync()) {
+          await native.setProperty('sub-fonts-dir', file.parent.path);
+          await native.setProperty(
+            'sub-font',
+            p.basenameWithoutExtension(file.path),
+          );
+        }
+      } else if (settings.subTypeface != null &&
+          settings.subTypeface! >= 0 &&
+          settings.subTypeface! < builtInFonts.length) {
+        await native.setProperty(
+          'sub-font',
+          builtInFonts[settings.subTypeface!],
+        );
+      } else {
+        await native.setProperty('sub-font', 'sans-serif');
+      }
+
+      // 3. Bold & Italic
+      await native.setProperty('sub-bold', settings.subBold ? 'yes' : 'no');
+      await native.setProperty('sub-italic', settings.subItalic ? 'yes' : 'no');
+
+      // 4. Foreground Text Color
+      final fgColor = settings.subForegroundColor != 0xFFFFFFFF
+          ? settings.subForegroundColor
+          : settings.subtitleColor;
+      await native.setProperty('sub-color', colorToMpvHex(fgColor));
+
+      // 5. Edge / Outline / Shadow
+      final edgeColorHex = colorToMpvHex(settings.subEdgeColor);
+      final edgeSize = settings.subEdgeSize ?? 2.5;
+
+      switch (settings.subEdgeType) {
+        case 0: // None
+          await native.setProperty('sub-border-size', '0');
+          await native.setProperty('sub-shadow-offset', '0');
+          break;
+        case 1: // Outline
+          await native.setProperty('sub-border-size', edgeSize.toString());
+          await native.setProperty('sub-border-color', edgeColorHex);
+          await native.setProperty('sub-shadow-offset', '0');
+          break;
+        case 2: // Raised
+          await native.setProperty('sub-border-size', '1');
+          await native.setProperty('sub-border-color', edgeColorHex);
+          await native.setProperty('sub-shadow-offset', '1.5');
+          await native.setProperty('sub-shadow-color', edgeColorHex);
+          break;
+        case 3: // Shadow / Drop Shadow
+          await native.setProperty('sub-border-size', '0');
+          await native.setProperty('sub-shadow-offset', edgeSize.toString());
+          await native.setProperty('sub-shadow-color', edgeColorHex);
+          break;
+        case 4: // Uniform Drop Shadow
+          await native.setProperty('sub-border-size', '1');
+          await native.setProperty('sub-border-color', edgeColorHex);
+          await native.setProperty('sub-shadow-offset', '2.0');
+          await native.setProperty('sub-shadow-color', edgeColorHex);
+          break;
+      }
+
+      // 6. Background Color & Opacity
+      final bgColor = settings.subBackgroundColor != 0x00000000
+          ? settings.subBackgroundColor
+          : settings.subtitleBackgroundColor;
+      if (bgColor != 0x00000000 && settings.subBackgroundOpacity > 0.0) {
         await native.setProperty(
           'sub-back-color',
-          colorToMpvHex(
-            settings.subtitleBackgroundColor,
-            settings.subtitleBackgroundOpacity,
-          ),
+          colorToMpvHex(bgColor, settings.subBackgroundOpacity),
         );
       } else {
         await native.setProperty('sub-back-color', '#00000000');
       }
 
-      // Re-assert: keep native MPV subtitle rendering disabled.
-      // Setting sub-* properties above may implicitly re-enable it.
+      // 7. Alignment
+      final alignmentCode = settings.subAlignment ?? 2;
+      final alignX = switch (alignmentCode) {
+        1 || 4 || 7 => 'left',
+        3 || 6 || 9 => 'right',
+        _ => 'center',
+      };
+      final alignY = switch (alignmentCode) {
+        7 || 8 || 9 => 'top',
+        4 || 5 || 6 => 'center',
+        _ => 'bottom',
+      };
+      await native.setProperty('sub-align-x', alignX);
+      await native.setProperty('sub-align-y', alignY);
+
+      // 8. Position & Margin
+      final subPos = settings.subtitlePosition.clamp(0.0, 100.0).round();
+      await native.setProperty('sub-pos', subPos.toString());
+      await native.setProperty(
+        'sub-margin-y',
+        (settings.subElevation * 1.5).round().toString(),
+      );
+
+      // 9. ASS styling override & keep MPV direct painting disabled (handled by SubtitleViewConfiguration)
+      await native.setProperty('sub-ass-override', 'yes');
       await native.setProperty('sub-visibility', 'no');
     }
   }
@@ -4650,6 +5049,68 @@ class PlayerController extends Notifier<PlayerState> {
     }
 
     return (_player.state.volume / 100).clamp(0.0, 2.0);
+  }
+
+  /// Applies the user's HDR preference to libmpv.
+  ///
+  /// [HdrMode.auto] deliberately writes nothing so behaviour is byte-identical
+  /// to before this setting existed — that keeps the default path safe on
+  /// devices where forcing colour properties would regress playback.
+  ///
+  /// Every property is set individually and failures are swallowed per-call:
+  /// `target-colorspace-hint` and the `gpu-next`-only options don't exist on
+  /// every libmpv build we ship (Android/Windows/macOS/Linux all differ), and
+  /// one unknown property must not abort the rest of the setup.
+  Future<void> _applyHdrProperties(
+    NativePlayer native,
+    PlayerSettings? settings,
+  ) async {
+    final mode = settings?.hdrMode ?? HdrMode.auto;
+    if (mode == HdrMode.auto) return;
+
+    Future<void> trySet(String key, String value) async {
+      try {
+        await native.setProperty(key, value);
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint('[Player] HDR property $key=$value unsupported: $error');
+        }
+      }
+    }
+
+    switch (mode) {
+      case HdrMode.auto:
+        return;
+
+      case HdrMode.passthrough:
+        // Forward the source colorspace so a real HDR panel switches modes.
+        await trySet('target-colorspace-hint', 'yes');
+        await trySet(
+          'hdr-compute-peak',
+          (settings?.hdrComputePeak ?? true) ? 'yes' : 'no',
+        );
+        final peak = settings?.hdrTargetPeak ?? 0;
+        await trySet('target-peak', peak > 0 ? '$peak' : 'auto');
+
+      case HdrMode.toneMapSdr:
+        // Map HDR into SDR range — fixes the washed-out look on SDR panels.
+        await trySet('target-colorspace-hint', 'no');
+        await trySet(
+          'tone-mapping',
+          (settings?.toneMapCurve ?? ToneMapCurve.auto).mpvValue,
+        );
+        await trySet('tone-mapping-mode', 'auto');
+        await trySet('gamut-mapping-mode', 'perceptual');
+        await trySet(
+          'hdr-compute-peak',
+          (settings?.hdrComputePeak ?? true) ? 'yes' : 'no',
+        );
+        final sdrPeak = settings?.hdrTargetPeak ?? 0;
+        await trySet('target-peak', sdrPeak > 0 ? '$sdrPeak' : 'auto');
+        if (settings?.inverseToneMapping ?? false) {
+          await trySet('inverse-tone-mapping', 'yes');
+        }
+    }
   }
 
   Future<void> _setSystemVolumeLevel(double value) async {
@@ -4677,8 +5138,19 @@ class PlayerController extends Notifier<PlayerState> {
     return value;
   }
 
+  /// Upper bound for [setVolumeLevel], as a 0..2 multiplier.
+  ///
+  /// ExoPlayer/AVPlayer can't amplify past the source level, so boost is
+  /// engine-gated; on mpv the ceiling follows the user's setting (100–200%).
+  double get _maxVolumeLevel {
+    if (!state.supportsVolumeBoost) return 1.0;
+    final percent =
+        ref.read(playerSettingsProvider).asData?.value.maxVolumePercent ?? 200;
+    return (percent / 100).clamp(1.0, 2.0);
+  }
+
   Future<double> setVolumeLevel(double value) async {
-    final target = value.clamp(0.0, state.supportsVolumeBoost ? 2.0 : 1.0);
+    final target = value.clamp(0.0, _maxVolumeLevel);
 
     if (target > 0) {
       _lastNonZeroVolumeLevel = target;
@@ -4719,12 +5191,12 @@ class PlayerController extends Notifier<PlayerState> {
 
     String? path = filePath;
     if (path == null) {
-      final result = await FilePicker.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['srt', 'vtt', 'ass', 'ssa'],
       );
-      if (result != null && result.files.single.path != null) {
-        path = result.files.single.path!;
+      if (picked?.path != null) {
+        path = picked!.path!;
       }
     }
 

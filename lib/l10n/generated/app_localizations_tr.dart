@@ -242,10 +242,10 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get exploreAnime => 'Explore Anime';
+  String get exploreAnime => 'Anime keşfet';
 
   @override
-  String get exploreMovies => 'Explore Movies';
+  String get exploreMovies => 'Film keşfet';
 
   @override
   String get popularMovies => 'Popüler Filmler';
@@ -474,13 +474,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get skip => 'Atla';
 
   @override
-  String get skipIntro => 'Skip Intro';
+  String get skipIntro => 'Girişi atla';
 
   @override
-  String get skipOutro => 'Skip Outro';
+  String get skipOutro => 'Kapanışı atla';
 
   @override
-  String get skipRecap => 'Skip Recap';
+  String get skipRecap => 'Özeti atla';
 
   @override
   String get goLive => 'Canlıya Geç';
@@ -910,13 +910,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get defaultHomeScreen => 'Varsayılan Ana Ekran';
 
   @override
-  String get titlePosition => 'Title Position';
+  String get titlePosition => 'Başlık konumu';
 
   @override
-  String get titlePositionBelowPoster => 'Below Poster';
+  String get titlePositionBelowPoster => 'Afişin altında';
 
   @override
-  String get titlePositionInsidePoster => 'Inside Poster';
+  String get titlePositionInsidePoster => 'Afişin içinde';
 
   @override
   String get bigPictureMode => 'Experimental: Big Picture Mode';
@@ -1063,11 +1063,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get githubProxy => 'GitHub Proxy';
+  String get githubProxy => 'GitHub vekil sunucusu';
 
   @override
   String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
+      'Servis sağlayıcı engellerini aşmak için eklenti indirmelerini jsDelivr üzerinden yönlendir.';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi kalite tercihi';
@@ -1241,7 +1241,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get subtitleAccounts => 'Altyazı hesapları';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Hesaplar';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1398,21 +1398,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get installed => 'Kurulu';
 
   @override
-  String get repositories => 'Repositories';
+  String get repositories => 'Depolar';
 
   @override
-  String get noExtensionsInstalled => 'No Extensions Installed';
+  String get noExtensionsInstalled => 'Yüklü eklenti yok';
 
   @override
   String get browseRepositoriesToInstall =>
-      'Browse the Repositories tab to discover and install extensions.';
+      'Eklentileri keşfetmek ve yüklemek için Depolar sekmesine göz atın.';
 
   @override
-  String get browseRepositories => 'Browse Repositories';
+  String get browseRepositories => 'Depolara göz at';
 
   @override
   String get addRepoDescription =>
-      'Add a repository URL or shortcode to discover and install extension plugins.';
+      'Eklenti eklerini keşfetmek ve yüklemek için bir depo URL\'si veya kısa kod ekleyin.';
 
   @override
   String updateTo(String version) {

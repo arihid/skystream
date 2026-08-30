@@ -382,8 +382,12 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
     // Apply Language Filter
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
@@ -505,8 +509,12 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
     // Apply Language Filter
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
@@ -562,7 +570,7 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
   }
 }
 
-class DetailsEpisodeFilterBar extends ConsumerWidget {
+class DetailsEpisodeFilterBar extends ConsumerStatefulWidget {
   final String itemUrl;
   final int totalEpisodes;
   final int batchSize;
@@ -575,23 +583,38 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailsState = ref.watch(detailsControllerProvider(itemUrl));
+  ConsumerState<DetailsEpisodeFilterBar> createState() =>
+      _DetailsEpisodeFilterBarState();
+}
+
+class _DetailsEpisodeFilterBarState
+    extends ConsumerState<DetailsEpisodeFilterBar> {
+  final FocusNode _dropdownFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _dropdownFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detailsState = ref.watch(detailsControllerProvider(widget.itemUrl));
     final int selectedIndex = detailsState.selectedRangeIndex;
     final bool isAscending = detailsState.isAscending;
     final DubStatus selectedDub = detailsState.selectedDubStatus;
 
     final allEpisodes =
         detailsState.seasonMap[detailsState.selectedSeason] ?? [];
-    final filteredEpisodes = selectedDub == DubStatus.none
-        ? allEpisodes
-        : allEpisodes.where((e) => e.dubStatus == selectedDub).toList();
-
-    final int batchCount = (filteredEpisodes.length / batchSize).ceil();
-
     final hasDub = allEpisodes.any((e) => e.dubStatus == DubStatus.dubbed);
     final hasSub = allEpisodes.any((e) => e.dubStatus == DubStatus.subbed);
     final isMixed = hasDub && hasSub;
+
+    final filteredEpisodes = (isMixed && selectedDub != DubStatus.none)
+        ? allEpisodes.where((e) => e.dubStatus == selectedDub).toList()
+        : allEpisodes;
+
+    final int batchCount = (filteredEpisodes.length / widget.batchSize).ceil();
 
     return SizedBox(
       height: 40,
@@ -600,66 +623,68 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (isMixed) ...[
-            _buildLanguageToggle(context, ref, selectedDub),
+            _buildLanguageToggle(context, selectedDub),
             const SizedBox(width: 8),
           ],
-          if (filteredEpisodes.length > batchSize) ...[
-            Focus(
-              child: Builder(
-                builder: (context) {
-                  final isFocused = Focus.of(context).hasFocus;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isFocused ? Colors.white : Colors.transparent,
-                        width: 2,
-                      ),
+          if (filteredEpisodes.length > widget.batchSize) ...[
+            ListenableBuilder(
+              listenable: _dropdownFocusNode,
+              builder: (context, _) {
+                final isFocused = _dropdownFocusNode.hasFocus;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isFocused ? Colors.white : Colors.transparent,
+                      width: 2,
                     ),
-                    child: Center(
-                      child: DropdownButton<int>(
-                        value: selectedIndex,
-                        dropdownColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHigh,
-                        underline: const SizedBox(),
-                        elevation: 4,
-                        borderRadius: BorderRadius.circular(12),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 20,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        items: List.generate(batchCount, (index) {
-                          final start = index * batchSize + 1;
-                          final end = ((index + 1) * batchSize).clamp(
-                            1,
-                            filteredEpisodes.length,
-                          );
-                          return DropdownMenuItem(
-                            value: index,
-                            child: Text("$start-$end"),
-                          );
-                        }),
-                        onChanged: (val) {
-                          if (val != null) {
-                            ref
-                                .read(
-                                  detailsControllerProvider(itemUrl).notifier,
-                                )
-                                .setRangeIndex(val);
-                          }
-                        },
+                  ),
+                  child: Center(
+                    child: DropdownButton<int>(
+                      focusNode: _dropdownFocusNode,
+                      value: selectedIndex,
+                      dropdownColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh,
+                      underline: const SizedBox(),
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(12),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      items: List.generate(batchCount, (index) {
+                        final start = index * widget.batchSize + 1;
+                        final end = ((index + 1) * widget.batchSize).clamp(
+                          1,
+                          filteredEpisodes.length,
+                        );
+                        return DropdownMenuItem(
+                          value: index,
+                          child: Text("$start-$end"),
+                        );
+                      }),
+                      onChanged: (val) {
+                        if (val != null) {
+                          ref
+                              .read(
+                                detailsControllerProvider(
+                                  widget.itemUrl,
+                                ).notifier,
+                              )
+                              .setRangeIndex(val);
+                        }
+                      },
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 8),
           ],
@@ -673,7 +698,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: () => ref
-                    .read(detailsControllerProvider(itemUrl).notifier)
+                    .read(detailsControllerProvider(widget.itemUrl).notifier)
                     .toggleSort(),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -693,11 +718,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
     );
   }
 
-  Widget _buildLanguageToggle(
-    BuildContext context,
-    WidgetRef ref,
-    DubStatus selected,
-  ) {
+  Widget _buildLanguageToggle(BuildContext context, DubStatus selected) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
@@ -711,7 +732,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
             label: AppLocalizations.of(context)!.sub,
             isSelected: selected == DubStatus.subbed,
             onTap: () => ref
-                .read(detailsControllerProvider(itemUrl).notifier)
+                .read(detailsControllerProvider(widget.itemUrl).notifier)
                 .setDubStatus(DubStatus.subbed),
           ),
           const SizedBox(width: 4),
@@ -719,7 +740,7 @@ class DetailsEpisodeFilterBar extends ConsumerWidget {
             label: AppLocalizations.of(context)!.dub,
             isSelected: selected == DubStatus.dubbed,
             onTap: () => ref
-                .read(detailsControllerProvider(itemUrl).notifier)
+                .read(detailsControllerProvider(widget.itemUrl).notifier)
                 .setDubStatus(DubStatus.dubbed),
           ),
         ],
@@ -924,8 +945,12 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
 
     if (episodes.isEmpty) return const SizedBox.shrink();
 
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
     // Apply Language Filter
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();

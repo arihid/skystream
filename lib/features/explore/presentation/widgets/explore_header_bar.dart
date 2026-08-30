@@ -1,14 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
-import 'package:skystream/shared/widgets/cards_wrapper.dart';
 import 'package:skystream/features/explore/presentation/delegates/explore_search_delegate.dart';
 import 'package:skystream/features/explore/presentation/widgets/unified_filter_dialog.dart';
 import 'package:skystream/features/explore/data/explore_filter_provider.dart';
 import 'package:skystream/features/explore/data/explore_mode_provider.dart';
-import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
-import 'dart:async';
+import 'package:skystream/features/explore/presentation/widgets/explore_mode_selector_dialog.dart';
+
+import '../../../../core/router/app_router.dart';
+
+// TV/Gamepad Feature Imports
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 /// A custom header bar for the explore screen in widescreen/desktop layout.
 ///
@@ -43,15 +48,28 @@ class ExploreHeaderBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Carousel prev / next arrows
-          CardsWrapper(
-            scaleFactor: 1.01,
+          // 1. Carousel Prev Arrow
+          FocusableWrapper(
+            useScaleEffect: true,
             onTap: () => onPrevious?.call(),
             borderRadius: BorderRadius.circular(8),
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: 'Previous',
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
             child: Container(
               width: 32,
               height: 32,
               alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Icon(
                 Icons.arrow_back_ios_new,
                 size: 14,
@@ -62,14 +80,29 @@ class ExploreHeaderBar extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 4),
-          CardsWrapper(
-            scaleFactor: 1.01,
+
+          // 2. Carousel Next Arrow
+          FocusableWrapper(
+            useScaleEffect: true,
             onTap: () => onNext?.call(),
             borderRadius: BorderRadius.circular(8),
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: 'Next',
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
             child: Container(
               width: 32,
               height: 32,
               alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Icon(
                 Icons.arrow_forward_ios,
                 size: 14,
@@ -82,71 +115,101 @@ class ExploreHeaderBar extends ConsumerWidget {
 
           const SizedBox(width: 16),
 
-          CardsWrapper(
-            scaleFactor: 1.01,
-            onTap: () {
-              final isAnime = ref.read(exploreModeProvider);
-              ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
-            },
+          // 3. Explore Mode Selector
+          FocusableWrapper(
             borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
-            child: HoverBorderGradient(
-              onTap: () {
-                final isAnime = ref.read(exploreModeProvider);
-                ref.read(exploreModeProvider.notifier).setAnimeMode(!isAnime);
-              },
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final isAnime = ref.watch(exploreModeProvider);
-                  return Row(
+            useScaleEffect: true,
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: 'Change Mode',
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
+            onTap: () => showExploreModeSelectorDialog(context, ref),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final mode = ref.watch(exploreModeProvider);
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final textColor = isDark ? Colors.white : Colors.black;
+
+                Widget iconWidget;
+                String labelText;
+
+                switch (mode) {
+                  case ExploreModeType.movies:
+                    iconWidget = Icon(
+                      Icons.movie_outlined,
+                      size: 14,
+                      color: textColor,
+                    );
+                    labelText = l10n.exploreMovies;
+                    break;
+                  case ExploreModeType.anime:
+                    iconWidget = SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CustomPaint(
+                        painter: AnimeLogoPainter(color: textColor),
+                      ),
+                    );
+                    labelText = l10n.exploreAnime;
+                    break;
+                  case ExploreModeType.stremio:
+                    iconWidget = Icon(
+                      Icons.extension_outlined,
+                      size: 14,
+                      color: textColor,
+                    );
+                    labelText = 'Add-ons';
+                    break;
+                }
+
+                return Container(
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
+                    borderRadius: BorderRadius.circular(
+                      LayoutConstants.radiusPill,
+                    ),
+                  ),
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (isAnime)
-                        Icon(
-                          Icons.movie,
-                          size: 14,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
-                        )
-                      else
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CustomPaint(
-                            painter: AnimeLogoPainter(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
-                            ),
-                          ),
-                        ),
+                      iconWidget,
                       const SizedBox(width: 8),
                       Text(
-                        isAnime ? l10n.exploreMovies : l10n.exploreAnime,
+                        labelText,
                         style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black,
+                          color: textColor,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: 600,
                         ),
                       ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ),
 
           const SizedBox(width: 16),
 
-          // Capsule search bar
+          // 4. Capsule Search Bar
           Expanded(
-            child: CardsWrapper(
-              scaleFactor: 1.01,
+            child: FocusableWrapper(
+              useScaleEffect: false,
               focusNode: searchFocusNode,
+              gamepadHints: [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSearch,
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+              ],
               onTap: () {
                 unawaited(
                   showSearch<void>(
@@ -157,7 +220,6 @@ class ExploreHeaderBar extends ConsumerWidget {
                   ),
                 );
               },
-              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
               child: Container(
                 height: 38,
                 constraints: const BoxConstraints(maxWidth: 500),
@@ -194,46 +256,64 @@ class ExploreHeaderBar extends ConsumerWidget {
           ),
 
           const SizedBox(width: 16),
-          // Filter chip
-          CardsWrapper(
-            scaleFactor: 1.01,
-            onTap: () {
-              unawaited(
-                showDialog<void>(
-                  context: context,
-                  builder: (context) => const UnifiedFilterDialog(),
+
+          // 5. Filter / Settings Chip
+          Consumer(
+            builder: (context, ref, _) {
+              final mode = ref.watch(exploreModeProvider);
+              final isStremio = mode == ExploreModeType.stremio;
+              final filters = ref.watch(exploreFilterProvider);
+              final hasActiveFilter =
+                  filters.selectedGenre != null ||
+                  filters.selectedYear != null ||
+                  filters.minRating != null;
+
+              return FocusableWrapper(
+                useScaleEffect: true,
+                borderRadius: BorderRadius.circular(50),
+                gamepadHints: [
+                  GamepadHint(
+                    buttonLabel: 'A',
+                    actionLabel: isStremio ? 'Settings' : l10n.hintFilters,
+                    buttonColor: Colors.greenAccent.shade400,
+                  ),
+                ],
+                onTap: () {
+                  if (isStremio) {
+                    const SettingsRoute(category: 'addons').go(context);
+                  } else {
+                    unawaited(
+                      showDialog<void>(
+                        context: context,
+                        builder: (context) => const UnifiedFilterDialog(),
+                      ),
+                    );
+                  }
+                },
+                child: Tooltip(
+                  message: isStremio ? 'Stremio Settings' : 'Filter',
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: (!isStremio && hasActiveFilter)
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.3),
+                    ),
+                    child: Icon(
+                      isStremio
+                          ? Icons.dashboard_customize_rounded
+                          : Icons.tune,
+                      color: theme.colorScheme.onSurface,
+                      size: 18,
+                    ),
+                  ),
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(50),
-            child: Consumer(
-              builder: (context, ref, _) {
-                final filters = ref.watch(exploreFilterProvider);
-                final hasActiveFilter =
-                    filters.selectedGenre != null ||
-                    filters.selectedYear != null ||
-                    filters.minRating != null;
-
-                return Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: hasActiveFilter
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.3,
-                          ),
-                  ),
-                  child: Icon(
-                    Icons.tune,
-                    color: theme.colorScheme.onSurface,
-                    size: 18,
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
