@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import 'package:skystream/features/explore/presentation/delegates/explore_search_delegate.dart';
 import 'package:skystream/features/explore/presentation/widgets/unified_filter_dialog.dart';
@@ -14,6 +15,7 @@ import '../../../../core/router/app_router.dart';
 // TV/Gamepad Feature Imports
 import '../../../../core/widgets/focusable_wrapper.dart';
 import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../shared/widgets/custom_widgets.dart';
 
 /// A custom header bar for the explore screen in widescreen/desktop layout.
 ///
@@ -186,7 +188,7 @@ class ExploreHeaderBar extends ConsumerWidget {
                         style: TextStyle(
                           color: textColor,
                           fontSize: 12,
-                          fontWeight: 600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
