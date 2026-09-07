@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/core/input/gamepad_intents.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import '../../../core/extensions/extension_manager.dart';
@@ -814,101 +815,112 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
 
     final isBigPicture = _isBigPicture();
 
-    return Scaffold(
-      appBar: AppBar(
-        // Hide back button on Big Picture to trap D-pad inside content
-        automaticallyImplyLeading: !isBigPicture,
-        title: Text(l10n.pluginSettings(widget.plugin.name)),
-        actions: [
-          // Keep standard Save button for Touch users
-          if (!isBigPicture)
-            IconButton(
-              tooltip: 'Save',
-              onPressed: _loading || _saving ? null : _save,
-              icon: _saving
-                  ? const AppLoadingIndicator(
-                      constraints: BoxConstraints.tightFor(
-                        width: 20,
-                        height: 20,
-                      ),
-                    )
-                  : const Icon(Icons.save_outlined),
-            ),
-        ],
-      ),
-      body: Focus(
-        focusNode: _screenFocusNode,
-        canRequestFocus: false,
-        onFocusChange: (hasFocus) {
-          if (hasFocus && isBigPicture) {
-            Future.microtask(() {
-              if (mounted) {
-                ref.read(focusedGamepadHintsProvider.notifier).state = [
-                  GamepadHint(
-                    buttonLabel: 'A',
-                    actionLabel: l10n.hintSelectToggle,
-                    buttonColor: Colors.greenAccent.shade400,
-                  ),
-                  GamepadHint(
-                    buttonLabel: 'B',
-                    actionLabel: l10n.hintBack,
-                    buttonColor: Colors.redAccent.shade400,
-                  ),
-                ];
-              }
-            });
-          } else {
-            Future.microtask(() {
-              if (mounted) {
-                final currentHints = ref.read(focusedGamepadHintsProvider);
-                if (currentHints?.any(
-                      (h) => h.actionLabel == l10n.hintSelectToggle,
-                    ) ==
-                    true) {
-                  ref.read(focusedGamepadHintsProvider.notifier).state = null;
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            Navigator.maybePop(context);
+            return null;
+          },
+        ),
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          // Hide back button on Big Picture to trap D-pad inside content
+          automaticallyImplyLeading: !isBigPicture,
+          title: Text(l10n.pluginSettings(widget.plugin.name)),
+          actions: [
+            // Keep standard Save button for Touch users
+            if (!isBigPicture)
+              IconButton(
+                tooltip: 'Save',
+                onPressed: _loading || _saving ? null : _save,
+                icon: _saving
+                    ? const AppLoadingIndicator(
+                        constraints: BoxConstraints.tightFor(
+                          width: 20,
+                          height: 20,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined),
+              ),
+          ],
+        ),
+        body: Focus(
+          focusNode: _screenFocusNode,
+          autofocus: true, // <-- REQUIRED: Pulls focus into the screen so Gamepad intents resolve correctly
+          canRequestFocus: true, // Ensure this node can actually receive the autofocus
+          onFocusChange: (hasFocus) {
+            if (hasFocus && isBigPicture) {
+              Future.microtask(() {
+                if (mounted) {
+                  ref.read(focusedGamepadHintsProvider.notifier).state = [
+                    GamepadHint(
+                      buttonLabel: 'A',
+                      actionLabel: l10n.hintSelectToggle,
+                      buttonColor: Colors.greenAccent.shade400,
+                    ),
+                    GamepadHint(
+                      buttonLabel: 'B',
+                      actionLabel: l10n.hintBack,
+                      buttonColor: Colors.redAccent.shade400,
+                    ),
+                  ];
                 }
-              }
-            });
-          }
-        },
-        child: FocusTraversalGroup(
-          policy: WidgetOrderTraversalPolicy(),
-          child: _loading
-              ? const Center(child: AppLoadingIndicator())
-              : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+              });
+            } else {
+              Future.microtask(() {
+                if (mounted) {
+                  final currentHints = ref.read(focusedGamepadHintsProvider);
+                  if (currentHints?.any(
+                        (h) => h.actionLabel == l10n.hintSelectToggle,
+                      ) ==
+                      true) {
+                    ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                  }
+                }
+              });
+            }
+          },
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: _loading
+                ? const Center(child: AppLoadingIndicator())
+                : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _load,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: _load,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                )
-              : !hasContent
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      l10n.noConfigurableSettings,
-                      textAlign: TextAlign.center,
+                  )
+                : !hasContent
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        l10n.noConfigurableSettings,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                )
-              : _buildContent(domains, hasScriptBaseUrl, isBigPicture),
+                  )
+                : _buildContent(domains, hasScriptBaseUrl, isBigPicture),
+          ),
         ),
       ),
     );

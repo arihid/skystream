@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/providers/device_info_provider.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
@@ -37,11 +36,11 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
     debugLabel: 'installed_tab_anchor',
   );
   final FocusNode _reposFocusNode = FocusNode(debugLabel: 'repos_tab_anchor');
+  final FocusNode _nuvioFocusNode = FocusNode(debugLabel: 'nuvio_tab_anchor');
 
   @override
   void initState() {
     super.initState();
-    // Upstream expanded to 3 tabs to include Nuvio plugins
     _tabController = TabController(length: 3, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,6 +49,8 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
           _installedFocusNode.requestFocus();
         } else if (_tabController.index == 1) {
           _reposFocusNode.requestFocus();
+        } else if (_tabController.index == 2) {
+          _nuvioFocusNode.requestFocus();
         }
       }
     });
@@ -58,12 +59,16 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
   void _switchTab(int index) {
     if (_tabController.index == index) return;
     _tabController.animateTo(index);
+    
+    // Give TabBarView time to animate before requesting focus
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      if (index == 0) {
+      if (index == 0 && _installedFocusNode.canRequestFocus) {
         _installedFocusNode.requestFocus();
-      } else if (index == 1) {
+      } else if (index == 1 && _reposFocusNode.canRequestFocus) {
         _reposFocusNode.requestFocus();
+      } else if (index == 2 && _nuvioFocusNode.canRequestFocus) {
+        _nuvioFocusNode.requestFocus();
       }
     });
   }
@@ -72,6 +77,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
   void dispose() {
     _installedFocusNode.dispose();
     _reposFocusNode.dispose();
+    _nuvioFocusNode.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -118,59 +124,89 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
         ExtensionsLoading(repositories: []) => const Center(
           child: AppLoadingIndicator(),
         ),
-        _ => Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: LayoutConstants.dashboardContentPadding,
-              ),
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+        _ => Actions(
+          actions: <Type, Action<Intent>>{
+            AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+              onInvoke: (_) {
+                _switchTab((_tabController.index - 1 + 3) % 3);
+                return null;
+              },
+            ),
+            AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+              onInvoke: (_) {
+                _switchTab((_tabController.index + 1) % 3);
+                return null;
+              },
+            ),
+          },
+          child: Column(
+            children: [
+              ExcludeFocus(
+                excluding: isBigPicture, // Trap D-Pad inside content
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: LayoutConstants.dashboardContentPadding,
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
+                  alignment: Alignment.center,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.center,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 3,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                      ),
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      dividerColor: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.2),
+                      tabs: [
+                        Tab(text: l10n.installed),
+                        Tab(text: l10n.repositories),
+                        const Tab(text: 'Nuvio'),
+                      ],
+                    ),
                   ),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant,
-                  indicatorColor: Theme.of(context).colorScheme.primary,
-                  dividerColor: Theme.of(
-                    context,
-                  ).dividerColor.withValues(alpha: 0.2),
-                  tabs: [
-                    Tab(text: l10n.installed),
-                    Tab(text: l10n.repositories),
-                    const Tab(text: 'Nuvio'),
-                  ],
                 ),
               ),
-            ),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildInstalledTab(context, ref, state),
-                      _buildRepositoriesTab(context, ref, state),
-                      const NuvioPluginsView(),
-                    ],
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _KeepAliveTab(child: _buildInstalledTab(context, ref, state)),
+                        _KeepAliveTab(child: _buildRepositoriesTab(context, ref, state)),
+                        _KeepAliveTab(
+                          child: Focus(
+                            focusNode: _nuvioFocusNode,
+                            // When the wrapper gets focus, instantly pass it down to Nuvio's internal list
+                            onFocusChange: (focused) {
+                              if (focused) _nuvioFocusNode.nextFocus();
+                            },
+                            child: const NuvioPluginsView(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       };
     }
@@ -206,31 +242,36 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
               preferredSize: const Size.fromHeight(48),
               child: ExcludeFocus(
                 excluding: isBigPicture, // Trap D-Pad inside content
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                child: Container(
+                  alignment: Alignment.center,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.center,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    dividerColor: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.2),
+                    tabs: [
+                      Tab(text: l10n.installed),
+                      Tab(text: l10n.repositories),
+                      const Tab(text: 'Nuvio'),
+                    ],
                   ),
-                  unselectedLabelStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 15,
-                  ),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant,
-                  indicatorColor: Theme.of(context).colorScheme.primary,
-                  dividerColor: Theme.of(
-                    context,
-                  ).dividerColor.withValues(alpha: 0.2),
-                  tabs: [
-                    Tab(text: l10n.installed),
-                    Tab(text: l10n.repositories),
-                    const Tab(text: 'Nuvio'),
-                  ],
                 ),
               ),
             ),
@@ -242,9 +283,18 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
                 controller: _tabController,
                 physics: const BouncingScrollPhysics(),
                 children: [
-                  _buildInstalledTab(context, ref, state),
-                  _buildRepositoriesTab(context, ref, state),
-                  const NuvioPluginsView(),
+                  _KeepAliveTab(child: _buildInstalledTab(context, ref, state)),
+                  _KeepAliveTab(child: _buildRepositoriesTab(context, ref, state)),
+                  _KeepAliveTab(
+                    child: Focus(
+                      focusNode: _nuvioFocusNode,
+                      // When the wrapper gets focus, instantly pass it down to Nuvio's internal list
+                      onFocusChange: (focused) {
+                        if (focused) _nuvioFocusNode.nextFocus();
+                      },
+                      child: const NuvioPluginsView(),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -374,7 +424,6 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
           bottom: 100, // Upstream spacing
           top: LayoutConstants.spacingMd,
         ),
-        addAutomaticKeepAlives: false,
         children: [
           if (hasDebug) _buildDebugSection(context, debugPlugins, firstPlugin),
           _buildInstalledSection(context, ref, installedPlugins, firstPlugin),
@@ -475,7 +524,6 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
           bottom: 100, // Upstream spacing
           top: LayoutConstants.spacingMd,
         ),
-        addAutomaticKeepAlives: false,
         itemCount: state.repositories.length + 1,
         itemBuilder: (context, index) {
           if (index < state.repositories.length) {
@@ -745,6 +793,29 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
 }
 
 // ---------------------------------------------------------------------------
+// Keep Alive Wrapper (Prevents tabs from being destroyed during sliding)
+// ---------------------------------------------------------------------------
+class _KeepAliveTab extends StatefulWidget {
+  final Widget child;
+  const _KeepAliveTab({required this.child});
+
+  @override
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
+}
+
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dedicated Add Repo Tile Widget
 // ---------------------------------------------------------------------------
 class _AddRepoTile extends ConsumerStatefulWidget {
@@ -947,7 +1018,6 @@ class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
@@ -968,198 +1038,228 @@ class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
         left: LayoutConstants.spacingMd,
         right: LayoutConstants.spacingMd,
       ),
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
-            onInvoke: (_) {
-              if (!allInstalled && widget.plugins.isNotEmpty) {
-                final pluginsToInstall = widget.plugins.where((p) {
-                  final installed = widget.state.installedPlugins
-                      .cast<ExtensionPlugin?>()
-                      .firstWhere(
-                        (inst) => inst?.packageName == p.packageName,
-                        orElse: () => null,
-                      );
-                  return installed == null || p.version > installed.version;
-                }).toList();
-                if (pluginsToInstall.isNotEmpty) {
-                  ref
-                      .read(extensionsControllerProvider.notifier)
-                      .installPlugins(pluginsToInstall);
-                }
-              }
-              return null;
-            },
-          ),
-          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
-            onInvoke: (_) {
-              _confirmDeleteRepo(context, ref, widget.repo);
-              return null;
-            },
-          ),
-        },
-        child: Focus(
-          focusNode: _repoFocusNode,
-          canRequestFocus: false, // The internal ExpansionTile takes focus natively
-          skipTraversal: true,
-          onFocusChange: (f) {
-            setState(() => _isFocused = f);
-            _updateHints(f, l10n);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: _isFocused
-                  ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              border: Border.all(
-                color: _isFocused
-                    ? theme.colorScheme.primary
-                    : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: Material(
-              type: MaterialType.transparency,
-              child: ExpansionTile(
-                key: PageStorageKey('repo_${widget.repo.url}'),
-                shape: const Border(),
-                collapsedShape: const Border(),
-                initiallyExpanded: false,
-                backgroundColor: Colors.transparent,
-                collapsedBackgroundColor: Colors.transparent,
-                onExpansionChanged: (expanded) {
-                  setState(() => _isExpanded = expanded);
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Actions(
+            actions: <Type, Action<Intent>>{
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  setState(() => _isExpanded = !_isExpanded);
                   if (_isFocused) _updateHints(true, l10n);
+                  return null;
                 },
-                tilePadding: const EdgeInsets.symmetric(
-                  horizontal: LayoutConstants.spacingMd,
-                  vertical: LayoutConstants.spacingXs,
+              ),
+              AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+                onInvoke: (_) {
+                  if (!allInstalled && widget.plugins.isNotEmpty) {
+                    final pluginsToInstall = widget.plugins.where((p) {
+                      final installed = widget.state.installedPlugins
+                          .cast<ExtensionPlugin?>()
+                          .firstWhere(
+                            (inst) => inst?.packageName == p.packageName,
+                            orElse: () => null,
+                          );
+                      return installed == null || p.version > installed.version;
+                    }).toList();
+                    if (pluginsToInstall.isNotEmpty) {
+                      ref
+                          .read(extensionsControllerProvider.notifier)
+                          .installPlugins(pluginsToInstall);
+                    }
+                  }
+                  return null;
+                },
+              ),
+              AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+                onInvoke: (_) {
+                  _confirmDeleteRepo(context, ref, widget.repo);
+                  return null;
+                },
+              ),
+            },
+            child: Focus(
+              focusNode: _repoFocusNode,
+              onFocusChange: (f) {
+                setState(() => _isFocused = f);
+                _updateHints(f, l10n);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: _isFocused
+                      ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: _isFocused
+                        ? theme.colorScheme.primary
+                        : Colors.transparent,
+                    width: 2,
+                  ),
                 ),
-                title: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.repo.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (widget.repo.description?.isNotEmpty ?? false) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.repo.description!,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-                children: [
-                  if (!isBigPicture)
-                    Padding(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      setState(() => _isExpanded = !_isExpanded);
+                      if (_isFocused) _updateHints(true, l10n);
+                    },
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: LayoutConstants.spacingMd,
-                        vertical: LayoutConstants.spacingXs,
+                        vertical: 12,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (isRepoInstalling)
-                            const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: AppLoadingIndicator(
-                                constraints: BoxConstraints(
-                                  minWidth: 24,
-                                  minHeight: 24,
-                                  maxWidth: 24,
-                                  maxHeight: 24,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.repo.name,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            )
-                          else ...[
-                            TextButton.icon(
-                              icon: Icon(
-                                allInstalled
-                                    ? Icons.check_circle_outline
-                                    : Icons.download,
-                                color: allInstalled
-                                    ? theme.colorScheme.primary
-                                    : null,
-                              ),
-                              label: Text(
-                                allInstalled
-                                    ? 'All installed'
-                                    : l10n.downloadAllProviders,
-                              ),
-                              onPressed: allInstalled || widget.plugins.isEmpty
-                                  ? null
-                                  : () {
-                                      final pluginsToInstall = widget.plugins.where((
-                                        p,
-                                      ) {
-                                        final installed = widget
-                                            .state
-                                            .installedPlugins
-                                            .cast<ExtensionPlugin?>()
-                                            .firstWhere(
-                                              (inst) =>
-                                                  inst?.packageName == p.packageName,
-                                              orElse: () => null,
-                                            );
-                                        return installed == null ||
-                                            p.version > installed.version;
-                                      }).toList();
-                                      if (pluginsToInstall.isNotEmpty) {
-                                        ref
-                                            .read(
-                                              extensionsControllerProvider.notifier,
-                                            )
-                                            .installPlugins(pluginsToInstall);
-                                      }
-                                    },
+                                if (widget.repo.description?.isNotEmpty ?? false) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.repo.description!,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
-                            const SizedBox(width: LayoutConstants.spacingSm),
-                            TextButton.icon(
-                              icon: const Icon(Icons.delete_outline),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.red,
-                              ),
-                              label: Text(l10n.delete),
-                              onPressed: () =>
-                                  _confirmDeleteRepo(context, ref, widget.repo),
+                          ),
+                          const SizedBox(width: 16),
+                          AnimatedRotation(
+                            turns: _isExpanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: _isFocused
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
-                  if (!isBigPicture) const Divider(height: 1),
-                  ...widget.plugins.asMap().entries.map((entry) {
-                    final isLast = entry.key == widget.plugins.length - 1;
-                    return Column(
-                      children: [
-                        _PluginTile(plugin: entry.value),
-                        if (!isLast)
-                          Divider(
-                            height: 1,
-                            indent: 56,
-                            endIndent: 16,
-                            color: theme.dividerColor.withValues(alpha: 0.5),
-                          ),
-                      ],
-                    );
-                  }),
-                ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: !_isExpanded
+                ? const SizedBox.shrink()
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!isBigPicture)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: LayoutConstants.spacingMd,
+                            vertical: LayoutConstants.spacingXs,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (isRepoInstalling)
+                                const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: AppLoadingIndicator(
+                                    constraints: BoxConstraints(
+                                      minWidth: 24,
+                                      minHeight: 24,
+                                      maxWidth: 24,
+                                      maxHeight: 24,
+                                    ),
+                                  ),
+                                )
+                              else ...[
+                                TextButton.icon(
+                                  icon: Icon(
+                                    allInstalled
+                                        ? Icons.check_circle_outline
+                                        : Icons.download,
+                                    color: allInstalled
+                                        ? theme.colorScheme.primary
+                                        : null,
+                                  ),
+                                  label: Text(
+                                    allInstalled
+                                        ? 'All installed'
+                                        : l10n.downloadAllProviders,
+                                  ),
+                                  onPressed: allInstalled || widget.plugins.isEmpty
+                                      ? null
+                                      : () {
+                                          final pluginsToInstall = widget.plugins.where((p) {
+                                            final installed = widget.state.installedPlugins
+                                                .cast<ExtensionPlugin?>()
+                                                .firstWhere(
+                                                  (inst) => inst?.packageName == p.packageName,
+                                                  orElse: () => null,
+                                                );
+                                            return installed == null || p.version > installed.version;
+                                          }).toList();
+                                          if (pluginsToInstall.isNotEmpty) {
+                                            ref
+                                                .read(extensionsControllerProvider.notifier)
+                                                .installPlugins(pluginsToInstall);
+                                          }
+                                        },
+                                ),
+                                const SizedBox(width: LayoutConstants.spacingSm),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.delete_outline),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  label: Text(l10n.delete),
+                                  onPressed: () =>
+                                      _confirmDeleteRepo(context, ref, widget.repo),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      if (!isBigPicture) const Divider(height: 1),
+                      ...widget.plugins.asMap().entries.map((entry) {
+                        final isLast = entry.key == widget.plugins.length - 1;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _PluginTile(plugin: entry.value),
+                            if (!isLast)
+                              Divider(
+                                height: 1,
+                                indent: 56,
+                                endIndent: 16,
+                                color: theme.dividerColor.withValues(alpha: 0.5),
+                              ),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
