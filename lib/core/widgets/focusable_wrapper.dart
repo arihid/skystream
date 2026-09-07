@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/widgets/gamepad_hints_overlay.dart';
 import '../input/gamepad_actions.dart';
-import '../input/gamepad_intents.dart';
 
 class FocusableWrapper extends ConsumerStatefulWidget {
   final Widget child;
@@ -23,7 +22,7 @@ class FocusableWrapper extends ConsumerStatefulWidget {
     this.onLongPress,
     this.autofocus = false,
     this.focusNode,
-    this.useScaleEffect = true,
+    this.useScaleEffect = false, // Disabled by default
     this.gamepadHints,
     this.borderRadius,
   });
@@ -36,7 +35,6 @@ class _FocusableWrapperState extends ConsumerState<FocusableWrapper> {
   FocusNode? _internalNode;
   bool _isHovered = false;
 
-  // Safely grab the external node, or create an internal one if null. No late variables!
   FocusNode get _effectiveNode =>
       widget.focusNode ?? (_internalNode ??= FocusNode());
 
