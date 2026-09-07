@@ -692,462 +692,475 @@ class _SeekBarState extends State<_SeekBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
-      canRequestFocus: widget.canSeek,
-      skipTraversal: !widget.canSeek,
-      onKeyEvent: (node, event) {
-        if (!widget.canSeek) return KeyEventResult.ignored;
-        if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-          return KeyEventResult.ignored;
-        }
-
-        final logicalKey = event.logicalKey;
-
-        // Left arrow: decrease value
-        if (logicalKey == LogicalKeyboardKey.arrowLeft) {
-          final newValue = (widget.value - widget.step).clamp(
-            widget.min,
-            widget.max,
-          );
-          if (newValue != widget.value) {
-            _handleDpadSeek(newValue);
-          }
-          return KeyEventResult.handled;
-        }
-
-        // Right arrow: increase value
-        if (logicalKey == LogicalKeyboardKey.arrowRight) {
-          final newValue = (widget.value + widget.step).clamp(
-            widget.min,
-            widget.max,
-          );
-          if (newValue != widget.value) {
-            _handleDpadSeek(newValue);
-          }
-          return KeyEventResult.handled;
-        }
-
-        // Up arrow: move focus up
-        if (logicalKey == LogicalKeyboardKey.arrowUp) {
-          if (widget.onArrowUp != null) {
-            widget.onArrowUp!();
-            return KeyEventResult.handled;
-          }
-          final success = _focusNode.focusInDirection(TraversalDirection.up);
-          if (!success) {
-            _focusNode.previousFocus();
-          }
-          return KeyEventResult.handled;
-        }
-
-        // Down arrow: move focus down
-        if (logicalKey == LogicalKeyboardKey.arrowDown) {
-          if (widget.onArrowDown != null) {
-            widget.onArrowDown!();
-            return KeyEventResult.handled;
-          }
-          final success = _focusNode.focusInDirection(TraversalDirection.down);
-          if (!success) {
-            _focusNode.nextFocus();
-          }
-          return KeyEventResult.handled;
-        }
-
-        return KeyEventResult.ignored;
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            if (_isDragging) {
+              widget.onChangeEnd?.call(_lastDragValue ?? widget.value);
+              setState(() => _isDragging = false);
+            }
+            return null;
+          },
+        ),
       },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: _isFocused
-              ? Border.all(
+      child: Focus(
+        focusNode: _focusNode,
+        canRequestFocus: widget.canSeek,
+        skipTraversal: !widget.canSeek,
+        onKeyEvent: (node, event) {
+          if (!widget.canSeek) return KeyEventResult.ignored;
+          if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+            return KeyEventResult.ignored;
+          }
+      
+          final logicalKey = event.logicalKey;
+      
+          // Left arrow: decrease value
+          if (logicalKey == LogicalKeyboardKey.arrowLeft) {
+            final newValue = (widget.value - widget.step).clamp(
+              widget.min,
+              widget.max,
+            );
+            if (newValue != widget.value) {
+              _handleDpadSeek(newValue);
+            }
+            return KeyEventResult.handled;
+          }
+      
+          // Right arrow: increase value
+          if (logicalKey == LogicalKeyboardKey.arrowRight) {
+            final newValue = (widget.value + widget.step).clamp(
+              widget.min,
+              widget.max,
+            );
+            if (newValue != widget.value) {
+              _handleDpadSeek(newValue);
+            }
+            return KeyEventResult.handled;
+          }
+      
+          // Up arrow: move focus up
+          if (logicalKey == LogicalKeyboardKey.arrowUp) {
+            if (widget.onArrowUp != null) {
+              widget.onArrowUp!();
+              return KeyEventResult.handled;
+            }
+            final success = _focusNode.focusInDirection(TraversalDirection.up);
+            if (!success) {
+              _focusNode.previousFocus();
+            }
+            return KeyEventResult.handled;
+          }
+      
+          // Down arrow: move focus down
+          if (logicalKey == LogicalKeyboardKey.arrowDown) {
+            if (widget.onArrowDown != null) {
+              widget.onArrowDown!();
+              return KeyEventResult.handled;
+            }
+            final success = _focusNode.focusInDirection(TraversalDirection.down);
+            if (!success) {
+              _focusNode.nextFocus();
+            }
+            return KeyEventResult.handled;
+          }
+      
+          return KeyEventResult.ignored;
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: _isFocused
+                ? Border.all(
                   color: Theme.of(context).colorScheme.primary,
                   width: 2,
                 )
-              : Border.all(color: Colors.transparent, width: 2),
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: _isFocused ? 6.0 : 8.0,
-          vertical: _isFocused ? 2.0 : 4.0,
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final trackWidth = constraints.maxWidth;
-            final double ratio = (widget.max > widget.min)
-                ? (widget.value - widget.min) / (widget.max - widget.min)
-                : 0.0;
-            final double progressWidth = (ratio * trackWidth).clamp(
-              0.0,
-              trackWidth,
-            );
-
-            // Calculate track intervals based on skip segments
-            final List<_TrackInterval> intervals = [];
-            if (widget.max <= widget.min || widget.skipSegments.isEmpty) {
-              intervals.add(
-                _TrackInterval(
-                  start: 0.0,
-                  end: trackWidth,
-                  isSkipSegment: false,
-                ),
+                : Border.all(color: Colors.transparent, width: 2),
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: _isFocused ? 6.0 : 8.0,
+            vertical: _isFocused ? 2.0 : 4.0,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final trackWidth = constraints.maxWidth;
+              final double ratio = (widget.max > widget.min)
+                  ? (widget.value - widget.min) / (widget.max - widget.min)
+                  : 0.0;
+              final double progressWidth = (ratio * trackWidth).clamp(
+                0.0,
+                trackWidth,
               );
-            } else {
-              final List<_TrackInterval> rawIntervals = [];
-              for (final seg in widget.skipSegments) {
-                final double startMs = seg.startTime * 1000.0;
-                final double endMs = seg.endTime * 1000.0;
-                final double startRatio = (startMs / (widget.max - widget.min))
-                    .clamp(0.0, 1.0);
-                final double endRatio = (endMs / (widget.max - widget.min))
-                    .clamp(0.0, 1.0);
-                if (startRatio < endRatio) {
-                  rawIntervals.add(
-                    _TrackInterval(
-                      start: startRatio * trackWidth,
-                      end: endRatio * trackWidth,
-                      isSkipSegment: true,
-                    ),
-                  );
-                }
-              }
-
-              rawIntervals.sort((a, b) => a.start.compareTo(b.start));
-
-              double currentX = 0.0;
-              for (final seg in rawIntervals) {
-                if (seg.start > currentX) {
-                  intervals.add(
-                    _TrackInterval(
-                      start: currentX,
-                      end: seg.start,
-                      isSkipSegment: false,
-                    ),
-                  );
-                }
-                final double segStart = seg.start.clamp(currentX, trackWidth);
-                final double segEnd = seg.end.clamp(segStart, trackWidth);
-                if (segStart < segEnd) {
-                  intervals.add(
-                    _TrackInterval(
-                      start: segStart,
-                      end: segEnd,
-                      isSkipSegment: true,
-                    ),
-                  );
-                  currentX = segEnd;
-                }
-              }
-              if (currentX < trackWidth) {
+      
+              // Calculate track intervals based on skip segments
+              final List<_TrackInterval> intervals = [];
+              if (widget.max <= widget.min || widget.skipSegments.isEmpty) {
                 intervals.add(
                   _TrackInterval(
-                    start: currentX,
+                    start: 0.0,
                     end: trackWidth,
                     isSkipSegment: false,
                   ),
                 );
-              }
-            }
-
-            // Adjust intervals to introduce a 2px visual gap (seam)
-            final List<_TrackInterval> visualIntervals = [];
-            for (final interval in intervals) {
-              double start = interval.start;
-              double end = interval.end;
-              if (start > 0.0) {
-                start += 1.0;
-              }
-              if (end < trackWidth) {
-                end -= 1.0;
-              }
-              if (start < end) {
-                visualIntervals.add(
-                  _TrackInterval(
-                    start: start,
-                    end: end,
-                    isSkipSegment: interval.isSkipSegment,
-                  ),
-                );
-              }
-            }
-
-            // Precompute heights for each interval depending on hover position
-            final List<double> intervalHeights = [];
-            for (final interval in visualIntervals) {
-              final bool isIntervalHovered =
-                  (_isTrackHovered || _isDragging) &&
-                  _hoverX >= interval.start &&
-                  _hoverX <= interval.end;
-              intervalHeights.add(isIntervalHovered ? 12.0 : 8.0);
-            }
-
-            // Thumb morphs if hovering anywhere on track or actively dragging
-            final bool isMorphed = _isDragging || _isTrackHovered;
-
-            final double thumbWidth;
-            final double thumbHeight;
-            final double thumbRadius;
-            final double thumbOpacity;
-
-            if (isMorphed) {
-              thumbWidth = 3.0;
-              thumbHeight = 18.0;
-              thumbRadius = 2.0; // rounded-sm ≈ 2px
-              thumbOpacity = 1.0;
-            } else if (_isFocused) {
-              thumbWidth = 14.0;
-              thumbHeight = 14.0;
-              thumbRadius = 7.0;
-              thumbOpacity = 1.0;
-            } else {
-              thumbWidth = 10.0;
-              thumbHeight = 10.0;
-              thumbRadius = 5.0;
-              thumbOpacity = 0.9;
-            }
-
-            return MouseRegion(
-              onEnter: (_) {
-                if (widget.canSeek) {
-                  setState(() => _isTrackHovered = true);
+              } else {
+                final List<_TrackInterval> rawIntervals = [];
+                for (final seg in widget.skipSegments) {
+                  final double startMs = seg.startTime * 1000.0;
+                  final double endMs = seg.endTime * 1000.0;
+                  final double startRatio = (startMs / (widget.max - widget.min))
+                      .clamp(0.0, 1.0);
+                  final double endRatio = (endMs / (widget.max - widget.min))
+                      .clamp(0.0, 1.0);
+                  if (startRatio < endRatio) {
+                    rawIntervals.add(
+                      _TrackInterval(
+                        start: startRatio * trackWidth,
+                        end: endRatio * trackWidth,
+                        isSkipSegment: true,
+                      ),
+                    );
+                  }
                 }
-              },
-              onExit: (_) {
-                setState(() {
-                  _isTrackHovered = false;
-                  _hoverX = 0.0;
-                });
-              },
-              onHover: (event) {
-                if (widget.canSeek) {
-                  setState(() => _hoverX = event.localPosition.dx);
+      
+                rawIntervals.sort((a, b) => a.start.compareTo(b.start));
+      
+                double currentX = 0.0;
+                for (final seg in rawIntervals) {
+                  if (seg.start > currentX) {
+                    intervals.add(
+                      _TrackInterval(
+                        start: currentX,
+                        end: seg.start,
+                        isSkipSegment: false,
+                      ),
+                    );
+                  }
+                  final double segStart = seg.start.clamp(currentX, trackWidth);
+                  final double segEnd = seg.end.clamp(segStart, trackWidth);
+                  if (segStart < segEnd) {
+                    intervals.add(
+                      _TrackInterval(
+                        start: segStart,
+                        end: segEnd,
+                        isSkipSegment: true,
+                      ),
+                    );
+                    currentX = segEnd;
+                  }
                 }
-              },
-              cursor: widget.canSeek
-                  ? SystemMouseCursors.click
-                  : SystemMouseCursors.basic,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragStart: widget.canSeek
-                    ? (details) {
-                        setState(() {
-                          _isDragging = true;
-                          _hoverX = details.localPosition.dx;
-                        });
-                        final val = _getValueFromOffset(
-                          details.localPosition.dx,
-                          trackWidth,
-                        );
-                        _lastDragValue = val;
-                        widget.onChangeStart?.call(val);
-                      }
-                    : null,
-                onHorizontalDragUpdate: widget.canSeek
-                    ? (details) {
-                        setState(() {
-                          _hoverX = details.localPosition.dx;
-                        });
-                        final val = _getValueFromOffset(
-                          details.localPosition.dx,
-                          trackWidth,
-                        );
-                        _lastDragValue = val;
-                        widget.onChanged?.call(val);
-                      }
-                    : null,
-                onHorizontalDragEnd: widget.canSeek
-                    ? (details) {
-                        setState(() {
-                          _isDragging = false;
-                        });
-                        widget.onChangeEnd?.call(
-                          _lastDragValue ?? widget.value,
-                        );
-                      }
-                    : null,
-                onTapDown: widget.canSeek
-                    ? (details) {
-                        final val = _getValueFromOffset(
-                          details.localPosition.dx,
-                          trackWidth,
-                        );
-                        widget.onChangeStart?.call(val);
-                        widget.onChanged?.call(val);
-                        widget.onChangeEnd?.call(val);
-                      }
-                    : null,
-                child: Container(
-                  height: 36.0,
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // 1. Track Background segments
-                      for (int i = 0; i < visualIntervals.length; i++)
-                        Positioned(
-                          left: visualIntervals[i].start,
-                          width:
-                              visualIntervals[i].end - visualIntervals[i].start,
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              curve: const Cubic(0.4, 0.0, 0.2, 1.0),
-                              height: intervalHeights[i],
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4.0),
-                                color: visualIntervals[i].isSkipSegment
-                                    ? HotstarPlayerStyle.skipSegment.withValues(
-                                        alpha: 0.35,
-                                      )
-                                    : const Color(
-                                        0x4DCFDEF6,
-                                      ), // rgba(207, 222, 246, 0.30)
+                if (currentX < trackWidth) {
+                  intervals.add(
+                    _TrackInterval(
+                      start: currentX,
+                      end: trackWidth,
+                      isSkipSegment: false,
+                    ),
+                  );
+                }
+              }
+      
+              // Adjust intervals to introduce a 2px visual gap (seam)
+              final List<_TrackInterval> visualIntervals = [];
+              for (final interval in intervals) {
+                double start = interval.start;
+                double end = interval.end;
+                if (start > 0.0) {
+                  start += 1.0;
+                }
+                if (end < trackWidth) {
+                  end -= 1.0;
+                }
+                if (start < end) {
+                  visualIntervals.add(
+                    _TrackInterval(
+                      start: start,
+                      end: end,
+                      isSkipSegment: interval.isSkipSegment,
+                    ),
+                  );
+                }
+              }
+      
+              // Precompute heights for each interval depending on hover position
+              final List<double> intervalHeights = [];
+              for (final interval in visualIntervals) {
+                final bool isIntervalHovered =
+                    (_isTrackHovered || _isDragging) &&
+                    _hoverX >= interval.start &&
+                    _hoverX <= interval.end;
+                intervalHeights.add(isIntervalHovered ? 12.0 : 8.0);
+              }
+      
+              // Thumb morphs if hovering anywhere on track or actively dragging
+              final bool isMorphed = _isDragging || _isTrackHovered;
+      
+              final double thumbWidth;
+              final double thumbHeight;
+              final double thumbRadius;
+              final double thumbOpacity;
+      
+              if (isMorphed) {
+                thumbWidth = 3.0;
+                thumbHeight = 18.0;
+                thumbRadius = 2.0; // rounded-sm ≈ 2px
+                thumbOpacity = 1.0;
+              } else if (_isFocused) {
+                thumbWidth = 14.0;
+                thumbHeight = 14.0;
+                thumbRadius = 7.0;
+                thumbOpacity = 1.0;
+              } else {
+                thumbWidth = 10.0;
+                thumbHeight = 10.0;
+                thumbRadius = 5.0;
+                thumbOpacity = 0.9;
+              }
+      
+              return MouseRegion(
+                onEnter: (_) {
+                  if (widget.canSeek) {
+                    setState(() => _isTrackHovered = true);
+                  }
+                },
+                onExit: (_) {
+                  setState(() {
+                    _isTrackHovered = false;
+                    _hoverX = 0.0;
+                  });
+                },
+                onHover: (event) {
+                  if (widget.canSeek) {
+                    setState(() => _hoverX = event.localPosition.dx);
+                  }
+                },
+                cursor: widget.canSeek
+                    ? SystemMouseCursors.click
+                    : SystemMouseCursors.basic,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragStart: widget.canSeek
+                      ? (details) {
+                          setState(() {
+                            _isDragging = true;
+                            _hoverX = details.localPosition.dx;
+                          });
+                          final val = _getValueFromOffset(
+                            details.localPosition.dx,
+                            trackWidth,
+                          );
+                          _lastDragValue = val;
+                          widget.onChangeStart?.call(val);
+                        }
+                      : null,
+                  onHorizontalDragUpdate: widget.canSeek
+                      ? (details) {
+                          setState(() {
+                            _hoverX = details.localPosition.dx;
+                          });
+                          final val = _getValueFromOffset(
+                            details.localPosition.dx,
+                            trackWidth,
+                          );
+                          _lastDragValue = val;
+                          widget.onChanged?.call(val);
+                        }
+                      : null,
+                  onHorizontalDragEnd: widget.canSeek
+                      ? (details) {
+                          setState(() {
+                            _isDragging = false;
+                          });
+                          widget.onChangeEnd?.call(
+                            _lastDragValue ?? widget.value,
+                          );
+                        }
+                      : null,
+                  onTapDown: widget.canSeek
+                      ? (details) {
+                          final val = _getValueFromOffset(
+                            details.localPosition.dx,
+                            trackWidth,
+                          );
+                          widget.onChangeStart?.call(val);
+                          widget.onChanged?.call(val);
+                          widget.onChangeEnd?.call(val);
+                        }
+                      : null,
+                  child: Container(
+                    height: 36.0,
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // 1. Track Background segments
+                        for (int i = 0; i < visualIntervals.length; i++)
+                          Positioned(
+                            left: visualIntervals[i].start,
+                            width:
+                                visualIntervals[i].end - visualIntervals[i].start,
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                curve: const Cubic(0.4, 0.0, 0.2, 1.0),
+                                height: intervalHeights[i],
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4.0),
+                                  color: visualIntervals[i].isSkipSegment
+                                      ? HotstarPlayerStyle.skipSegment.withValues(
+                                          alpha: 0.35,
+                                        )
+                                      : const Color(
+                                          0x4DCFDEF6,
+                                        ), // rgba(207, 222, 246, 0.30)
+                                ),
                               ),
                             ),
                           ),
-                        ),
-
-                      // 2. Buffer progress segments
-                      if (widget.bufferRatio > 0.0)
+      
+                        // 2. Buffer progress segments
+                        if (widget.bufferRatio > 0.0)
+                          for (int i = 0; i < visualIntervals.length; i++)
+                            _buildIntervalBuffer(
+                              visualIntervals[i],
+                              trackWidth,
+                              intervalHeights[i],
+                            ),
+      
+                        // 3. Played progress segments
                         for (int i = 0; i < visualIntervals.length; i++)
-                          _buildIntervalBuffer(
+                          _buildIntervalProgress(
                             visualIntervals[i],
-                            trackWidth,
+                            progressWidth,
                             intervalHeights[i],
                           ),
-
-                      // 3. Played progress segments
-                      for (int i = 0; i < visualIntervals.length; i++)
-                        _buildIntervalProgress(
-                          visualIntervals[i],
-                          progressWidth,
-                          intervalHeights[i],
-                        ),
-
-                      // 3.5 Hover Vertical Line (only when hovered and not dragging)
-                      if (_isTrackHovered && !_isDragging)
-                        (() {
-                          final int hoveredIntervalIndex = visualIntervals
-                              .indexWhere(
-                                (interval) =>
-                                    _hoverX >= interval.start &&
-                                    _hoverX <= interval.end,
-                              );
-                          final double height = hoveredIntervalIndex != -1
-                              ? intervalHeights[hoveredIntervalIndex]
-                              : 8.0;
-
-                          return Positioned(
-                            left: _hoverX,
-                            child: FractionalTranslation(
-                              translation: const Offset(-0.5, 0.0),
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: Container(
-                                  width: 1.5,
-                                  height: height,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          );
-                        }()),
-
-                      // 3.6 Hover/Drag Timestamp Tooltip (visible on hover and during active drag)
-                      if (_isTrackHovered || _isDragging)
-                        (() {
-                          final double tooltipPositionX =
-                              (_isDragging && _hoverX == 0.0)
-                              ? progressWidth
-                              : _hoverX;
-
-                          return Positioned(
-                            left: tooltipPositionX.clamp(
-                              20.0,
-                              trackWidth - 20.0,
-                            ),
-                            top: -38.0, // Float higher above the seek bar
-                            child: FractionalTranslation(
-                              translation: const Offset(-0.5, 0.0),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10.0,
-                                  vertical: 5.0,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xE61A1A1A,
-                                  ), // rgba(26, 26, 26, 0.9) - dark grey
-                                  borderRadius: BorderRadius.circular(
-                                    16.0,
-                                  ), // Pill shape
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    width: 0.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.25,
-                                      ),
-                                      blurRadius: 4.0,
-                                      offset: const Offset(0.0, 2.0),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  _formatDuration(
-                                    _getValueFromOffset(
-                                      tooltipPositionX,
-                                      trackWidth,
-                                    ),
-                                  ),
-                                  style: const TextStyle(
+      
+                        // 3.5 Hover Vertical Line (only when hovered and not dragging)
+                        if (_isTrackHovered && !_isDragging)
+                          (() {
+                            final int hoveredIntervalIndex = visualIntervals
+                                .indexWhere(
+                                  (interval) =>
+                                      _hoverX >= interval.start &&
+                                      _hoverX <= interval.end,
+                                );
+                            final double height = hoveredIntervalIndex != -1
+                                ? intervalHeights[hoveredIntervalIndex]
+                                : 8.0;
+      
+                            return Positioned(
+                              left: _hoverX,
+                              child: FractionalTranslation(
+                                translation: const Offset(-0.5, 0.0),
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: Container(
+                                    width: 1.5,
+                                    height: height,
                                     color: Colors.white,
-                                    fontSize: 11.0,
-                                    fontWeight: FontWeight.w700,
-                                    fontFeatures: [
-                                      FontFeature.tabularFigures(),
-                                    ], // Tabular/monospace figures
-                                    height: 1.0,
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }()),
-
-                      // 4. Scrubber Thumb (centered horizontally at progressWidth)
-                      if (widget.canSeek)
-                        Positioned(
-                          left: progressWidth,
-                          child: FractionalTranslation(
-                            translation: const Offset(-0.5, 0.0),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              curve: const Cubic(0.4, 0.0, 0.2, 1.0),
-                              width: thumbWidth,
-                              height: thumbHeight,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(
-                                  alpha: thumbOpacity,
+                            );
+                          }()),
+      
+                        // 3.6 Hover/Drag Timestamp Tooltip (visible on hover and during active drag)
+                        if (_isTrackHovered || _isDragging)
+                          (() {
+                            final double tooltipPositionX =
+                                (_isDragging && _hoverX == 0.0)
+                                ? progressWidth
+                                : _hoverX;
+      
+                            return Positioned(
+                              left: tooltipPositionX.clamp(
+                                20.0,
+                                trackWidth - 20.0,
+                              ),
+                              top: -38.0, // Float higher above the seek bar
+                              child: FractionalTranslation(
+                                translation: const Offset(-0.5, 0.0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10.0,
+                                    vertical: 5.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xE61A1A1A,
+                                    ), // rgba(26, 26, 26, 0.9) - dark grey
+                                    borderRadius: BorderRadius.circular(
+                                      16.0,
+                                    ), // Pill shape
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        blurRadius: 4.0,
+                                        offset: const Offset(0.0, 2.0),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    _formatDuration(
+                                      _getValueFromOffset(
+                                        tooltipPositionX,
+                                        trackWidth,
+                                      ),
+                                    ),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11.0,
+                                      fontWeight: FontWeight.w700,
+                                      fontFeatures: [
+                                        FontFeature.tabularFigures(),
+                                      ], // Tabular/monospace figures
+                                      height: 1.0,
+                                    ),
+                                  ),
                                 ),
-                                borderRadius: BorderRadius.circular(
-                                  thumbRadius,
+                              ),
+                            );
+                          }()),
+      
+                        // 4. Scrubber Thumb (centered horizontally at progressWidth)
+                        if (widget.canSeek)
+                          Positioned(
+                            left: progressWidth,
+                            child: FractionalTranslation(
+                              translation: const Offset(-0.5, 0.0),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                curve: const Cubic(0.4, 0.0, 0.2, 1.0),
+                                width: thumbWidth,
+                                height: thumbHeight,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(
+                                    alpha: thumbOpacity,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    thumbRadius,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

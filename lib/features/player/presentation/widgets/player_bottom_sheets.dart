@@ -1056,8 +1056,9 @@ class PlayerBottomSheets {
   static void _showSubtitleSync(BuildContext context) {
     Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Consumer(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => Consumer(
           builder: (context, ref, child) {
             final controller = ref.read(playerControllerProvider.notifier);
             final wasPlaying = controller.isPlaying;
@@ -1071,8 +1072,9 @@ class PlayerBottomSheets {
   static void _showSubtitleStyles(BuildContext context) {
     Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Consumer(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => Consumer(
           builder: (context, ref, child) {
             final controller = ref.read(playerControllerProvider.notifier);
             final wasPlaying = controller.isPlaying;
@@ -1380,9 +1382,6 @@ class PlayerBottomSheets {
                                     FilledButton.icon(
                                       onPressed: () {
                                         Navigator.pop(ctx); // Close search
-                                        // The user is already in the player, we'll suggest they go to main settings
-                                        // or we can try to show the specific dialogs here if they were available.
-                                        // For now, let's provide a clear toast or action.
                                         ref
                                             .read(notificationServiceProvider)
                                             .showInfo(

@@ -32,7 +32,6 @@ import '../player_platform_service.dart';
 import '../player_gesture_handler.dart';
 import 'player_metadata_scrim.dart';
 
-// TV/Gamepad Master Switch
 import '../../../settings/presentation/big_picture_provider.dart';
 
 class SkyStreamPlayerControls extends ConsumerStatefulWidget {
@@ -330,7 +329,7 @@ class SkyStreamPlayerControlsState
       if (!mounted) return;
       final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || _isTv;
       if (isBigPicture) {
-        _isVisible = true;
+        setState(() => _isVisible = true);
         widget.onVisibilityChanged?.call(true);
         _restoreFocus();
       }
@@ -411,7 +410,6 @@ class SkyStreamPlayerControlsState
   void _restoreFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_isVisible) return;
-
       if (ModalRoute.of(context)?.isCurrent != true) return;
       if (_panelOpen) return;
 
@@ -426,6 +424,7 @@ class SkyStreamPlayerControlsState
   void _onFocusChange() {
     if (_isVisible && mounted) {
       final currentFocus = FocusManager.instance.primaryFocus;
+      // Safeguard against the root trap
       if (currentFocus != null && currentFocus.debugLabel != 'player_root') {
         _lastFocusedNode = currentFocus;
       }
@@ -573,8 +572,6 @@ class SkyStreamPlayerControlsState
     }
   }
 
-  void updateTorrentStatus(TorrentStatus status) {}
-
   void showControls() {
     if (mounted) {
       setState(() => _isVisible = true);
@@ -671,7 +668,7 @@ class SkyStreamPlayerControlsState
       if (!_isVisible) {
         setState(() => _isVisible = true);
         widget.onVisibilityChanged?.call(true);
-        _restoreFocus();
+        _restoreFocus(); // Ensures focus is firmly grabbed
       }
       _startHideTimer();
     }
@@ -724,8 +721,10 @@ class SkyStreamPlayerControlsState
     }
   }
 
+  // <--- Y -> Skip/Resume/Next
   void triggerActiveOverlay() {
     if (!mounted) return;
+    onUserInteraction();
     final s = ref.read(playerControllerProvider);
     if (s.resumePromptPosition != null || s.resumePromptPercentage != null) {
       ref.read(playerControllerProvider.notifier).confirmResume();
@@ -756,8 +755,10 @@ class SkyStreamPlayerControlsState
     }
   }
 
+  // <--- X -> Start Over / Dismiss
   void triggerSecondaryOverlayAction() {
     if (!mounted) return;
+    onUserInteraction();
     final s = ref.read(playerControllerProvider);
     if (s.resumePromptPosition != null || s.resumePromptPercentage != null) {
       ref.read(playerControllerProvider.notifier).dismissResumePrompt();
@@ -801,6 +802,7 @@ class SkyStreamPlayerControlsState
 
   void triggerSeek(bool isLeft, [int? customSeconds]) {
     if (!mounted) return;
+    onUserInteraction(); 
     final width = MediaQuery.sizeOf(context).width;
     final settings =
         ref.read(playerSettingsProvider).asData?.value ??
@@ -974,6 +976,22 @@ class SkyStreamPlayerControlsState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<bool>(
+      playerControllerProvider.select((s) => s.uiPhase.fullscreenBlocking),
+      (previous, next) {
+        if (previous == true && next == false) {
+          if (mounted) {
+            setState(() => _isVisible = true);
+            widget.onVisibilityChanged?.call(true);
+            _startHideTimer();
+            Future.delayed(const Duration(milliseconds: 100), () {
+               _restoreFocus();
+            });
+          }
+        }
+      },
+    );
+
     final controllerTitle = ref.watch(
       playerControllerProvider.select((s) => s.playerTitle),
     );
@@ -1055,9 +1073,10 @@ class SkyStreamPlayerControlsState
 
     final size = MediaQuery.sizeOf(context);
     final isSmallWindow = size.width < 300 || size.height < 200;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Master Switch Evaluation
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || _isTv;
+    final isTouch = !isBigPicture && (Platform.isAndroid || Platform.isIOS);
 
     if (_isInPip || isSmallWindow) return const SizedBox.shrink();
 
@@ -1069,6 +1088,8 @@ class SkyStreamPlayerControlsState
       );
 
     final chromeVisible = _isVisible && !_panelOpen;
+    final playerSettings = ref.watch(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+    final seekDuration = playerSettings.seekDuration;
 
     return MouseRegion(
       cursor: (_isVisible || _panelOpen)
@@ -1217,68 +1238,78 @@ class SkyStreamPlayerControlsState
                     ),
                   ),
 
+                // Shield Overlays from D-pad traversal
                 if (!widget.isLoading &&
                     _duration != Duration.zero &&
                     !_isLocked &&
                     (resumePromptPosition != null ||
                         resumePromptPercentage != null))
-                  ResumePromptOverlay(
-                    focusNode: _resumeFocusNode,
-                    positionMs: resumePromptPosition,
-                    percentage: resumePromptPercentage,
-                    onResume: () => ref
-                        .read(playerControllerProvider.notifier)
-                        .confirmResume(),
-                    onStartOver: () => ref
-                        .read(playerControllerProvider.notifier)
-                        .dismissResumePrompt(),
-                    isBigPicture: isBigPicture,
+                  ExcludeFocus(
+                    excluding: isBigPicture,
+                    child: ResumePromptOverlay(
+                      focusNode: _resumeFocusNode,
+                      positionMs: resumePromptPosition,
+                      percentage: resumePromptPercentage,
+                      onResume: () => ref
+                          .read(playerControllerProvider.notifier)
+                          .confirmResume(),
+                      onStartOver: () => ref
+                          .read(playerControllerProvider.notifier)
+                          .dismissResumePrompt(),
+                      isBigPicture: isBigPicture,
+                    ),
                   ),
 
                 if (resumePromptPosition == null &&
                     resumePromptPercentage == null &&
                     showNextEpOverlay &&
                     nextEpTitle != null)
-                  NextEpisodeOverlay(
-                    focusNode: _nextEpFocusNode,
-                    nextEpisodeTitle: nextEpTitle,
-                    nextEpisodePosterUrl: nextEpPosterUrl,
-                    nextEpisodeRating: nextEpRating,
-                    nextEpisodeNumber: nextEpNumber,
-                    nextEpisodeSeason: nextEpSeason,
-                    nextEpisodeRuntime: nextEpRuntime,
-                    nextEpisodeDescription: nextEpDescription,
-                    onPlayNext: () => ref
-                        .read(playerControllerProvider.notifier)
-                        .playNextEpisode(),
-                    onDismiss: () => ref
-                        .read(playerControllerProvider.notifier)
-                        .dismissNextEpisodeOverlay(),
-                    isBigPicture: isBigPicture,
-                    isPlaying: _isPlaying,
+                  ExcludeFocus(
+                    excluding: isBigPicture,
+                    child: NextEpisodeOverlay(
+                      focusNode: _nextEpFocusNode,
+                      nextEpisodeTitle: nextEpTitle,
+                      nextEpisodePosterUrl: nextEpPosterUrl,
+                      nextEpisodeRating: nextEpRating,
+                      nextEpisodeNumber: nextEpNumber,
+                      nextEpisodeSeason: nextEpSeason,
+                      nextEpisodeRuntime: nextEpRuntime,
+                      nextEpisodeDescription: nextEpDescription,
+                      onPlayNext: () => ref
+                          .read(playerControllerProvider.notifier)
+                          .playNextEpisode(),
+                      onDismiss: () => ref
+                          .read(playerControllerProvider.notifier)
+                          .dismissNextEpisodeOverlay(),
+                      isBigPicture: isBigPicture,
+                      isPlaying: _isPlaying,
+                    ),
                   ),
 
                 if (resumePromptPosition == null &&
                     resumePromptPercentage == null &&
                     !showNextEpOverlay &&
                     skipSegments.isNotEmpty)
-                  SkipSegmentOverlay(
-                    focusNode: _skipFocusNode,
-                    onActiveSegmentChanged: (active) {
-                      if (mounted) setState(() => _isSkipActive = active);
-                    },
-                    player: widget.player,
-                    videoViewController: widget.videoViewController,
-                    skipSegments: skipSegments,
-                    isBigPicture: isBigPicture,
-                    controlsVisible: _isVisible,
-                    onFocusReturned: () {
-                      if (_isVisible) {
-                        _restoreFocus();
-                      } else {
-                        _returnFocusToRoot();
-                      }
-                    },
+                  ExcludeFocus(
+                    excluding: isBigPicture,
+                    child: SkipSegmentOverlay(
+                      focusNode: _skipFocusNode,
+                      onActiveSegmentChanged: (active) {
+                        if (mounted) setState(() => _isSkipActive = active);
+                      },
+                      player: widget.player,
+                      videoViewController: widget.videoViewController,
+                      skipSegments: skipSegments,
+                      isBigPicture: isBigPicture,
+                      controlsVisible: _isVisible,
+                      onFocusReturned: () {
+                        if (_isVisible) {
+                          _restoreFocus();
+                        } else {
+                          _returnFocusToRoot();
+                        }
+                      },
+                    ),
                   ),
 
                 if (isSeries &&
@@ -1477,7 +1508,6 @@ class SkyStreamPlayerControlsState
         isTv: isBigPicture,
       ),
 
-      // VOLUME BUTTON (Restored from your branch)
       PlayerIconButton(
         icon: Icons.volume_up_rounded,
         tooltip: l10n.volume,
@@ -1546,9 +1576,7 @@ class SkyStreamPlayerControlsState
           isTv: isBigPicture,
           highlight: _showTorrentInfo,
         ),
-      if (isTouch &&
-          (Platform.isAndroid || (Platform.isIOS && !_isIpad)) &&
-          playerSettings.showRotate)
+      if (isTouch && playerSettings.showRotate)
         PlayerIconButton(
           icon: Icons.screen_rotation,
           tooltip: l10n.rotate,
@@ -1578,11 +1606,9 @@ class SkyStreamPlayerControlsState
         ),
     ];
 
-    final seekDuration =
-        ref.watch(playerSettingsProvider).asData?.value.seekDuration ?? 10;
+    final seekDuration = playerSettings.seekDuration;
 
     return FocusTraversalGroup(
-      policy: WidgetOrderTraversalPolicy(),
       child: ExcludeFocus(
         excluding: !chromeVisible,
         child: IgnorePointer(
@@ -1637,37 +1663,7 @@ class SkyStreamPlayerControlsState
                             isTv: isBigPicture,
                             focusNode: _scrubFocusNode,
                             onArrowUp: () {
-                              final resumePromptPosition = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.resumePromptPosition,
-                                ),
-                              );
-                              final resumePromptPercentage = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.resumePromptPercentage,
-                                ),
-                              );
-                              final showNextEpOverlay = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.showNextEpisodeOverlay,
-                                ),
-                              );
-                              final nextEpTitle = ref.read(
-                                playerControllerProvider.select(
-                                  (s) => s.nextEpisodeTitle,
-                                ),
-                              );
-
-                              if (resumePromptPosition != null ||
-                                  resumePromptPercentage != null) {
-                                _resumeFocusNode.requestFocus();
-                              } else if (showNextEpOverlay && nextEpTitle != null) {
-                                _nextEpFocusNode.requestFocus();
-                              } else if (_isSkipActive) {
-                                _skipFocusNode.requestFocus();
-                              } else {
-                                _backFocusNode.requestFocus();
-                              }
+                              _backFocusNode.requestFocus();
                             },
                           ),
                         ),
@@ -1675,39 +1671,20 @@ class SkyStreamPlayerControlsState
                         actions: actions,
                       ),
                     ),
+                    
                     if (isBigPicture)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildMiniHint(
-                              context,
-                              'A',
-                              l10n.hintSelect,
-                              Colors.greenAccent.shade400,
-                            ),
+                            _buildMiniHint(context, 'A', l10n.hintSelect, Colors.greenAccent.shade400),
                             const SizedBox(width: 16),
-                            _buildMiniHint(
-                              context,
-                              'B',
-                              l10n.hintExit,
-                              Colors.redAccent.shade400,
-                            ),
+                            _buildMiniHint(context, 'B', l10n.hintExit, Colors.redAccent.shade400),
                             const SizedBox(width: 16),
-                            _buildMiniHint(
-                              context,
-                              'LT / RT',
-                              l10n.hintSeek(seekDuration),
-                              Colors.white,
-                            ),
+                            _buildMiniHint(context, 'LT / RT', l10n.hintSeek(seekDuration), Colors.white),
                             const SizedBox(width: 16),
-                            _buildMiniHint(
-                              context,
-                              '≡',
-                              l10n.hintMenu,
-                              Colors.white,
-                            ),
+                            _buildMiniHint(context, '≡', l10n.hintMenu, Colors.white),
                           ],
                         ),
                       ),

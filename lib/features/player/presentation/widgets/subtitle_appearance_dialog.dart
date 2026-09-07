@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dpad/dpad.dart';
 
 import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
@@ -16,6 +15,7 @@ import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../player_controller.dart';
 import 'hotstar_player_style.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 // Unified settings card container that highlights border when any of its children are focused
 class DpadSettingCard extends StatelessWidget {
@@ -266,7 +266,6 @@ class DpadColorCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTransparent = colorValue == 0x00000000;
-
     final parentCardNode = Focus.of(context);
 
     return Focus(
@@ -284,14 +283,18 @@ class DpadColorCircle extends StatelessWidget {
             }
             return KeyEventResult.handled;
           }
+          if (key == LogicalKeyboardKey.select ||
+              key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space) {
+            onTap();
+            return KeyEventResult.handled;
+          }
         }
         return KeyEventResult.ignored;
       },
-      child: DpadFocusable(
-        onSelect: onTap,
-        child: const SizedBox.shrink(),
-        builder: (context, state, child) {
-          final isFocused = state.focused;
+      child: Builder(
+        builder: (context) {
+          final isFocused = Focus.of(context).hasFocus;
           final size = isFocused ? 38.0 : 28.0;
 
           return AnimatedContainer(
@@ -331,84 +334,6 @@ class DpadColorCircle extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-// Highly visible D-pad button wrapping DpadFocusable for navigation and action bar highlights
-class DpadButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isPrimary;
-
-  const DpadButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.isPrimary = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DpadFocusable(
-      onSelect: onPressed,
-      child: const SizedBox.shrink(),
-      builder: (context, state, child) {
-        final isFocused = state.focused;
-
-        final baseColor = isPrimary
-            ? HotstarPlayerStyle.accent
-            : Colors.transparent;
-        final focusedColor = isPrimary
-            ? Colors.white
-            : HotstarPlayerStyle.accent.withValues(alpha: 0.2);
-        final textColor = isPrimary
-            ? (isFocused ? Colors.black : Colors.white)
-            : (isFocused
-                  ? HotstarPlayerStyle.accent
-                  : HotstarPlayerStyle.secondaryText);
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(8),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: isFocused ? focusedColor : baseColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isFocused
-                      ? HotstarPlayerStyle.accent
-                      : (isPrimary ? Colors.transparent : Colors.grey.shade800),
-                  width: 1.5,
-                ),
-                boxShadow: isFocused
-                    ? [
-                        BoxShadow(
-                          color: HotstarPlayerStyle.accent.withValues(
-                            alpha: 0.3,
-                          ),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -503,6 +428,13 @@ class _SubtitleAppearanceDialogState
     super.dispose();
   }
 
+  void _applyToPlayer() {
+    ref
+        .read(playerSettingsProvider.notifier)
+        .setSubtitleAppearanceSettings(_localSettings);
+    ref.read(playerControllerProvider.notifier).applySubtitleSettings();
+  }
+
   Future<void> _loadCustomFontIfNeeded() async {
     final path = _localSettings.subTypefaceFilePath;
     if (path != null && path.isNotEmpty) {
@@ -544,6 +476,7 @@ class _SubtitleAppearanceDialogState
             subTypeface: () => null,
           );
         });
+        _applyToPlayer();
         await _loadCustomFontIfNeeded();
       }
     } catch (e) {
@@ -574,123 +507,135 @@ class _SubtitleAppearanceDialogState
       );
       _customFontLoaded = false;
     });
-  }
-
-  void _applyAndSave() {
-    ref
-        .read(playerSettingsProvider.notifier)
-        .setSubtitleAppearanceSettings(_localSettings);
-    ref.read(playerControllerProvider.notifier).applySubtitleSettings();
-    Navigator.of(context).pop();
+    _applyToPlayer();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    // Master Switch Check to hide Close Button
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
     final isTv = isBigPicture || profile?.isTv == true || context.isTv;
 
-    return Scaffold(
-      backgroundColor: HotstarPlayerStyle.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: !isTv, // Hides physical back button
-        title: Text(
-          l10n.subtitleAppearance,
-          style: const TextStyle(
-            color: HotstarPlayerStyle.primaryText,
-            fontWeight: FontWeight.bold,
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.gameButtonX) {
+          _resetAll();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      onFocusChange: (hasFocus) {
+        if (hasFocus && isTv) {
+          Future.microtask(() {
+            if (mounted) {
+              ref.read(focusedGamepadHintsProvider.notifier).state = [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: 'Edit',
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'B',
+                  actionLabel: 'Back',
+                  buttonColor: Colors.redAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'X',
+                  actionLabel: 'Reset Default',
+                  buttonColor: Colors.blueAccent.shade400,
+                ),
+              ];
+            }
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: HotstarPlayerStyle.background.withValues(alpha: 0.85),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: !isTv,
+          title: Text(
+            l10n.subtitleAppearance,
+            style: const TextStyle(
+              color: HotstarPlayerStyle.primaryText,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          leading: isTv
+              ? null
+              : IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: HotstarPlayerStyle.primaryText,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+          actions: isTv
+              ? null
+              : [
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: l10n.resetToDefault,
+                    onPressed: _resetAll,
+                  ),
+                ],
         ),
-        leading: isTv
-            ? null
-            : IconButton(
-                icon: const Icon(
-                  Icons.close,
-                  color: HotstarPlayerStyle.primaryText,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // On small screens (mobile), keep the preview compact.
-          // On large screens (TV/desktop), allow more space.
-          final previewHeight = constraints.maxHeight < 600
-              ? 100.0
-              : (constraints.maxHeight < 900 ? 130.0 : 160.0);
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final previewHeight = constraints.maxHeight < 600
+                ? 100.0
+                : (constraints.maxHeight < 900 ? 130.0 : 160.0);
 
-          return Column(
-            children: [
-              SizedBox(height: previewHeight, child: _buildPreviewPane()),
-              const Divider(color: HotstarPlayerStyle.divider, height: 1),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionHeader(l10n.fontSettings),
-                      _buildFontSizeRow(l10n),
-                      _buildTypefaceRow(l10n),
-                      _buildBoldRow(l10n),
-                      _buildItalicRow(l10n),
-                      _buildTextColorRow(l10n),
+            return Column(
+              children: [
+                SizedBox(height: previewHeight, child: _buildPreviewPane()),
+                const Divider(color: HotstarPlayerStyle.divider, height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(l10n.fontSettings),
+                        _buildFontSizeRow(l10n),
+                        _buildTypefaceRow(l10n),
+                        _buildBoldRow(l10n),
+                        _buildItalicRow(l10n),
+                        _buildTextColorRow(l10n),
 
-                      _buildSectionHeader(l10n.edgeSettings),
-                      _buildEdgeTypeRow(l10n),
-                      _buildEdgeSizeRow(l10n),
-                      _buildEdgeColorRow(l10n),
+                        _buildSectionHeader(l10n.edgeSettings),
+                        _buildEdgeTypeRow(l10n),
+                        _buildEdgeSizeRow(l10n),
+                        _buildEdgeColorRow(l10n),
 
-                      _buildSectionHeader(l10n.backgroundAndLayout),
-                      _buildBackgroundColorRow(l10n),
-                      _buildBackgroundOpacityRow(l10n),
-                      _buildBackgroundRadiusRow(l10n),
-                      _buildElevationRow(l10n),
-                      _buildAlignmentRow(l10n),
+                        _buildSectionHeader(l10n.backgroundAndLayout),
+                        _buildBackgroundColorRow(l10n),
+                        _buildBackgroundOpacityRow(l10n),
+                        _buildBackgroundRadiusRow(l10n),
+                        _buildElevationRow(l10n),
+                        _buildAlignmentRow(l10n),
 
-                      _buildSectionHeader(l10n.contentCleaningAndFiltering),
-                      _buildRemoveBloatRow(l10n),
-                      _buildRemoveCaptionsRow(l10n),
-                      _buildUppercaseRow(l10n),
+                        _buildSectionHeader(l10n.contentCleaningAndFiltering),
+                        _buildRemoveBloatRow(l10n),
+                        _buildRemoveCaptionsRow(l10n),
+                        _buildUppercaseRow(l10n),
 
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          DpadButton(
-                            label: l10n.resetToDefault,
-                            isPrimary: false,
-                            onPressed: _resetAll,
-                          ),
-                          const Spacer(),
-                          DpadButton(
-                            label: l10n.cancel,
-                            isPrimary: false,
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          const SizedBox(width: 12),
-                          DpadButton(
-                            label: l10n.applySettings,
-                            isPrimary: true,
-                            onPressed: _applyAndSave,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -849,26 +794,6 @@ class _SubtitleAppearanceDialogState
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background image layer
-        Image.asset(
-          'assets/images/subtitles_preview_background.jpg',
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback gradient when image fails to load
-            return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            );
-          },
-        ),
-        // Subtitle preview text layer
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Align(
@@ -895,7 +820,6 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  // Generic Chevron Picker Row layout
   Widget _buildChevronPickerRow({
     required String label,
     required String subtitle,
@@ -1004,6 +928,7 @@ class _SubtitleAppearanceDialogState
                         subFixedTextSize: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1024,6 +949,7 @@ class _SubtitleAppearanceDialogState
                           subFixedTextSize: () => val,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1087,6 +1013,7 @@ class _SubtitleAppearanceDialogState
                         );
                       });
                       _customFontLoaded = false;
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1165,6 +1092,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subBold: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1212,6 +1140,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subItalic: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1229,6 +1158,7 @@ class _SubtitleAppearanceDialogState
         setState(() {
           _localSettings = _localSettings.copyWith(subForegroundColor: color);
         });
+        _applyToPlayer();
       },
       l10n,
     );
@@ -1273,6 +1203,7 @@ class _SubtitleAppearanceDialogState
                     setState(() {
                       _localSettings = _localSettings.copyWith(subEdgeType: i);
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 );
@@ -1344,6 +1275,7 @@ class _SubtitleAppearanceDialogState
                         subEdgeSize: () => val ? 2.0 : null,
                       );
                     });
+                    _applyToPlayer();
                   },
                 ),
               ],
@@ -1362,6 +1294,7 @@ class _SubtitleAppearanceDialogState
                       subEdgeSize: () => val,
                     );
                   });
+                  _applyToPlayer();
                 },
               ),
             ],
@@ -1380,6 +1313,7 @@ class _SubtitleAppearanceDialogState
         setState(() {
           _localSettings = _localSettings.copyWith(subEdgeColor: color);
         });
+        _applyToPlayer();
       },
       l10n,
     );
@@ -1394,6 +1328,7 @@ class _SubtitleAppearanceDialogState
         setState(() {
           _localSettings = _localSettings.copyWith(subBackgroundColor: color);
         });
+        _applyToPlayer();
       },
       l10n,
     );
@@ -1436,6 +1371,7 @@ class _SubtitleAppearanceDialogState
                     subBackgroundOpacity: val,
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1478,6 +1414,7 @@ class _SubtitleAppearanceDialogState
                         subBackgroundRadius: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1498,6 +1435,7 @@ class _SubtitleAppearanceDialogState
                           subBackgroundRadius: () => val,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1558,6 +1496,7 @@ class _SubtitleAppearanceDialogState
                     subElevation: val.round(),
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1611,6 +1550,7 @@ class _SubtitleAppearanceDialogState
                         subAlignment: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1630,6 +1570,7 @@ class _SubtitleAppearanceDialogState
                           subAlignment: () => item.$1,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1693,6 +1634,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subRemoveBloat: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1742,6 +1684,7 @@ class _SubtitleAppearanceDialogState
                     subRemoveCaptions: val,
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1789,6 +1732,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subUpperCase: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
