@@ -365,7 +365,7 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
                         final hasFocus = widget.searchFocusNode.hasFocus;
                         return FocusableWrapper(
                           focusNode: widget.searchFocusNode,
-                          useScaleEffect: true,
+                          useScaleEffect: false,
                           borderRadius: BorderRadius.circular(
                             LayoutConstants.radiusPill,
                           ),
@@ -440,7 +440,7 @@ class _SearchHeaderBarState extends ConsumerState<SearchHeaderBar> {
 
             FocusableWrapper(
               borderRadius: BorderRadius.circular(18),
-              useScaleEffect: true,
+              useScaleEffect: false,
               onTap: () => _popupKey.currentState?.showButtonMenu(),
               child: PopupMenuButton<SearchFilter>(
                 key: _popupKey,

@@ -497,7 +497,6 @@ class _SearchSuggestionsListState
           }
         };
 
-        // Upstream Beautiful Card UI
         Widget cardContent = CardsWrapper(
           focusNode: isBigPicture ? null : (index == 0 ? widget.firstItemFocusNode : null),
           scaleFactor: 1.02,
@@ -613,11 +612,12 @@ class _SearchSuggestionsListState
               type: MaterialType.transparency,
               child: FocusableWrapper(
                 focusNode: index == 0 ? widget.firstItemFocusNode : null,
+                autofocus: false, // Relies on proxy node logic
                 useScaleEffect: false,
                 gamepadHints: [
                   GamepadHint(
                     buttonLabel: 'A',
-                    actionLabel: 'Search',
+                    actionLabel: 'View',
                     buttonColor: Colors.greenAccent.shade400,
                   ),
                   GamepadHint(
@@ -780,6 +780,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
     final searchState = ref.watch(exploreSearchControllerProvider);
     final isLoading = searchState.isLoading;
     final results = searchState.results;
+    
     if (isLoading && results.isEmpty) {
       final screenWidth = MediaQuery.sizeOf(context).width;
       final isDesktop =
@@ -883,7 +884,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
 
         return FocusableWrapper(
           focusNode: index == 0 ? widget.firstItemFocusNode : null,
-          autofocus: index == 0 && widget.firstItemFocusNode == null,
+          autofocus: false, // Safely rely on D-pad navigation down from search
           gamepadHints: [
             GamepadHint(
               buttonLabel: 'A',

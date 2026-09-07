@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
 
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
@@ -10,12 +11,15 @@ import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import 'package:skystream/shared/widgets/custom_widgets.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
+import 'package:skystream/core/services/download_service.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 import '../details_controller.dart';
 import '../download_launcher.dart';
 import '../downloaded_file_provider.dart';
+import 'download_progress_dialog.dart';
+import 'download_management_dialog.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../../../../core/utils/stream_quality_sorter.dart';
 
@@ -104,13 +108,11 @@ class DetailsActionButtons extends HookConsumerWidget {
 
     final playFocusNode = useFocusNode();
 
-    // Master Switch Evaluation
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     final isMobile = context.isMobile;
 
-    // Auto-focus the Play button when details load, but ONLY for Big Picture users
     useEffect(() {
       if (details != null && isBigPicture) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -169,7 +171,7 @@ class DetailsActionButtons extends HookConsumerWidget {
     final playBtn = CustomButton(
       isPrimary: true,
       focusNode: playFocusNode,
-      autofocus: isBigPicture, // Only autofocus on init for Gamepads
+      autofocus: isBigPicture,
       onPressed:
           (details != null &&
               details!.episodes != null &&
@@ -179,7 +181,6 @@ class DetailsActionButtons extends HookConsumerWidget {
                   .read(detailsControllerProvider(item.url).notifier)
                   .handlePlayPress(context, details!);
 
-              // TV Focus restoration on return from player
               if (context.mounted && isBigPicture) {
                 playFocusNode.requestFocus();
               }
@@ -210,6 +211,128 @@ class DetailsActionButtons extends HookConsumerWidget {
         ),
       ),
     );
+
+    final isLivestream = item.contentType == MultimediaContentType.livestream;
+    final episodeList = details?.episodes ?? item.episodes;
+    final showDownload =
+        !isLivestream &&
+        (isMovie || (episodeList != null && episodeList.length == 1));
+
+    final episodeUrl =
+        details?.episodes?.firstOrNull?.url ??
+        item.episodes?.firstOrNull?.url ??
+        item.url;
+    final activeDownloads = ref.watch(activeDownloadsProvider);
+    final isDownloading = activeDownloads.contains(episodeUrl);
+    final progressMap = ref.watch(downloadProgressProvider);
+    final downloadProgressData =
+        progressMap[episodeUrl] ?? progressMap[item.url];
+    final downloadProgress = downloadProgressData?.progress ?? 0.0;
+
+    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
+
+    useEffect(() {
+      if (details != null && !isDownloading) {
+        Future.microtask(() {
+          ref
+              .read(downloadedFilesProvider.notifier)
+              .checkFile(
+                details!,
+                episode: details?.episodes?.firstWhereOrNull(
+                  (e) => e.url == episodeUrl,
+                ),
+              );
+        });
+      }
+      return null;
+    }, [details, episodeUrl, isDownloading]);
+
+    final downloadBtn = !showDownload
+        ? const SizedBox.shrink()
+        : downloadedFile != null
+        ? CustomButton(
+            isPrimary: false,
+            isOutlined: true,
+            onPressed: () {
+              DownloadManagementDialog.show(
+                context,
+                details ?? item,
+                downloadedFile,
+                episode: details?.episodes?.firstWhereOrNull(
+                  (e) => e.url == episodeUrl,
+                ),
+              );
+            },
+            child: Padding(
+              padding: btnPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.download_done_sharp, color: Colors.green),
+                  const SizedBox(width: LayoutConstants.spacingXs),
+                  Text(AppLocalizations.of(context)!.downloaded),
+                ],
+              ),
+            ),
+          )
+        : CustomButton(
+            isPrimary: false,
+            isOutlined: true,
+            onPressed: isDownloading
+                ? () => DownloadProgressDialog.show(
+                    context,
+                    details?.title ?? item.title,
+                    episodeUrl,
+                  )
+                : () {
+                    ref
+                        .read(downloadLauncherProvider)
+                        .launch(
+                          context,
+                          details ?? item,
+                          episodeUrl: episodeUrl,
+                        );
+                  },
+            child: Padding(
+              padding: btnPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: isDownloading
+                    ? [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child:
+                              downloadProgressData?.status == TaskStatus.paused
+                              ? Icon(
+                                  Icons.pause_rounded,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                              : CircularProgressIndicator(
+                                  value: downloadProgress > 0
+                                      ? downloadProgress
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                        ),
+                        const SizedBox(width: LayoutConstants.spacingXs),
+                        Text(
+                          downloadProgressData?.status == TaskStatus.paused
+                              ? 'Paused'
+                              : downloadProgress > 0
+                              ? '${(downloadProgress * 100).toInt()}%'
+                              : 'Starting...',
+                        ),
+                      ]
+                    : [
+                        const Icon(Icons.download_rounded),
+                        const SizedBox(width: LayoutConstants.spacingXs),
+                        Text(AppLocalizations.of(context)!.download),
+                      ],
+              ),
+            ),
+          );
 
     final settingsAsync = ref.watch(playerSettingsProvider);
     final settings = settingsAsync.asData?.value ?? const PlayerSettings();
@@ -300,9 +423,7 @@ class DetailsActionButtons extends HookConsumerWidget {
     );
 
     Widget progressWidget = const SizedBox.shrink();
-    if (pos > 0 &&
-        dur > 0 &&
-        item.contentType != MultimediaContentType.livestream) {
+    if (pos > 0 && dur > 0 && !isLivestream) {
       final progress = (pos / dur).clamp(0.0, 1.0);
       progressWidget = Padding(
         padding: const EdgeInsets.only(bottom: 16.0, left: 8.0, right: 8.0),
@@ -347,13 +468,26 @@ class DetailsActionButtons extends HookConsumerWidget {
       );
     }
 
+    final actionRow = showDownload
+        ? IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: playBtn),
+                const SizedBox(width: LayoutConstants.spacingSm),
+                Expanded(child: downloadBtn),
+              ],
+            ),
+          )
+        : playBtn;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         progressWidget,
         qualityBtn,
         const SizedBox(height: LayoutConstants.spacingSm),
-        playBtn,
+        actionRow,
       ],
     );
   }
@@ -467,10 +601,9 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
                             ),
                             child: i < rowEpisodes.length
                                 ? EpisodeCard(
-                                        episode: rowEpisodes[i],
-                                        parentItem: parentItem,
-                                      )
-                                      as Widget
+                                    episode: rowEpisodes[i],
+                                    parentItem: parentItem,
+                                  ) as Widget
                                 : const SizedBox.shrink(),
                           ),
                         ),
@@ -790,10 +923,10 @@ class _LanguageButtonState extends State<_LanguageButton> {
               color: _isFocused
                   ? Colors.white
                   : (widget.isSelected
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 80 / 255)
-                        : Colors.transparent),
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 80 / 255)
+                      : Colors.transparent),
               width: _isFocused ? 2 : 1,
             ),
           ),
@@ -1031,10 +1164,9 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
                               ),
                               child: i < rowEpisodes.length
                                   ? EpisodeCard(
-                                          episode: rowEpisodes[i],
-                                          parentItem: parentItem,
-                                        )
-                                        as Widget
+                                      episode: rowEpisodes[i],
+                                      parentItem: parentItem,
+                                    ) as Widget
                                   : const SizedBox.shrink(),
                             ),
                           ),
