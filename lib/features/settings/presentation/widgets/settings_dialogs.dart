@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,8 +22,84 @@ import '../../../../core/providers/locale_provider.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../../core/services/notification_service.dart';
 import '../cache_provider.dart';
+import 'package:dpad/dpad.dart';
 
-/// Returns a localized label for a player gesture.
+// Intents
+import '../../../../core/input/gamepad_intents.dart';
+
+/// A universal TV-friendly slider control.
+/// Excludes the slider from focus to prevent traps, providing
+/// easily navigable [-] and [+] buttons instead.
+class _StepperControl extends StatelessWidget {
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final String label;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+  final ValueChanged<double> onChanged;
+
+  const _StepperControl({
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.label,
+    required this.onDecrement,
+    required this.onIncrement,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        DpadFocusable(
+          onSelect: value > min ? onDecrement : null,
+          child: const SizedBox.shrink(),
+          builder: (context, state, _) => AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: state.focused 
+                ? BoxDecoration(border: Border.all(color: Colors.white, width: 2), shape: BoxShape.circle) 
+                : const BoxDecoration(shape: BoxShape.circle),
+            child: IconButton(
+              onPressed: value > min ? onDecrement : null,
+              icon: const Icon(Icons.remove_rounded),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ExcludeFocus(
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              divisions: divisions,
+              label: label,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        DpadFocusable(
+          onSelect: value < max ? onIncrement : null,
+          child: const SizedBox.shrink(),
+          builder: (context, state, _) => AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: state.focused 
+                ? BoxDecoration(border: Border.all(color: Colors.white, width: 2), shape: BoxShape.circle) 
+                : const BoxDecoration(shape: BoxShape.circle),
+            child: IconButton(
+              onPressed: value < max ? onIncrement : null,
+              icon: const Icon(Icons.add_rounded),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 String getGestureLabel(PlayerGesture gesture, AppLocalizations l10n) {
   switch (gesture) {
     case PlayerGesture.volume:
@@ -34,7 +111,6 @@ String getGestureLabel(PlayerGesture gesture, AppLocalizations l10n) {
   }
 }
 
-/// Returns a localized label for a resize mode string.
 String getResizeModeLabel(String mode, AppLocalizations l10n) {
   switch (mode.toLowerCase()) {
     case 'fit':
@@ -48,7 +124,6 @@ String getResizeModeLabel(String mode, AppLocalizations l10n) {
   }
 }
 
-/// Returns a human-readable label for a home screen route.
 String getHomeScreenLabel(String route, AppLocalizations l10n) {
   switch (route) {
     case '/home':
@@ -64,7 +139,6 @@ String getHomeScreenLabel(String route, AppLocalizations l10n) {
   }
 }
 
-/// Shows a dialog to pick the default home screen.
 void showDefaultHomeScreenDialog(
   BuildContext context,
   WidgetRef ref,
@@ -113,7 +187,6 @@ void showDefaultHomeScreenDialog(
   );
 }
 
-/// Returns a localized label for a title position.
 String getTitlePositionLabel(String position, AppLocalizations l10n) {
   switch (position) {
     case 'inside':
@@ -124,7 +197,6 @@ String getTitlePositionLabel(String position, AppLocalizations l10n) {
   }
 }
 
-/// Shows a dialog to pick the title position on poster cards.
 void showTitlePositionDialog(
   BuildContext context,
   WidgetRef ref,
@@ -229,24 +301,26 @@ Future<void> showDownloadSettingsDialog(
                       ),
                     const SizedBox(height: 12),
                     Text('Queue limit: $concurrency at once'),
-                    Slider(
+                    _StepperControl(
                       value: concurrency.toDouble(),
                       min: 1,
                       max: 10,
                       divisions: 9,
                       label: concurrency.toString(),
-                      onChanged: (v) =>
-                          setDialogState(() => concurrency = v.round()),
+                      onDecrement: () => setDialogState(() => concurrency = (concurrency - 1).clamp(1, 10)),
+                      onIncrement: () => setDialogState(() => concurrency = (concurrency + 1).clamp(1, 10)),
+                      onChanged: (v) => setDialogState(() => concurrency = v.round()),
                     ),
                     Text('Segments per file: $chunks'),
-                    Slider(
+                    _StepperControl(
                       value: chunks.toDouble(),
                       min: 1,
                       max: 8,
                       divisions: 7,
                       label: chunks == 1 ? 'Off' : chunks.toString(),
-                      onChanged: (v) =>
-                          setDialogState(() => chunks = v.round()),
+                      onDecrement: () => setDialogState(() => chunks = (chunks - 1).clamp(1, 8)),
+                      onIncrement: () => setDialogState(() => chunks = (chunks + 1).clamp(1, 8)),
+                      onChanged: (v) => setDialogState(() => chunks = v.round()),
                     ),
                   ],
                 ),
@@ -281,7 +355,6 @@ Future<void> showDownloadSettingsDialog(
   );
 }
 
-// Must be used inside a RadioGroup<ThemeMode> ancestor.
 Widget _buildThemeOption(
   String title,
   ThemeMode value,
@@ -296,7 +369,6 @@ Widget _buildThemeOption(
   );
 }
 
-/// Shows a dialog to pick the app theme mode.
 void showThemeDialog(
   BuildContext context,
   WidgetRef ref,
@@ -361,7 +433,6 @@ void showThemeDialog(
   );
 }
 
-/// Formats seek duration for display (e.g. "10 sec", "2 min").
 String formatSeekDuration(int seconds, AppLocalizations l10n) {
   if (seconds >= 60) {
     return '${seconds ~/ 60} ${l10n.min}';
@@ -369,19 +440,16 @@ String formatSeekDuration(int seconds, AppLocalizations l10n) {
   return '$seconds ${l10n.sec}';
 }
 
-/// Formats readahead seconds for display (e.g. "5 min", "10 min").
 String formatReadahead(int seconds, AppLocalizations l10n) {
   return '${seconds ~/ 60} ${l10n.min}';
 }
 
-/// Returns a human-readable name for a player ID.
 String getPlayerDisplayName(String? playerId, AppLocalizations l10n) {
   if (playerId == null) return l10n.internalPlayer;
   final player = ExternalPlayerService.instance.getPlayerById(playerId);
   return player?.displayName ?? playerId;
 }
 
-/// Returns a human-readable label for a DoH provider.
 String getDohProviderLabel(
   DohProvider provider,
   String customUrl,
@@ -407,7 +475,6 @@ String getDohProviderLabel(
   }
 }
 
-/// Shows a dialog to pick the default player (internal or external).
 void showDefaultPlayerDialog(
   BuildContext context,
   WidgetRef ref,
@@ -479,7 +546,6 @@ void showDefaultPlayerDialog(
   );
 }
 
-/// Shows a dialog to pick the DNS-over-HTTPS provider.
 void showDohProviderDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final initialSettings = ref.read(dohSettingsProvider).asData?.value;
@@ -600,7 +666,6 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
                         ),
                         child: CustomTextField(
                           controller: controller,
-                          // No autofocus here! Keeps TV keyboard from popping up instantly.
                           decoration: InputDecoration(
                             labelText: l10n.customDohUrlLabel,
                             hintText: 'https://...',
@@ -645,7 +710,6 @@ void showDohProviderDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to pick the left/right swipe gesture.
 void showGestureDialog(
   BuildContext context,
   WidgetRef ref,
@@ -697,7 +761,6 @@ void showGestureDialog(
   );
 }
 
-/// Shows a dialog to pick the seek duration.
 void showDurationDialog(BuildContext context, WidgetRef ref, int current) {
   final l10n = AppLocalizations.of(context)!;
   final options = <int>[5, 10, 15, 20, 30, 60, 120];
@@ -737,7 +800,6 @@ void showDurationDialog(BuildContext context, WidgetRef ref, int current) {
   );
 }
 
-/// Shows a dialog to reset data.
 void showResetDataDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final callerContext = context;
@@ -761,11 +823,7 @@ void showResetDataDialog(BuildContext context, WidgetRef ref) {
         TextButton(
           onPressed: () async {
             Navigator.pop<void>(dialogContext);
-
-            // Clear Preferences ONLY
             await ref.read(settingsRepositoryProvider).clearPreferences();
-
-            // Restart App - use caller's context; dialog context may be disposed after pop
             if (callerContext.mounted) {
               await AppUtils.restartApp(callerContext);
             }
@@ -780,7 +838,6 @@ void showResetDataDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to factory reset.
 void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final callerContext = context;
@@ -804,10 +861,7 @@ void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
         TextButton(
           onPressed: () async {
             Navigator.pop<void>(dialogContext);
-            // Deep Clean (Extensions, Prefs, Hive)
             await ref.read(settingsRepositoryProvider).deleteAllData();
-
-            // Restart App - use caller's context; dialog context may be disposed after pop
             if (callerContext.mounted) {
               await AppUtils.restartApp(callerContext);
             }
@@ -822,7 +876,6 @@ void showFactoryResetDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to clear the image & video cache.
 void showClearCacheDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   showDialog<void>(
@@ -866,7 +919,6 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to pick the application language.
 void showLanguageDialog(
   BuildContext context,
   WidgetRef ref,
@@ -937,10 +989,6 @@ void showLanguageDialog(
     ),
   );
 }
-
-// ---------------------------------------------------------------------------
-// HDR / tone-mapping + volume boost
-// ---------------------------------------------------------------------------
 
 String hdrModeLabel(HdrMode mode) => switch (mode) {
   HdrMode.auto => 'Auto',
@@ -1045,7 +1093,6 @@ void showTargetPeakDialog(
   WidgetRef ref,
   PlayerSettings settings,
 ) {
-  // 0 is a sentinel for "auto-detect from the display".
   const presets = <int, String>{
     0: 'Auto-detect (recommended)',
     203: '203 nits — SDR reference',
@@ -1115,12 +1162,14 @@ void showMaxVolumeDialog(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              Slider(
+              _StepperControl(
                 value: value,
                 min: 100,
                 max: 200,
                 divisions: 10,
                 label: '${value.round()}%',
+                onDecrement: () => setState(() => value = (value - 10).clamp(100.0, 200.0)),
+                onIncrement: () => setState(() => value = (value + 10).clamp(100.0, 200.0)),
                 onChanged: (v) => setState(() => value = v),
               ),
               const SizedBox(height: 4),
@@ -1166,16 +1215,6 @@ void showMaxVolumeDialog(
   );
 }
 
-/// Lets the user paste their own TMDB API key.
-///
-/// Why this exists: the key is normally baked in at build time via
-/// `--dart-define=TMDB_API_KEY`, which comes from a CI secret. When that
-/// secret is unset the APK ships with an empty key and every TMDB-backed
-/// screen (Stream, Explore, Details) silently has nothing to show. This
-/// dialog gives users a way out without rebuilding the app.
-///
-/// The key is validated against the live API before saving so a typo is
-/// caught here rather than surfacing as an empty grid later.
 void showTmdbApiKeyDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final current = ref.read(generalSettingsProvider).tmdbApiKey;
@@ -1192,8 +1231,6 @@ void showTmdbApiKeyDialog(BuildContext context, WidgetRef ref) {
           Future<void> save() async {
             final key = controller.text.trim();
 
-            // Empty is a legitimate input: it clears the override and falls
-            // back to the build-time key.
             if (key.isEmpty) {
               await ref
                   .read(generalSettingsProvider.notifier)
@@ -1220,9 +1257,6 @@ void showTmdbApiKeyDialog(BuildContext context, WidgetRef ref) {
               );
               valid = res.statusCode == 200;
             } catch (_) {
-              // Network failure is not the same as a bad key; fall through to
-              // the generic message so an offline user isn't told their key
-              // is wrong.
               valid = false;
             }
 
@@ -1239,10 +1273,7 @@ void showTmdbApiKeyDialog(BuildContext context, WidgetRef ref) {
             }
 
             await ref.read(generalSettingsProvider.notifier).setTmdbApiKey(key);
-
-            // Force the TMDB-backed screens to refetch with the new key.
             ref.invalidate(streamBrowserProvider);
-
             if (ctx.mounted) Navigator.pop<void>(ctx);
           }
 
@@ -1330,7 +1361,6 @@ void showTmdbApiKeyDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a beautiful dialog with information about the developer.
 void showDeveloperDialog(BuildContext context) {
   final colorScheme = Theme.of(context).colorScheme;
 
@@ -1344,7 +1374,6 @@ void showDeveloperDialog(BuildContext context) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Profile Picture
             Container(
               width: 100,
               height: 100,
@@ -1375,7 +1404,6 @@ void showDeveloperDialog(BuildContext context) {
               ),
             ),
             const SizedBox(height: 20),
-            // Name and Title
             Text(
               'Akash',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -1392,7 +1420,6 @@ void showDeveloperDialog(BuildContext context) {
               ),
             ),
             const SizedBox(height: 24),
-            // Social Links
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 12,
@@ -1485,159 +1512,6 @@ class _SocialButton extends StatelessWidget {
   }
 }
 
-/// Shows a dialog to pick the default resize mode.
-void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
-  final l10n = AppLocalizations.of(context)!;
-  final options = <Map<String, String>>[
-    {'label': l10n.fit, 'value': 'Fit'},
-    {'label': l10n.zoom, 'value': 'Zoom'},
-    {'label': l10n.stretch, 'value': 'Stretch'},
-  ];
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.defaultResizeMode),
-      content: RadioGroup<String>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          ref.read(playerSettingsProvider.notifier).setDefaultResizeMode(val);
-          Navigator.pop<void>(ctx);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((e) {
-              return ListTile(
-                autofocus: current == e['value'],
-                title: Text(e['label']!),
-                leading: Radio<String>(value: e['value']!),
-                onTap: () {
-                  ref
-                      .read(playerSettingsProvider.notifier)
-                      .setDefaultResizeMode(e['value']!);
-                  Navigator.pop<void>(ctx);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog to pick the readahead duration (5-10 min).
-void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
-  final l10n = AppLocalizations.of(context)!;
-  // 1 to 20 minutes in 1-minute steps
-  final options = List.generate(20, (i) => (1 + i) * 60);
-
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      surfaceTintColor: Colors.transparent,
-      title: Text(l10n.selectBufferDepth),
-      content: RadioGroup<int>(
-        groupValue: current,
-        onChanged: (val) {
-          if (val == null) return;
-          ref.read(playerSettingsProvider.notifier).setReadaheadSeconds(val);
-          Navigator.pop<void>(context);
-        },
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((sec) {
-              return ListTile(
-                autofocus: current == sec,
-                title: Text(formatReadahead(sec, l10n)),
-                leading: Radio<int>(value: sec),
-                onTap: () {
-                  ref
-                      .read(playerSettingsProvider.notifier)
-                      .setReadaheadSeconds(sec);
-                  Navigator.pop<void>(context);
-                },
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-/// Shows a dialog for subtitle size + background settings.
-void showSubtitleDialog(
-  BuildContext context,
-  WidgetRef ref,
-  PlayerSettings settings,
-) {
-  final l10n = AppLocalizations.of(context)!;
-  double size = settings.subtitleSize;
-  bool showBackground = settings.subtitleBackgroundColor != 0;
-
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          surfaceTintColor: Colors.transparent,
-          title: Text(l10n.subtitleSettings),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l10n.size(size.toInt())),
-                CustomSlider(
-                  value: size,
-                  min: 10,
-                  max: 80,
-                  divisions: 70,
-                  step: 1.0,
-                  onChanged: (v) => setState(() => size = v),
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: Text(l10n.background),
-                  value: showBackground,
-                  onChanged: (v) => setState(() => showBackground = v),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              autofocus: true,
-              onPressed: () => Navigator.pop<void>(ctx),
-              child: Text(
-                l10n.cancel,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            CustomButton(
-              isPrimary: true,
-              onPressed: () {
-                final bg = showBackground ? 0x99000000 : 0x00000000;
-                ref
-                    .read(playerSettingsProvider.notifier)
-                    .setSubtitleSettings(size, settings.subtitleColor, bg);
-                Navigator.pop<void>(ctx);
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
-/// Shows a dialog to pick a [QualityPreference] for [title] (Wi-Fi or Mobile).
 void showQualityDialog(
   BuildContext context,
   WidgetRef ref, {
@@ -1712,8 +1586,6 @@ void showQualityDialog(
   );
 }
 
-/// Shows a dialog to pick a [QualityFilterMode].
-/// Controls whether sources that don't match the quality preference are hidden.
 void showQualityFilterModeDialog(
   BuildContext context,
   WidgetRef ref, {
@@ -1807,8 +1679,6 @@ void showQualityFilterModeDialog(
   );
 }
 
-/// Shows a dialog to toggle the visibility of individual player control
-/// buttons. Changes apply live via the player settings notifier.
 void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
   final l10n = AppLocalizations.of(context)!;
   final notifier = ref.read(playerSettingsProvider.notifier);
@@ -1879,7 +1749,6 @@ void showPlayerControlsDialog(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// Shows a dialog to enter OpenSubtitles.com credentials.
 void showOpenSubtitlesAuthDialog(
   BuildContext context,
   WidgetRef ref,
@@ -1923,7 +1792,6 @@ void showOpenSubtitlesAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: userController,
-                    // No autofocus here! Keeps TV keyboard from popping up instantly.
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: l10n.username,
@@ -2080,7 +1948,6 @@ void showOpenSubtitlesAuthDialog(
   );
 }
 
-/// Shows a dialog to enter SubDL Account credentials.
 void showSubDlAuthDialog(
   BuildContext context,
   WidgetRef ref,
@@ -2128,7 +1995,6 @@ void showSubDlAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: apiKeyController,
-                    // No autofocus here!
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       labelText: l10n.apiKey,
@@ -2372,7 +2238,6 @@ void showSubDlAuthDialog(
   );
 }
 
-/// Shows a dialog to enter SubSource API Key.
 void showSubSourceAuthDialog(
   BuildContext context,
   WidgetRef ref,
@@ -2414,7 +2279,6 @@ void showSubSourceAuthDialog(
                   const SizedBox(height: 16),
                   CustomTextField(
                     controller: keyController,
-                    // No autofocus here! Keeps TV keyboard from popping up instantly.
                     decoration: InputDecoration(
                       labelText: l10n.apiKeyOptionalOverride,
                       prefixIcon: const Icon(Icons.key_rounded, size: 20),
@@ -2539,5 +2403,154 @@ void showSubSourceAuthDialog(
         ),
       );
     },
+  );
+}
+
+void showSubtitleDialog(
+  BuildContext context,
+  WidgetRef ref,
+  PlayerSettings settings,
+) {
+  final l10n = AppLocalizations.of(context)!;
+  double size = settings.subtitleSize;
+  bool showBackground = settings.subtitleBackgroundColor != 0;
+
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (context, setState) {
+        return AlertDialog(
+          surfaceTintColor: Colors.transparent,
+          title: Text(l10n.subtitleSettings),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.size(size.toInt())),
+                _StepperControl(
+                  value: size,
+                  min: 10,
+                  max: 80,
+                  divisions: 70,
+                  label: '${size.toInt()}',
+                  onDecrement: () => setState(() => size = (size - 1).clamp(10.0, 80.0)),
+                  onIncrement: () => setState(() => size = (size + 1).clamp(10.0, 80.0)),
+                  onChanged: (v) => setState(() => size = v),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: Text(l10n.background),
+                  value: showBackground,
+                  onChanged: (v) => setState(() => showBackground = v),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop<void>(ctx),
+              child: Text(
+                l10n.cancel,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            CustomButton(
+              isPrimary: true,
+              onPressed: () {
+                final bg = showBackground ? 0x99000000 : 0x00000000;
+                ref
+                    .read(playerSettingsProvider.notifier)
+                    .setSubtitleSettings(size, settings.subtitleColor, bg);
+                Navigator.pop<void>(ctx);
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+void showResizeDialog(BuildContext context, WidgetRef ref, String current) {
+  final l10n = AppLocalizations.of(context)!;
+  final options = <Map<String, String>>[
+    {'label': l10n.fit, 'value': 'Fit'},
+    {'label': l10n.zoom, 'value': 'Zoom'},
+    {'label': l10n.stretch, 'value': 'Stretch'},
+  ];
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.defaultResizeMode),
+      content: RadioGroup<String>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(playerSettingsProvider.notifier).setDefaultResizeMode(val);
+          Navigator.pop<void>(ctx);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((e) {
+              return ListTile(
+                autofocus: current == e['value'],
+                title: Text(e['label']!),
+                leading: Radio<String>(value: e['value']!),
+                onTap: () {
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setDefaultResizeMode(e['value']!);
+                  Navigator.pop<void>(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+void showReadaheadDialog(BuildContext context, WidgetRef ref, int current) {
+  final l10n = AppLocalizations.of(context)!;
+  final options = List.generate(20, (i) => (1 + i) * 60);
+
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      surfaceTintColor: Colors.transparent,
+      title: Text(l10n.selectBufferDepth),
+      content: RadioGroup<int>(
+        groupValue: current,
+        onChanged: (val) {
+          if (val == null) return;
+          ref.read(playerSettingsProvider.notifier).setReadaheadSeconds(val);
+          Navigator.pop<void>(context);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((sec) {
+              return ListTile(
+                autofocus: current == sec,
+                title: Text(formatReadahead(sec, l10n)),
+                leading: Radio<int>(value: sec),
+                onTap: () {
+                  ref
+                      .read(playerSettingsProvider.notifier)
+                      .setReadaheadSeconds(sec);
+                  Navigator.pop<void>(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    ),
   );
 }
