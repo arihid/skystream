@@ -3,13 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
-
 import 'package:skystream/core/input/gamepad_intents.dart';
 
-// Global provider to hide hints completely (e.g., Virtual Keyboard open)
 final showGamepadHintsProvider = StateProvider<bool>((ref) => true);
-
-// Global provider for context-aware focused widget overrides
 final focusedGamepadHintsProvider = StateProvider<List<GamepadHint>?>(
   (ref) => null,
 );
@@ -27,14 +23,14 @@ class GamepadHint {
 }
 
 class GamepadHintsOverlay extends ConsumerWidget {
-  final List<GamepadHint>? customHints; // Fallback screen-level hints
+  final List<GamepadHint>? customHints;
 
   const GamepadHintsOverlay({super.key, this.customHints});
 
   Intent? _getIntentForButton(String label) {
     switch (label.toUpperCase()) {
       case 'A':
-        return const ActivateIntent(); // Mapped to primary action
+        return const ActivateIntent();
       case 'B':
         return const AppBackIntent();
       case 'X':
@@ -61,9 +57,7 @@ class GamepadHintsOverlay extends ConsumerWidget {
     final showHints = ref.watch(showGamepadHintsProvider);
     if (!showHints) return const SizedBox.shrink();
 
-    // Priority: 1. Focused Widget -> 2. Screen-Level Overlay -> 3. Global Defaults
     final focusedHints = ref.watch(focusedGamepadHintsProvider);
-
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
@@ -87,37 +81,41 @@ class GamepadHintsOverlay extends ConsumerWidget {
 
     final hintsToDisplay = focusedHints ?? customHints ?? defaultHints;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        border: Border(
-          top: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: hintsToDisplay.map((hint) {
-          return Padding(
-            padding: EdgeInsets.only(
-              right: hint == hintsToDisplay.last ? 0 : 16,
+    return ExcludeFocus(
+      excluding: true,
+      child: Container(
+        width: double.infinity,
+        // Increased bottom padding to avoid Toast Overlap
+        padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 24),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          border: Border(
+            top: BorderSide(
+              color: theme.dividerColor.withValues(alpha: 0.3),
+              width: 1,
             ),
-            child: _buildHintItem(context, hint),
-          );
-        }).toList(),
-      ),
-    );
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: hintsToDisplay.map((hint) {
+            return Padding(
+              padding: EdgeInsets.only(
+                right: hint == hintsToDisplay.last ? 0 : 16,
+              ),
+              child: _buildHintItem(context, hint),
+            );
+          }).toList(),
+        ),
+      )
+    );  
   }
 
   Widget _buildHintItem(BuildContext context, GamepadHint hint) {
@@ -168,7 +166,6 @@ class GamepadHintsOverlay extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Dispatch the action to whatever is currently holding focus on the screen
             final targetContext =
                 FocusManager.instance.primaryFocus?.context ?? context;
             Actions.maybeInvoke(targetContext, intent);
