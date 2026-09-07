@@ -219,7 +219,7 @@ class GlobalSystemMenu extends StatelessWidget {
                                   context,
                                   rootNavigator: true,
                                 ).pop();
-                                const SettingsRoute().go(context);
+                                const SettingsRoute().push<void>(context);
                               },
                             ),
                             const SizedBox(height: 16),
