@@ -4,14 +4,14 @@ import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/addons/data/addon_repository.dart';
 import '../../../../core/addons/data/debrid_service.dart';
 import '../../../../core/addons/models/addon_manifest.dart';
+import '../../../../core/services/notification_service.dart';
 
-/// One-tap starter add-ons: catalogs, streams and subtitles, so a fresh
-/// install can be useful in three taps.
 class AddonPreset {
   final String name;
   final String description;
@@ -26,9 +26,6 @@ class AddonPreset {
   });
 }
 
-/// Curated starters. The mix matters: a catalog add-on to browse, a torrent
-/// add-on for links, a deep-link add-on for the streaming services themselves,
-/// and subtitles.
 const List<AddonPreset> kAddonPresets = [
   AddonPreset(
     name: 'Cinemeta',
@@ -75,9 +72,9 @@ const List<AddonPreset> kAddonPresets = [
   ),
 ];
 
-/// Install / enable / reorder / remove add-ons.
 class AddonManageView extends ConsumerStatefulWidget {
-  const AddonManageView({super.key});
+  final FocusNode? firstActionFocusNode;
+  const AddonManageView({super.key, this.firstActionFocusNode});
 
   @override
   ConsumerState<AddonManageView> createState() => _AddonManageViewState();
@@ -87,19 +84,14 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
   final Set<String> _busy = {};
 
   Future<void> _install(String url, {String? label}) async {
-    final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy.add(url));
     try {
       final addon = await ref
           .read(addonRepositoryProvider.notifier)
           .install(url);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Installed ${addon.displayName}')),
-      );
+      ref.read(notificationServiceProvider).showSuccess('Installed ${addon.displayName}');
     } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Could not install ${label ?? url}: $error')),
-      );
+      ref.read(notificationServiceProvider).showError('Could not install ${label ?? url}: $error');
     } finally {
       if (mounted) setState(() => _busy.remove(url));
     }
@@ -120,14 +112,17 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
               '(with ?query settings) work too.',
             ),
             const SizedBox(height: 14),
-            Focus(
-              onKeyEvent: (node, event) {
-                if (event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                  node.nextFocus();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
+            Actions(
+              actions: {
+                GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
+                  onInvoke: (intent) {
+                    if (intent.direction == TraversalDirection.down) {
+                      FocusManager.instance.primaryFocus?.nextFocus();
+                      return null;
+                    }
+                    return null;
+                  },
+                )
               },
               child: TextField(
                 controller: controller,
@@ -197,6 +192,7 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
       await ref
           .read(addonRepositoryProvider.notifier)
           .remove(addon.manifestUrl);
+      ref.read(notificationServiceProvider).showInfo('Removed ${addon.displayName}');
     }
   }
 
@@ -209,7 +205,6 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
       children: [
-        // Top Management Card
         Card(
           margin: EdgeInsets.zero,
           child: Padding(
@@ -229,36 +224,6 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                         ),
                       ),
                     ),
-                    DpadFocusable(
-                      onSelect: () => unawaited(
-                        ref.read(addonRepositoryProvider.notifier).refreshAll(),
-                      ),
-                      child: const SizedBox.shrink(),
-                      builder: (context, focusState, _) {
-                        final isFocused = focusState.focused;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isFocused
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              width: 2,
-                            ),
-                          ),
-                          child: IconButton(
-                            tooltip: 'Refresh manifests',
-                            onPressed: () => unawaited(
-                              ref
-                                  .read(addonRepositoryProvider.notifier)
-                                  .refreshAll(),
-                            ),
-                            icon: const Icon(Icons.refresh_rounded),
-                          ),
-                        );
-                      },
-                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -269,28 +234,62 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                     color: cs.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 14),
-                DpadFocusable(
-                  onSelect: () => unawaited(_showAddDialog()),
-                  child: const SizedBox.shrink(),
-                  builder: (context, focusState, _) {
-                    final isFocused = focusState.focused;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isFocused ? Colors.white : Colors.transparent,
-                          width: 2,
-                        ),
-                      ),
-                      child: FilledButton.icon(
-                        onPressed: () => unawaited(_showAddDialog()),
-                        icon: const Icon(Icons.add_link_rounded),
-                        label: const Text('Add add-on URL'),
-                      ),
-                    );
-                  },
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    DpadFocusable(
+                      focusNode: widget.firstActionFocusNode,
+                      onSelect: () => unawaited(_showAddDialog()),
+                      child: const SizedBox.shrink(),
+                      builder: (context, focusState, _) {
+                        final isFocused = focusState.focused;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isFocused ? Colors.white : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: FilledButton.icon(
+                            onPressed: () => unawaited(_showAddDialog()),
+                            icon: const Icon(Icons.add_link_rounded),
+                            label: const Text('Add add-on URL'),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                    DpadFocusable(
+                      onSelect: () {
+                        unawaited(ref.read(addonRepositoryProvider.notifier).refreshAll());
+                        ref.read(notificationServiceProvider).showInfo('Refreshing manifests...');
+                      },
+                      child: const SizedBox.shrink(),
+                      builder: (context, focusState, _) {
+                        final isFocused = focusState.focused;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isFocused ? Colors.white : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: FilledButton.tonalIcon(
+                            onPressed: () {
+                              unawaited(ref.read(addonRepositoryProvider.notifier).refreshAll());
+                              ref.read(notificationServiceProvider).showInfo('Refreshing manifests...');
+                            },
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Refresh manifests'),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -298,7 +297,6 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
         ),
         const SizedBox(height: 18),
 
-        // Quick Add Section
         Text(
           'Quick Install',
           style: theme.textTheme.titleSmall?.copyWith(
@@ -306,55 +304,64 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
           ),
         ),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final preset in kAddonPresets)
-              DpadFocusable(
-                onSelect: _busy.contains(preset.url)
-                    ? null
-                    : () => unawaited(_install(preset.url, label: preset.name)),
-                child: const SizedBox.shrink(),
-                builder: (context, focusState, _) {
-                  final isFocused = focusState.focused;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isFocused ? Colors.white : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: ActionChip(
-                      avatar: _busy.contains(preset.url)
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(preset.icon, size: 18),
-                      label: Text(preset.name),
-                      tooltip: preset.description,
-                      onPressed: _busy.contains(preset.url)
-                          ? null
-                          : () => unawaited(
-                              _install(preset.url, label: preset.name),
-                            ),
-                    ),
-                  );
-                },
-              ),
-          ],
+        
+        // <--- FIXED: Replaced Wrap with a horizontal ListView for perfect D-pad traversal
+        SizedBox(
+          height: 50,
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: kAddonPresets.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final preset = kAddonPresets[index];
+                return Center(
+                  child: DpadFocusable(
+                    onSelect: _busy.contains(preset.url)
+                        ? null
+                        : () => unawaited(_install(preset.url, label: preset.name)),
+                    child: const SizedBox.shrink(),
+                    builder: (context, focusState, _) {
+                      final isFocused = focusState.focused;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isFocused ? Colors.white : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: ActionChip(
+                          avatar: _busy.contains(preset.url)
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Icon(preset.icon, size: 18),
+                          label: Text(preset.name),
+                          tooltip: preset.description,
+                          onPressed: _busy.contains(preset.url)
+                              ? null
+                              : () => unawaited(
+                                  _install(preset.url, label: preset.name),
+                                ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
         ),
         const SizedBox(height: 20),
 
-        // Debrid Account Section
         const _DebridCard(),
         const SizedBox(height: 20),
 
-        // Installed Addons List
         Row(
           children: [
             Text(
@@ -363,14 +370,6 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Spacer(),
-            if (state.addons.isNotEmpty)
-              Text(
-                'Use 3-dot menu to reorder',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
           ],
         ),
         const SizedBox(height: 10),
@@ -383,8 +382,7 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Text(
-              'Nothing installed yet. Cinemeta gives you catalogs, Torrentio '
-              'gives you streams.',
+              'Nothing installed yet. Cinemeta gives you catalogs, Torrentio gives you streams.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
@@ -463,21 +461,75 @@ class _AddonTile extends StatefulWidget {
 
 class _AddonTileState extends State<_AddonTile> {
   late final FocusNode _tileFocusNode;
-  late final FocusNode _menuFocusNode;
-  final GlobalKey<PopupMenuButtonState<String>> _popupMenuKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _tileFocusNode = FocusNode();
-    _menuFocusNode = FocusNode();
   }
 
   @override
   void dispose() {
     _tileFocusNode.dispose();
-    _menuFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _showOptionsDialog() async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(widget.addon.displayName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              autofocus: true,
+              leading: Icon(widget.addon.enabled ? Icons.toggle_on : Icons.toggle_off, color: widget.addon.enabled ? Colors.green : null),
+              title: Text(widget.addon.enabled ? 'Disable' : 'Enable'),
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onToggle(!widget.addon.enabled);
+              },
+            ),
+            if (widget.onMoveUp != null)
+              ListTile(
+                leading: const Icon(Icons.arrow_upward_rounded),
+                title: const Text('Move Priority Up'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onMoveUp!();
+                },
+              ),
+            if (widget.onMoveDown != null)
+              ListTile(
+                leading: const Icon(Icons.arrow_downward_rounded),
+                title: const Text('Move Priority Down'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onMoveDown!();
+                },
+              ),
+            if (widget.addon.manifest?.behaviorHints.configurable ?? false)
+              ListTile(
+                leading: const Icon(Icons.open_in_browser_rounded),
+                title: const Text('Configure in Browser'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onConfigure();
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+              title: const Text('Uninstall', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                widget.onRemove();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -488,90 +540,83 @@ class _AddonTileState extends State<_AddonTile> {
     final resources =
         manifest?.resources.map((r) => r.name).toList() ?? const [];
 
-    return Focus(
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            _tileFocusNode.hasFocus) {
-          _menuFocusNode.requestFocus();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: DpadFocusable(
-        focusNode: _tileFocusNode,
-        onSelect: () => widget.onToggle(!widget.addon.enabled),
-        child: const SizedBox.shrink(),
-        builder: (context, focusState, _) {
-          final isTileFocused = focusState.focused && !_menuFocusNode.hasFocus;
+    return DpadFocusable(
+      focusNode: _tileFocusNode,
+      onSelect: _showOptionsDialog,
+      child: const SizedBox.shrink(),
+      builder: (context, focusState, _) {
+        final isTileFocused = focusState.focused;
 
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isTileFocused ? Colors.white : Colors.transparent,
-                width: 2,
-              ),
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.only(bottom: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isTileFocused ? Colors.white : Colors.transparent,
+              width: 2,
             ),
-            child: Card(
-              margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+          ),
+          child: Card(
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: _showOptionsDialog,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 child: Row(
                   children: [
-                    // Reorder drag indicator on the far left
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Icon(
-                        Icons.drag_indicator_rounded,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                        size: 22,
-                      ),
-                    ),
-                    // Logo
                     if (manifest?.logoUrl != null &&
                         manifest!.logoUrl!.startsWith('http'))
                       Padding(
-                        padding: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.only(right: 14),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
                             manifest.logoUrl!,
-                            width: 36,
-                            height: 36,
+                            width: 42,
+                            height: 42,
                             fit: BoxFit.cover,
                             cacheWidth: 96,
                             errorBuilder: (_, _, _) =>
-                                const Icon(Icons.extension_rounded, size: 28),
+                                const Icon(Icons.extension_rounded, size: 32),
                           ),
                         ),
                       )
                     else
                       const Padding(
-                        padding: EdgeInsets.only(right: 12),
-                        child: Icon(Icons.extension_rounded, size: 28),
+                        padding: EdgeInsets.only(right: 14),
+                        child: Icon(Icons.extension_rounded, size: 32),
                       ),
-                    // Text and badges
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${widget.addon.displayName}  v${manifest?.version ?? '?'}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                widget.addon.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'v${manifest?.version ?? '?'}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                           if ((manifest?.description ?? '').isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 manifest!.description,
                                 maxLines: 2,
@@ -583,7 +628,7 @@ class _AddonTileState extends State<_AddonTile> {
                             ),
                           if (widget.addon.errorMessage != null)
                             Padding(
-                              padding: const EdgeInsets.only(top: 2),
+                              padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 widget.addon.errorMessage!,
                                 maxLines: 2,
@@ -593,7 +638,7 @@ class _AddonTileState extends State<_AddonTile> {
                                 ),
                               ),
                             ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
@@ -624,163 +669,40 @@ class _AddonTileState extends State<_AddonTile> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Actions: Switch and 3-dot popup menu
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Switch(
                           value: widget.addon.enabled,
-                          onChanged: widget.onToggle,
-                          thumbIcon: WidgetStateProperty.resolveWith<Icon?>((
-                            states,
-                          ) {
-                            if (isTileFocused ||
-                                states.contains(WidgetState.focused) ||
-                                states.contains(WidgetState.hovered)) {
-                              if (widget.addon.enabled) {
-                                return const Icon(
-                                  Icons.check_rounded,
-                                  size: 14,
-                                );
-                              } else {
-                                return const Icon(
-                                  Icons.close_rounded,
-                                  size: 14,
-                                );
-                              }
-                            }
-                            return null;
-                          }),
+                          onChanged: (v) => widget.onToggle(v),
                         ),
-                        const SizedBox(width: 4),
-                        Focus(
-                          onKeyEvent: (node, event) {
-                            if (event is KeyDownEvent &&
-                                event.logicalKey ==
-                                    LogicalKeyboardKey.arrowLeft) {
-                              _tileFocusNode.requestFocus();
-                              return KeyEventResult.handled;
-                            }
-                            return KeyEventResult.ignored;
-                          },
-                          child: DpadFocusable(
-                            focusNode: _menuFocusNode,
-                            onSelect: () =>
-                                _popupMenuKey.currentState?.showButtonMenu(),
-                            child: const SizedBox.shrink(),
-                            builder: (context, menuFocusState, _) {
-                              final isMenuFocused = menuFocusState.focused;
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isMenuFocused
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: PopupMenuButton<String>(
-                                  key: _popupMenuKey,
-                                  icon: const Icon(Icons.more_vert_rounded),
-                                  tooltip: 'Options',
-                                  onSelected: (value) {
-                                    switch (value) {
-                                      case 'move_up':
-                                        widget.onMoveUp?.call();
-                                      case 'move_down':
-                                        widget.onMoveDown?.call();
-                                      case 'configure':
-                                        unawaited(widget.onConfigure());
-                                      case 'remove':
-                                        widget.onRemove();
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    if (manifest?.behaviorHints.configurable ??
-                                        false)
-                                      const PopupMenuItem(
-                                        value: 'configure',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.open_in_browser_rounded,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Configure in browser'),
-                                          ],
-                                        ),
-                                      ),
-                                    if (widget.onMoveUp != null)
-                                      const PopupMenuItem(
-                                        value: 'move_up',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.arrow_upward_rounded,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Move up'),
-                                          ],
-                                        ),
-                                      ),
-                                    if (widget.onMoveDown != null)
-                                      const PopupMenuItem(
-                                        value: 'move_down',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.arrow_downward_rounded,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Move down'),
-                                          ],
-                                        ),
-                                      ),
-                                    const PopupMenuItem(
-                                      value: 'remove',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.delete_outline_rounded,
-                                            size: 20,
-                                            color: Colors.redAccent,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Remove',
-                                            style: TextStyle(
-                                              color: Colors.redAccent,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                        if (isTileFocused)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4.0, right: 8.0),
+                            child: Text(
+                              'Press A for Options',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ],
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-/// Floating D-pad friendly API key entry dialog
 class _DebridApiKeyDialog extends StatefulWidget {
   final DebridProvider provider;
   final String initialKey;
@@ -827,14 +749,17 @@ class _DebridApiKeyDialogState extends State<_DebridApiKeyDialog> {
             'Paste your ${widget.provider.label} API key / token to enable instant debrid link resolving.',
           ),
           const SizedBox(height: 14),
-          Focus(
-            onKeyEvent: (node, event) {
-              if (event is KeyDownEvent &&
-                  event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                node.nextFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
+          Actions(
+            actions: {
+              GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
+                onInvoke: (intent) {
+                  if (intent.direction == TraversalDirection.down) {
+                    FocusManager.instance.primaryFocus?.nextFocus();
+                    return null;
+                  }
+                  return null;
+                },
+              )
             },
             child: TextField(
               controller: _controller,
@@ -889,7 +814,6 @@ class _DebridApiKeyDialogState extends State<_DebridApiKeyDialog> {
   }
 }
 
-/// Debrid account card.
 class _DebridCard extends ConsumerStatefulWidget {
   const _DebridCard();
 
@@ -909,6 +833,45 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
     super.dispose();
   }
 
+  Future<void> _showProviderDialog() async {
+    final selected = await showDialog<DebridProvider>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Debrid Provider'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: DebridProvider.values.length,
+              itemBuilder: (context, index) {
+                final provider = DebridProvider.values[index];
+                return ListTile(
+                  autofocus: _provider == provider, // Auto-focuses the current one!
+                  title: Text(provider.label),
+                  onTap: () => Navigator.pop(context, provider),
+                  trailing: _provider == provider
+                      ? const Icon(Icons.check_circle_rounded, color: Colors.green)
+                      : null,
+                );
+              },
+            ),
+          ),
+          actions: [
+            _DpadDialogButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.pop(context),
+            )
+          ],
+        );
+      },
+    );
+
+    if (selected != null && mounted) {
+      setState(() => _provider = selected);
+    }
+  }
+
   Future<void> _openApiKeyDialog() async {
     final key = await showDialog<String>(
       context: context,
@@ -922,7 +885,6 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
       setState(() {
         _keyController.text = key;
       });
-      // Automatically connect if key provided
       if (key.isNotEmpty) {
         await _save();
       }
@@ -930,24 +892,18 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
   }
 
   Future<void> _save() async {
-    final messenger = ScaffoldMessenger.of(context);
     setState(() => _saving = true);
     try {
       final username = await ref
           .read(debridSettingsProvider.notifier)
           .save(_provider, _keyController.text);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            _provider == DebridProvider.none
-                ? 'Debrid disabled'
-                : 'Connected to ${_provider.label}'
-                      '${username == null ? '' : ' as $username'}',
-          ),
-        ),
+      ref.read(notificationServiceProvider).showSuccess(
+        _provider == DebridProvider.none
+            ? 'Debrid disabled'
+            : 'Connected to ${_provider.label}${username == null ? '' : ' as $username'}',
       );
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('Debrid error: $error')));
+      ref.read(notificationServiceProvider).showError('Debrid error: $error');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -959,7 +915,6 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    // Seed the fields once the stored config has loaded.
     if (!_initialised && !config.isLoading) {
       _initialised = true;
       _provider = config.provider;
@@ -1003,23 +958,34 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<DebridProvider>(
-              initialValue: _provider,
-              decoration: const InputDecoration(
-                labelText: 'Provider',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final provider in DebridProvider.values)
-                  DropdownMenuItem(
-                    value: provider,
-                    child: Text(provider.label),
+            
+            DpadFocusable(
+              onSelect: _showProviderDialog,
+              child: const SizedBox.shrink(),
+              builder: (context, focusState, _) {
+                final isFocused = focusState.focused;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isFocused ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
                   ),
-              ],
-              onChanged: (value) =>
-                  setState(() => _provider = value ?? DebridProvider.none),
+                  child: OutlinedButton.icon(
+                    onPressed: _showProviderDialog,
+                    icon: const Icon(Icons.dns_rounded),
+                    label: Text(_provider.label),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: cs.onSurface,
+                      side: BorderSide(color: cs.outlineVariant),
+                    ),
+                  ),
+                );
+              },
             ),
+
             if (_provider != DebridProvider.none) ...[
               const SizedBox(height: 12),
               DpadFocusable(
@@ -1125,9 +1091,7 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isFocused
-                                ? Colors.white
-                                : Colors.transparent,
+                            color: isFocused ? Colors.white : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -1166,7 +1130,6 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
   }
 }
 
-/// Dpad dialog action button matching app's D-pad design
 class _DpadDialogButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;

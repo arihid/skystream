@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 
 import '../../../core/addons/data/addon_client.dart';
 import '../../../core/addons/data/addon_repository.dart';
@@ -20,7 +22,6 @@ import '../../explore/presentation/view_all_screen.dart';
 import '../../explore/presentation/widgets/explore_carousel.dart';
 import '../../explore/presentation/widgets/media_horizontal_list.dart';
 
-/// Stremio Add-ons settings destination — management and discovery.
 class AddonsScreen extends ConsumerStatefulWidget {
   final int initialTab;
   final bool isEmbedded;
@@ -34,6 +35,7 @@ class AddonsScreen extends ConsumerStatefulWidget {
 class _AddonsScreenState extends ConsumerState<AddonsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final FocusNode _firstTabNode = FocusNode(debugLabel: 'FirstTabChip');
 
   @override
   void initState() {
@@ -52,18 +54,19 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _firstTabNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = ref.watch(deviceProfileProvider).asData?.value;
-    final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+    final isTv = isBigPicture || profile?.isTv == true || context.isTv;
     final isWidescreen = isTv || context.isTabletOrLarger;
 
-    final content = Column(
+    Widget content = Column(
       children: [
-        // Inline header matching library and widescreen dashboard screens
         Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Container(
@@ -80,8 +83,11 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                // Tab chips
-                _buildTabChips(context),
+                // Tab chips excluded from D-pad traversal
+                ExcludeFocus(
+                  excluding: isBigPicture,
+                  child: _buildTabChips(context),
+                ),
               ],
             ),
           ),
@@ -89,11 +95,36 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
         Expanded(
           child: IndexedStack(
             index: _tabController.index,
-            children: const [AddonManageView(), _DiscoverTab()],
+            children: [
+              const AddonManageView(),
+              _DiscoverTab(firstTabNode: _firstTabNode)
+            ],
           ),
         ),
       ],
     );
+
+    // Conditionally wrap with Intents for Tab switching via Bumpers
+    if (isBigPicture) {
+      content = Actions(
+        actions: {
+          AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+            onInvoke: (_) {
+              final next = (_tabController.index - 1) % _tabController.length;
+              _tabController.animateTo(next < 0 ? next + _tabController.length : next);
+              return null;
+            },
+          ),
+          AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+            onInvoke: (_) {
+              _tabController.animateTo((_tabController.index + 1) % _tabController.length);
+              return null;
+            },
+          ),
+        },
+        child: Focus(child: content),
+      );
+    }
 
     if (widget.isEmbedded) {
       return content;
@@ -103,7 +134,6 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
       return Scaffold(backgroundColor: Colors.transparent, body: content);
     }
 
-    // Mobile layout: Standard AppBar with TabBar
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stremio Add-ons'),
@@ -118,7 +148,10 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
       ),
       body: IndexedStack(
         index: _tabController.index,
-        children: const [AddonManageView(), _DiscoverTab()],
+        children: const [
+          AddonManageView(),
+          _DiscoverTab()
+        ],
       ),
     );
   }
@@ -133,6 +166,7 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _TabChip(
+              focusNode: _firstTabNode,
               label: 'My add-ons',
               icon: Icons.extension_rounded,
               selected: _tabController.index == 0,
@@ -160,6 +194,7 @@ class _TabChip extends StatefulWidget {
   final bool selected;
   final VoidCallback onTap;
   final ThemeData theme;
+  final FocusNode? focusNode;
 
   const _TabChip({
     required this.label,
@@ -167,6 +202,7 @@ class _TabChip extends StatefulWidget {
     required this.selected,
     required this.onTap,
     required this.theme,
+    this.focusNode,
   });
 
   @override
@@ -185,69 +221,70 @@ class _TabChipState extends State<_TabChip> {
     final scale = showHighlight ? 1.04 : 1.0;
 
     return Focus(
+      focusNode: widget.focusNode,
       onFocusChange: (f) {
         if (mounted) setState(() => _isFocused = f);
       },
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter ||
-                event.logicalKey == LogicalKeyboardKey.space)) {
-          widget.onTap();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: scale,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: widget.selected
-                  ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-              borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
-              border: showHighlight
-                  ? Border.all(color: theme.colorScheme.primary, width: 2)
-                  : (widget.selected
-                        ? Border.all(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.3,
-                            ),
-                          )
-                        : Border.all(color: Colors.transparent, width: 1)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: 16,
-                  color: widget.selected
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: widget.selected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
+      child: Actions(
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          )
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: scale,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: widget.selected
+                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                border: showHighlight
+                    ? Border.all(color: theme.colorScheme.primary, width: 2)
+                    : (widget.selected
+                          ? Border.all(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.3,
+                              ),
+                            )
+                          : Border.all(color: Colors.transparent, width: 1)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.icon,
+                    size: 16,
                     color: widget.selected
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: widget.selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: widget.selected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -256,10 +293,8 @@ class _TabChipState extends State<_TabChip> {
   }
 }
 
-/// Hides the platform scrollbar — replaced by a gradient edge hint.
 class _NoScrollbarBehavior extends ScrollBehavior {
   const _NoScrollbarBehavior();
-
   @override
   Widget buildScrollbar(
     BuildContext context,
@@ -422,7 +457,6 @@ class _AddonCatalogsTabViewState extends ConsumerState<AddonCatalogsTabView>
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
-            // 1. Hero Carousel from the top catalog
             SliverToBoxAdapter(
               child: _CatalogCarouselSection(
                 catalog: firstCatalog,
@@ -431,8 +465,6 @@ class _AddonCatalogsTabViewState extends ConsumerState<AddonCatalogsTabView>
                 onControllerReady: widget.onControllerReady,
               ),
             ),
-
-            // 2. Stream warning banner if no streaming add-on installed
             if (!state.isLoading && !hasStreamAddon)
               SliverToBoxAdapter(
                 child: Container(
@@ -466,15 +498,12 @@ class _AddonCatalogsTabViewState extends ConsumerState<AddonCatalogsTabView>
                   ),
                 ),
               ),
-
-            // 3. Catalog Rows using MediaHorizontalList
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 if (index >= listCatalogs.length) return null;
                 return _CatalogRow(entry: listCatalogs[index]);
               }, childCount: listCatalogs.length),
             ),
-
             const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
           ],
         ),
@@ -710,7 +739,6 @@ class _CatalogRow extends ConsumerWidget {
   }
 }
 
-/// Poster tile for catalog rows, search results and the full catalog grid.
 class AddonPosterCard extends StatelessWidget {
   final AddonMetaPreview item;
   final String? addonUrl;
@@ -729,7 +757,6 @@ class AddonPosterCard extends StatelessWidget {
 
     return SizedBox(
       width: width == double.infinity ? null : width,
-      // Same focusable card the rest of the app uses, so D-pad works on TV.
       child: CardsWrapper(
         borderRadius: BorderRadius.circular(12),
         onTap: () => AddonDetailRoute(
@@ -753,8 +780,6 @@ class AddonPosterCard extends StatelessWidget {
                         imageUrl: item.poster!,
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        // Decoding at display size is the single biggest
-                        // memory saving on poster-heavy screens.
                         memCacheWidth: 320,
                         fadeInDuration: const Duration(milliseconds: 120),
                         errorWidget: (_, _, _) => ColoredBox(
@@ -792,7 +817,8 @@ class AddonPosterCard extends StatelessWidget {
 }
 
 class _DiscoverTab extends ConsumerWidget {
-  const _DiscoverTab();
+  final FocusNode? firstTabNode;
+  const _DiscoverTab({this.firstTabNode});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -817,66 +843,77 @@ class _DiscoverTab extends ConsumerWidget {
                 'You can still paste a manifest URL in the "My add-ons" tab.',
           );
         }
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-          itemCount: entries.length,
-          itemBuilder: (context, index) {
-            final entry = entries[index];
-            final isInstalled = installedIds.contains(entry.manifest.id);
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                leading: entry.manifest.logoUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CachedNetworkImage(
-                          imageUrl: entry.manifest.logoUrl!,
-                          width: 38,
-                          height: 38,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 96,
-                          errorWidget: (_, _, _) =>
-                              const Icon(Icons.extension_rounded),
-                        ),
-                      )
-                    : const Icon(Icons.extension_rounded),
-                title: Text(entry.manifest.name),
-                subtitle: Text(
-                  entry.manifest.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: isInstalled
-                    ? const Icon(
-                        Icons.check_circle_rounded,
-                        color: Colors.green,
-                      )
-                    : IconButton(
-                        tooltip: 'Install',
-                        icon: const Icon(Icons.add_circle_outline_rounded),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          try {
-                            await ref
-                                .read(addonRepositoryProvider.notifier)
-                                .install(entry.transportUrl);
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Installed ${entry.manifest.name}',
-                                ),
-                              ),
-                            );
-                          } catch (error) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text('Install failed: $error')),
-                            );
-                          }
-                        },
-                      ),
-              ),
-            );
+        
+        return Focus(
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.gameButtonB) {
+              firstTabNode?.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
           },
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+            itemCount: entries.length,
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              final isInstalled = installedIds.contains(entry.manifest.id);
+              
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ListTile(
+                  leading: entry.manifest.logoUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: entry.manifest.logoUrl!,
+                            width: 38,
+                            height: 38,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 96,
+                            errorWidget: (_, _, _) =>
+                                const Icon(Icons.extension_rounded),
+                          ),
+                        )
+                      : const Icon(Icons.extension_rounded),
+                  title: Text(entry.manifest.name),
+                  subtitle: Text(
+                    entry.manifest.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: isInstalled
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                        )
+                      : IconButton(
+                          tooltip: 'Install',
+                          icon: const Icon(Icons.add_circle_outline_rounded),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await ref
+                                  .read(addonRepositoryProvider.notifier)
+                                  .install(entry.transportUrl);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Installed ${entry.manifest.name}',
+                                  ),
+                                ),
+                              );
+                            } catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Install failed: $error')),
+                              );
+                            }
+                          },
+                        ),
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -921,8 +958,6 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-/// Compact "this row failed" strip with a retry, so a broken add-on is visible
-/// instead of an empty screen.
 class _RowProblem extends StatelessWidget {
   final String title;
   final String message;
