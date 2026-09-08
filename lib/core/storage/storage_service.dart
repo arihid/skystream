@@ -149,35 +149,6 @@ class StorageService {
     return _settingsBox.get('theme_mode') as String?;
   }
 
-  // --- Select a display in a multi-monitor setup ---
-  Future<void> setTargetDisplayId(String? id) async {
-    if (id == null) {
-      await _settingsBox.delete('target_display_id');
-    } else {
-      await _settingsBox.put('target_display_id', id);
-    }
-  }
-
-  String? getTargetDisplayId() {
-    return _settingsBox.get('target_display_id') as String?;
-  }
-
-  // --- Big Picture Mode ---
-  Future<void> setBigPictureMode(bool enabled) async {
-    await _settingsBox.put('big_picture_mode', enabled);
-  }
-
-  bool getBigPictureMode() {
-    return _settingsBox.get('big_picture_mode', defaultValue: false) as bool;
-  }
-
-  Future<void> setKeepBigPicture(bool keep) async {
-    await _settingsBox.put('keep_big_picture', keep);
-  }
-
-  bool getKeepBigPicture() {
-    return _settingsBox.get('keep_big_picture', defaultValue: false) as bool;
-  }
 
   // --- Sidebar State ---
   Future<void> setSidebarExpanded(bool expanded) async {
