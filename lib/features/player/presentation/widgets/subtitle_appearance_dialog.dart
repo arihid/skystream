@@ -6,10 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:dpad/dpad.dart';
+
+import 'package:skystream/core/providers/device_info_provider.dart';
+import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+import 'package:skystream/l10n/generated/app_localizations.dart';
+
 import '../../../settings/presentation/player_settings_provider.dart';
 import '../player_controller.dart';
 import 'hotstar_player_style.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 // Unified settings card container that highlights border when any of its children are focused
 class DpadSettingCard extends StatelessWidget {
@@ -260,7 +266,6 @@ class DpadColorCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTransparent = colorValue == 0x00000000;
-
     final parentCardNode = Focus.of(context);
 
     return Focus(
@@ -278,13 +283,20 @@ class DpadColorCircle extends StatelessWidget {
             }
             return KeyEventResult.handled;
           }
+          if (key == LogicalKeyboardKey.select ||
+              key == LogicalKeyboardKey.enter ||
+              key == LogicalKeyboardKey.space) {
+            onTap();
+            return KeyEventResult.handled;
+          }
         }
         return KeyEventResult.ignored;
       },
-      child: DpadFocusable(
-        onSelect: onTap,
-        builder: (context, isFocused, child) {
+      child: Builder(
+        builder: (context) {
+          final isFocused = Focus.of(context).hasFocus;
           final size = isFocused ? 38.0 : 28.0;
+
           return AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -322,81 +334,6 @@ class DpadColorCircle extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-// Highly visible D-pad button wrapping DpadFocusable for navigation and action bar highlights
-class DpadButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isPrimary;
-
-  const DpadButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.isPrimary = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DpadFocusable(
-      onSelect: onPressed,
-      builder: (context, isFocused, child) {
-        final baseColor = isPrimary
-            ? HotstarPlayerStyle.accent
-            : Colors.transparent;
-        final focusedColor = isPrimary
-            ? Colors.white
-            : HotstarPlayerStyle.accent.withValues(alpha: 0.2);
-        final textColor = isPrimary
-            ? (isFocused ? Colors.black : Colors.white)
-            : (isFocused
-                  ? HotstarPlayerStyle.accent
-                  : HotstarPlayerStyle.secondaryText);
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(8),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: isFocused ? focusedColor : baseColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isFocused
-                      ? HotstarPlayerStyle.accent
-                      : (isPrimary ? Colors.transparent : Colors.grey.shade800),
-                  width: 1.5,
-                ),
-                boxShadow: isFocused
-                    ? [
-                        BoxShadow(
-                          color: HotstarPlayerStyle.accent.withValues(
-                            alpha: 0.3,
-                          ),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -491,6 +428,13 @@ class _SubtitleAppearanceDialogState
     super.dispose();
   }
 
+  void _applyToPlayer() {
+    ref
+        .read(playerSettingsProvider.notifier)
+        .setSubtitleAppearanceSettings(_localSettings);
+    ref.read(playerControllerProvider.notifier).applySubtitleSettings();
+  }
+
   Future<void> _loadCustomFontIfNeeded() async {
     final path = _localSettings.subTypefaceFilePath;
     if (path != null && path.isNotEmpty) {
@@ -520,18 +464,19 @@ class _SubtitleAppearanceDialogState
 
   Future<void> _pickCustomFont() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['ttf', 'otf'],
       );
-      if (result != null && result.files.single.path != null) {
-        final path = result.files.single.path!;
+      if (picked?.path != null) {
+        final path = picked!.path!;
         setState(() {
           _localSettings = _localSettings.copyWith(
             subTypefaceFilePath: () => path,
             subTypeface: () => null,
           );
         });
+        _applyToPlayer();
         await _loadCustomFontIfNeeded();
       }
     } catch (e) {
@@ -562,110 +507,135 @@ class _SubtitleAppearanceDialogState
       );
       _customFontLoaded = false;
     });
-  }
-
-  void _applyAndSave() {
-    ref
-        .read(playerSettingsProvider.notifier)
-        .setSubtitleAppearanceSettings(_localSettings);
-    ref.read(playerControllerProvider.notifier).applySubtitleSettings();
-    Navigator.of(context).pop();
+    _applyToPlayer();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: HotstarPlayerStyle.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          "Subtitle Appearance",
-          style: TextStyle(
-            color: HotstarPlayerStyle.primaryText,
-            fontWeight: FontWeight.bold,
+    final l10n = AppLocalizations.of(context)!;
+    final profile = ref.watch(deviceProfileProvider).asData?.value;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
+    final isTv = isBigPicture || profile?.isTv == true || context.isTv;
+
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.gameButtonX) {
+          _resetAll();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      onFocusChange: (hasFocus) {
+        if (hasFocus && isTv) {
+          Future.microtask(() {
+            if (mounted) {
+              ref.read(focusedGamepadHintsProvider.notifier).state = [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: 'Edit',
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'B',
+                  actionLabel: 'Back',
+                  buttonColor: Colors.redAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'X',
+                  actionLabel: 'Reset Default',
+                  buttonColor: Colors.blueAccent.shade400,
+                ),
+              ];
+            }
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: HotstarPlayerStyle.background.withValues(alpha: 0.85),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: !isTv,
+          title: Text(
+            l10n.subtitleAppearance,
+            style: const TextStyle(
+              color: HotstarPlayerStyle.primaryText,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: HotstarPlayerStyle.primaryText),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // On small screens (mobile), keep the preview compact.
-          // On large screens (TV/desktop), allow more space.
-          final previewHeight = constraints.maxHeight < 600
-              ? 100.0
-              : (constraints.maxHeight < 900 ? 130.0 : 160.0);
-
-          return Column(
-            children: [
-              SizedBox(height: previewHeight, child: _buildPreviewPane()),
-              const Divider(color: HotstarPlayerStyle.divider, height: 1),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+          leading: isTv
+              ? null
+              : IconButton(
+                  icon: const Icon(
+                    Icons.close,
+                    color: HotstarPlayerStyle.primaryText,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionHeader("Font Settings"),
-                      _buildFontSizeRow(),
-                      _buildTypefaceRow(),
-                      _buildBoldRow(),
-                      _buildItalicRow(),
-                      _buildTextColorRow(),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+          actions: isTv
+              ? null
+              : [
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: l10n.resetToDefault,
+                    onPressed: _resetAll,
+                  ),
+                ],
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final previewHeight = constraints.maxHeight < 600
+                ? 100.0
+                : (constraints.maxHeight < 900 ? 130.0 : 160.0);
 
-                      _buildSectionHeader("Edge Settings"),
-                      _buildEdgeTypeRow(),
-                      _buildEdgeSizeRow(),
-                      _buildEdgeColorRow(),
+            return Column(
+              children: [
+                SizedBox(height: previewHeight, child: _buildPreviewPane()),
+                const Divider(color: HotstarPlayerStyle.divider, height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(l10n.fontSettings),
+                        _buildFontSizeRow(l10n),
+                        _buildTypefaceRow(l10n),
+                        _buildBoldRow(l10n),
+                        _buildItalicRow(l10n),
+                        _buildTextColorRow(l10n),
 
-                      _buildSectionHeader("Background & Layout"),
-                      _buildBackgroundColorRow(),
-                      _buildBackgroundOpacityRow(),
-                      _buildBackgroundRadiusRow(),
-                      _buildElevationRow(),
-                      _buildAlignmentRow(),
+                        _buildSectionHeader(l10n.edgeSettings),
+                        _buildEdgeTypeRow(l10n),
+                        _buildEdgeSizeRow(l10n),
+                        _buildEdgeColorRow(l10n),
 
-                      _buildSectionHeader("Content Cleaning & Filtering"),
-                      _buildRemoveBloatRow(),
-                      _buildRemoveCaptionsRow(),
-                      _buildUppercaseRow(),
+                        _buildSectionHeader(l10n.backgroundAndLayout),
+                        _buildBackgroundColorRow(l10n),
+                        _buildBackgroundOpacityRow(l10n),
+                        _buildBackgroundRadiusRow(l10n),
+                        _buildElevationRow(l10n),
+                        _buildAlignmentRow(l10n),
 
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          DpadButton(
-                            label: "Reset to Default",
-                            isPrimary: false,
-                            onPressed: _resetAll,
-                          ),
-                          const Spacer(),
-                          DpadButton(
-                            label: "Cancel",
-                            isPrimary: false,
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          const SizedBox(width: 12),
-                          DpadButton(
-                            label: "Apply Settings",
-                            isPrimary: true,
-                            onPressed: _applyAndSave,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        _buildSectionHeader(l10n.contentCleaningAndFiltering),
+                        _buildRemoveBloatRow(l10n),
+                        _buildRemoveCaptionsRow(l10n),
+                        _buildUppercaseRow(l10n),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -824,26 +794,6 @@ class _SubtitleAppearanceDialogState
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Background image layer
-        Image.asset(
-          'assets/images/subtitles_preview_background.jpg',
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback gradient when image fails to load
-            return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1a1a2e), Color(0xFF16213e)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            );
-          },
-        ),
-        // Subtitle preview text layer
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Align(
@@ -870,7 +820,6 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  // Generic Chevron Picker Row layout
   Widget _buildChevronPickerRow({
     required String label,
     required String subtitle,
@@ -945,16 +894,16 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  void _showFontSizePicker() {
+  void _showFontSizePicker(AppLocalizations l10n) {
     final sizeList = List<int>.generate(55, (i) => i + 6);
     showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF161720),
-          title: const Text(
-            "Select Font Size",
-            style: TextStyle(
+          title: Text(
+            l10n.selectFontSize,
+            style: const TextStyle(
               color: HotstarPlayerStyle.primaryText,
               fontWeight: FontWeight.bold,
             ),
@@ -965,9 +914,11 @@ class _SubtitleAppearanceDialogState
             child: ListView(
               children: [
                 ListTile(
-                  title: const Text(
-                    "File Default",
-                    style: TextStyle(color: HotstarPlayerStyle.primaryText),
+                  title: Text(
+                    l10n.fileDefault,
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subFixedTextSize == null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -977,6 +928,7 @@ class _SubtitleAppearanceDialogState
                         subFixedTextSize: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -997,6 +949,7 @@ class _SubtitleAppearanceDialogState
                           subFixedTextSize: () => val,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1009,27 +962,27 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildFontSizeRow() {
+  Widget _buildFontSizeRow(AppLocalizations l10n) {
     final valText = _localSettings.subFixedTextSize == null
-        ? "File Default"
+        ? l10n.fileDefault
         : "${_localSettings.subFixedTextSize!.round()}sp";
     return _buildChevronPickerRow(
-      label: "Font Size",
-      subtitle: "Overriding text size from subtitle files (6sp-60sp)",
+      label: l10n.fontSize,
+      subtitle: l10n.fontSizeSubtitle,
       currentValueText: valText,
-      onTap: _showFontSizePicker,
+      onTap: () => _showFontSizePicker(l10n),
     );
   }
 
-  void _showTypefacePicker() {
+  void _showTypefacePicker(AppLocalizations l10n) {
     showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF161720),
-          title: const Text(
-            "Select Font Typeface",
-            style: TextStyle(
+          title: Text(
+            l10n.selectFontTypeface,
+            style: const TextStyle(
               color: HotstarPlayerStyle.primaryText,
               fontWeight: FontWeight.bold,
             ),
@@ -1060,14 +1013,17 @@ class _SubtitleAppearanceDialogState
                         );
                       });
                       _customFontLoaded = false;
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
                 }),
                 ListTile(
-                  title: const Text(
-                    "Custom Font File...",
-                    style: TextStyle(color: HotstarPlayerStyle.primaryText),
+                  title: Text(
+                    l10n.customFontFile,
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subTypefaceFilePath != null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1084,41 +1040,41 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildTypefaceRow() {
+  Widget _buildTypefaceRow(AppLocalizations l10n) {
     final valText = _localSettings.subTypefaceFilePath != null
         ? "Custom: ${p.basename(_localSettings.subTypefaceFilePath!)}"
         : _builtInFonts[_localSettings.subTypeface ?? 0];
     return _buildChevronPickerRow(
-      label: "Font Typeface",
-      subtitle: "Choose from 15 built-in fonts or load custom OTF/TTF",
+      label: l10n.fontTypeface,
+      subtitle: l10n.fontTypefaceSubtitle,
       currentValueText: valText,
-      onTap: _showTypefacePicker,
+      onTap: () => _showTypefacePicker(l10n),
       isLoading: _customFontLoading,
     );
   }
 
-  Widget _buildBoldRow() {
+  Widget _buildBoldRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Bold Text Style",
-                    style: TextStyle(
+                    l10n.boldTextStyle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    "Make subtitle text bold",
-                    style: TextStyle(
+                    l10n.boldTextStyleSubtitle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),
@@ -1136,6 +1092,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subBold: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1144,28 +1101,28 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildItalicRow() {
+  Widget _buildItalicRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Italic Text Style",
-                    style: TextStyle(
+                    l10n.italicTextStyle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    "Make subtitle text slanted",
-                    style: TextStyle(
+                    l10n.italicTextStyleSubtitle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),
@@ -1183,6 +1140,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subItalic: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1191,30 +1149,38 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildTextColorRow() {
+  Widget _buildTextColorRow(AppLocalizations l10n) {
     return _buildColorRow(
-      "Text Color",
+      l10n.textColor,
       "colors",
       _localSettings.subForegroundColor,
       (color) {
         setState(() {
           _localSettings = _localSettings.copyWith(subForegroundColor: color);
         });
+        _applyToPlayer();
       },
+      l10n,
     );
   }
 
-  void _showEdgeTypePicker() {
-    final edgeTypes = ["None", "Outline", "Depressed", "Drop Shadow", "Raised"];
+  void _showEdgeTypePicker(AppLocalizations l10n) {
+    final edgeTypes = [
+      l10n.none,
+      l10n.edgeOutline,
+      l10n.edgeDepressed,
+      l10n.edgeDropShadow,
+      l10n.edgeRaised,
+    ];
 
     showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF161720),
-          title: const Text(
-            "Select Edge Type",
-            style: TextStyle(
+          title: Text(
+            l10n.selectEdgeType,
+            style: const TextStyle(
               color: HotstarPlayerStyle.primaryText,
               fontWeight: FontWeight.bold,
             ),
@@ -1237,6 +1203,7 @@ class _SubtitleAppearanceDialogState
                     setState(() {
                       _localSettings = _localSettings.copyWith(subEdgeType: i);
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 );
@@ -1248,23 +1215,23 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildEdgeTypeRow() {
+  Widget _buildEdgeTypeRow(AppLocalizations l10n) {
     final edgeTypesText = [
-      "None",
-      "Outline",
-      "Depressed",
-      "Drop Shadow",
-      "Raised",
+      l10n.none,
+      l10n.edgeOutline,
+      l10n.edgeDepressed,
+      l10n.edgeDropShadow,
+      l10n.edgeRaised,
     ];
     return _buildChevronPickerRow(
-      label: "Edge Type",
-      subtitle: "Text borders/shadows (outline default)",
+      label: l10n.edgeType,
+      subtitle: l10n.edgeTypeSubtitle,
       currentValueText: edgeTypesText[_localSettings.subEdgeType],
-      onTap: _showEdgeTypePicker,
+      onTap: () => _showEdgeTypePicker(l10n),
     );
   }
 
-  Widget _buildEdgeSizeRow() {
+  Widget _buildEdgeSizeRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1273,22 +1240,22 @@ class _SubtitleAppearanceDialogState
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Edge Stroke Size",
-                        style: TextStyle(
+                        l10n.edgeStrokeSize,
+                        style: const TextStyle(
                           color: HotstarPlayerStyle.primaryText,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        "Thicker outline borders (1px-60px)",
-                        style: TextStyle(
+                        l10n.edgeStrokeSizeSubtitle,
+                        style: const TextStyle(
                           color: HotstarPlayerStyle.mutedText,
                           fontSize: 12,
                         ),
@@ -1308,6 +1275,7 @@ class _SubtitleAppearanceDialogState
                         subEdgeSize: () => val ? 2.0 : null,
                       );
                     });
+                    _applyToPlayer();
                   },
                 ),
               ],
@@ -1326,6 +1294,7 @@ class _SubtitleAppearanceDialogState
                       subEdgeSize: () => val,
                     );
                   });
+                  _applyToPlayer();
                 },
               ),
             ],
@@ -1335,51 +1304,55 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildEdgeColorRow() {
+  Widget _buildEdgeColorRow(AppLocalizations l10n) {
     return _buildColorRow(
-      "Outline Color",
+      l10n.outlineColor,
       "edgeColor",
       _localSettings.subEdgeColor,
       (color) {
         setState(() {
           _localSettings = _localSettings.copyWith(subEdgeColor: color);
         });
+        _applyToPlayer();
       },
+      l10n,
     );
   }
 
-  Widget _buildBackgroundColorRow() {
+  Widget _buildBackgroundColorRow(AppLocalizations l10n) {
     return _buildColorRow(
-      "Background Pill Color",
+      l10n.backgroundPillColor,
       "colors",
       _localSettings.subBackgroundColor,
       (color) {
         setState(() {
           _localSettings = _localSettings.copyWith(subBackgroundColor: color);
         });
+        _applyToPlayer();
       },
+      l10n,
     );
   }
 
-  Widget _buildBackgroundOpacityRow() {
+  Widget _buildBackgroundOpacityRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Background Opacity",
-              style: TextStyle(
+            Text(
+              l10n.backgroundOpacity,
+              style: const TextStyle(
                 color: HotstarPlayerStyle.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              "Pill opacity level (0% to 100%)",
-              style: TextStyle(
+            Text(
+              l10n.backgroundOpacitySubtitle,
+              style: const TextStyle(
                 color: HotstarPlayerStyle.mutedText,
                 fontSize: 12,
               ),
@@ -1398,6 +1371,7 @@ class _SubtitleAppearanceDialogState
                     subBackgroundOpacity: val,
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1406,16 +1380,16 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  void _showBackgroundRadiusPicker() {
+  void _showBackgroundRadiusPicker(AppLocalizations l10n) {
     final steps = List<int>.generate(10, (i) => (i + 1) * 5);
     showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF161720),
-          title: const Text(
-            "Select Corner Radius",
-            style: TextStyle(
+          title: Text(
+            l10n.selectCornerRadius,
+            style: const TextStyle(
               color: HotstarPlayerStyle.primaryText,
               fontWeight: FontWeight.bold,
             ),
@@ -1426,9 +1400,11 @@ class _SubtitleAppearanceDialogState
             child: ListView(
               children: [
                 ListTile(
-                  title: const Text(
-                    "None (Sharp)",
-                    style: TextStyle(color: HotstarPlayerStyle.primaryText),
+                  title: Text(
+                    l10n.noneSharp,
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subBackgroundRadius == null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1438,6 +1414,7 @@ class _SubtitleAppearanceDialogState
                         subBackgroundRadius: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1458,6 +1435,7 @@ class _SubtitleAppearanceDialogState
                           subBackgroundRadius: () => val,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1470,37 +1448,37 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildBackgroundRadiusRow() {
+  Widget _buildBackgroundRadiusRow(AppLocalizations l10n) {
     final valText = _localSettings.subBackgroundRadius == null
-        ? "None (Sharp)"
+        ? l10n.noneSharp
         : "${_localSettings.subBackgroundRadius!.round()}px";
     return _buildChevronPickerRow(
-      label: "Background Corner Radius",
-      subtitle: "Round background corners (5px-50px)",
+      label: l10n.backgroundCornerRadius,
+      subtitle: l10n.backgroundCornerRadiusSubtitle,
       currentValueText: valText,
-      onTap: _showBackgroundRadiusPicker,
+      onTap: () => _showBackgroundRadiusPicker(l10n),
     );
   }
 
-  Widget _buildElevationRow() {
+  Widget _buildElevationRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Elevation (Bottom padding)",
-              style: TextStyle(
+            Text(
+              l10n.elevationBottomPadding,
+              style: const TextStyle(
                 color: HotstarPlayerStyle.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              "Push subtitles higher (0dp-400dp)",
-              style: TextStyle(
+            Text(
+              l10n.elevationSubtitle,
+              style: const TextStyle(
                 color: HotstarPlayerStyle.mutedText,
                 fontSize: 12,
               ),
@@ -1518,6 +1496,7 @@ class _SubtitleAppearanceDialogState
                     subElevation: val.round(),
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1526,7 +1505,7 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  void _showAlignmentPicker() {
+  void _showAlignmentPicker(AppLocalizations l10n) {
     final list = [
       (1, "SSA 1 - Bottom Left"),
       (2, "SSA 2 - Bottom Center"),
@@ -1544,9 +1523,9 @@ class _SubtitleAppearanceDialogState
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF161720),
-          title: const Text(
-            "Select Alignment",
-            style: TextStyle(
+          title: Text(
+            l10n.selectAlignment,
+            style: const TextStyle(
               color: HotstarPlayerStyle.primaryText,
               fontWeight: FontWeight.bold,
             ),
@@ -1557,9 +1536,11 @@ class _SubtitleAppearanceDialogState
             child: ListView(
               children: [
                 ListTile(
-                  title: const Text(
-                    "Auto (Exo/Ass default)",
-                    style: TextStyle(color: HotstarPlayerStyle.primaryText),
+                  title: Text(
+                    l10n.autoExoAssDefault,
+                    style: const TextStyle(
+                      color: HotstarPlayerStyle.primaryText,
+                    ),
                   ),
                   selected: _localSettings.subAlignment == null,
                   selectedColor: HotstarPlayerStyle.accent,
@@ -1569,6 +1550,7 @@ class _SubtitleAppearanceDialogState
                         subAlignment: () => null,
                       );
                     });
+                    _applyToPlayer();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -1588,6 +1570,7 @@ class _SubtitleAppearanceDialogState
                           subAlignment: () => item.$1,
                         );
                       });
+                      _applyToPlayer();
                       Navigator.of(context).pop();
                     },
                   );
@@ -1600,40 +1583,40 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildAlignmentRow() {
+  Widget _buildAlignmentRow(AppLocalizations l10n) {
     final valText = _localSettings.subAlignment == null
         ? "Auto"
         : "SSA ${_localSettings.subAlignment}";
     return _buildChevronPickerRow(
-      label: "Alignment",
-      subtitle: "Screen alignment (SSA 1-9 coordinates)",
+      label: l10n.alignment,
+      subtitle: l10n.alignmentSubtitle,
       currentValueText: valText,
-      onTap: _showAlignmentPicker,
+      onTap: () => _showAlignmentPicker(l10n),
     );
   }
 
-  Widget _buildRemoveBloatRow() {
+  Widget _buildRemoveBloatRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Remove Bloat",
-                    style: TextStyle(
+                    l10n.removeBloat,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    "Strip OpenSubtitles ads/promos (re-parses stream)",
-                    style: TextStyle(
+                    l10n.removeBloatSubtitle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),
@@ -1651,6 +1634,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subRemoveBloat: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1659,28 +1643,28 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildRemoveCaptionsRow() {
+  Widget _buildRemoveCaptionsRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Remove Captions",
-                    style: TextStyle(
+                    l10n.removeCaptions,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    "Strips bracketed text like [Music] or (cough)",
-                    style: TextStyle(
+                    l10n.removeCaptionsSubtitle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),
@@ -1700,6 +1684,7 @@ class _SubtitleAppearanceDialogState
                     subRemoveCaptions: val,
                   );
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1708,28 +1693,28 @@ class _SubtitleAppearanceDialogState
     );
   }
 
-  Widget _buildUppercaseRow() {
+  Widget _buildUppercaseRow(AppLocalizations l10n) {
     return DpadSettingCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Force Uppercase",
-                    style: TextStyle(
+                    l10n.forceUppercase,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.primaryText,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    "Display all subtitle cues in capital letters",
-                    style: TextStyle(
+                    l10n.forceUppercaseSubtitle,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),
@@ -1747,6 +1732,7 @@ class _SubtitleAppearanceDialogState
                 setState(() {
                   _localSettings = _localSettings.copyWith(subUpperCase: val);
                 });
+                _applyToPlayer();
               },
             ),
           ],
@@ -1760,12 +1746,13 @@ class _SubtitleAppearanceDialogState
     String fieldKey,
     int selectedColor,
     void Function(int) onSelected,
+    AppLocalizations l10n,
   ) {
     final palette = fieldKey == 'edgeColor'
         ? [0xFF000000, 0xFFFFFFFF, 0xFFFF0000, 0xFFFFFF00]
         : _textColors;
     final finalPalette =
-        fieldKey == 'colors' && label == 'Background Pill Color'
+        fieldKey == 'colors' && label == l10n.backgroundPillColor
         ? _bgColors
         : palette;
 
@@ -1787,9 +1774,9 @@ class _SubtitleAppearanceDialogState
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    "Navigate and select color",
-                    style: TextStyle(
+                  Text(
+                    l10n.navigateAndSelectColor,
+                    style: const TextStyle(
                       color: HotstarPlayerStyle.mutedText,
                       fontSize: 12,
                     ),

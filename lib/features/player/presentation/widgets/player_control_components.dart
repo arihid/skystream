@@ -318,77 +318,76 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
       button: true,
       selected: widget.highlight,
       label: widget.label,
-      child: Focus(
-        focusNode: widget.focusNode,
-        onFocusChange: (value) => setState(() => _focused = value),
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.space) {
-            widget.onTap();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
         },
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() {
-            _hovered = false;
-            _pressed = false;
-          }),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: widget.onTap,
-              onHighlightChanged: _setPressed,
+        child: Focus(
+          focusNode: widget.focusNode,
+          onFocusChange: (value) => setState(() => _focused = value),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() {
+              _hovered = false;
+              _pressed = false;
+            }),
+            child: Material(
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(8),
-              hoverColor: Colors.transparent,
-              focusColor: Colors.transparent,
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              child: AnimatedContainer(
-                duration: HotstarPlayerStyle.fastMotionDuration,
-                constraints: const BoxConstraints(minHeight: 44),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: showBg
-                      ? HotstarPlayerStyle.accent.withValues(alpha: 0.16)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: showTvFocusRing
-                      ? Border.all(color: HotstarPlayerStyle.accent, width: 2)
-                      : null,
-                  boxShadow: showTvFocusRing
-                      ? [
-                          BoxShadow(
-                            color: HotstarPlayerStyle.accent.withValues(
-                              alpha: 0.2,
+              child: InkWell(
+                onTap: widget.onTap,
+                onHighlightChanged: _setPressed,
+                borderRadius: BorderRadius.circular(8),
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                child: AnimatedContainer(
+                  duration: HotstarPlayerStyle.fastMotionDuration,
+                  constraints: const BoxConstraints(minHeight: 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: showBg
+                        ? HotstarPlayerStyle.accent.withValues(alpha: 0.16)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: showTvFocusRing
+                        ? Border.all(color: HotstarPlayerStyle.accent, width: 2)
+                        : null,
+                    boxShadow: showTvFocusRing
+                        ? [
+                            BoxShadow(
+                              color: HotstarPlayerStyle.accent.withValues(
+                                alpha: 0.2,
+                              ),
+                              blurRadius: 8,
                             ),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(widget.icon, color: color, size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.icon, color: color, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

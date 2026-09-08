@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../settings/presentation/player_settings_provider.dart';
@@ -84,7 +86,11 @@ class PlayerBottomSheets {
   }
 
   static bool _isSameStream(StreamResult? a, StreamResult? b) {
-    return a != null && b != null && a.url == b.url && a.source == b.source;
+    return a != null &&
+        b != null &&
+        a.url == b.url &&
+        a.source == b.source &&
+        a.providerName == b.providerName;
   }
 
   static Future<void> _resumeIfNeeded(
@@ -370,7 +376,240 @@ class PlayerBottomSheets {
     await _resumeIfNeeded(controller, wasPlaying);
   }
 
-  static void showSpeedSelection({
+  // ───────────────────────────────────────────────────────────────────────────
+  // VOLUME SELECTION DIALOG
+  // ───────────────────────────────────────────────────────────────────────────
+  static Future<void> showVolumeSelection({
+    required BuildContext context,
+    required double currentVolume,
+    required double maxVolume,
+    required bool isMuted,
+    required void Function(double) onVolumeSelected,
+    required VoidCallback onMuteToggle,
+  }) {
+    final sliderMax = maxVolume < 2.0 ? maxVolume : 2.0;
+    final presets = [0.25, 0.5, 0.75, 1.0];
+    if (sliderMax > 1.0) presets.addAll([1.5, 2.0]);
+
+    final sliderDivisions = ((sliderMax) / 0.05).round();
+    double selectedVolume = currentVolume.clamp(0.0, sliderMax).toDouble();
+    bool localMuted = isMuted;
+
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            void setVol(double value) {
+              final rounded = (value * 20).round() / 20.0;
+              final next = rounded.clamp(0.0, sliderMax).toDouble();
+              setState(() {
+                selectedVolume = next;
+                if (localMuted && next > 0) {
+                  localMuted = false;
+                  onMuteToggle();
+                }
+              });
+              onVolumeSelected(next);
+            }
+
+            void toggleMute() {
+              setState(() => localMuted = !localMuted);
+              onMuteToggle();
+            }
+
+            final size = MediaQuery.sizeOf(context);
+            final isCompact = size.shortestSide < 600;
+            final compactWidth = (size.width - 32)
+                .clamp(280.0, 360.0)
+                .toDouble();
+            final maxWidth = size.width >= 900 ? 520.0 : compactWidth;
+            final compactHeight = (size.height * (isCompact ? 0.58 : 0.68))
+                .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
+                .toDouble();
+
+            final bool anySelected = presets.any(
+              (vol) => (selectedVolume - vol).abs() < 0.01,
+            );
+
+            return Actions(
+              actions: <Type, Action<Intent>>{
+                AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+                  onInvoke: (_) {
+                    setVol(selectedVolume - 0.05);
+                    return null;
+                  },
+                ),
+                AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+                  onInvoke: (_) {
+                    setVol(selectedVolume + 0.05);
+                    return null;
+                  },
+                ),
+              },
+              child: Shortcuts(
+                shortcuts: const <ShortcutActivator, Intent>{
+                  SingleActivator(LogicalKeyboardKey.minus):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadSubtract):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.equal):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.add):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadAdd):
+                      AppRightBumperIntent(),
+                },
+                child: Dialog(
+                  backgroundColor: HotstarPlayerStyle.background,
+                  insetPadding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 14 : 16,
+                    vertical: isCompact ? 16 : 24,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(isCompact ? 14 : 20),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxWidth,
+                      maxHeight: compactHeight,
+                    ),
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        brightness: Brightness.dark,
+                        colorScheme: const ColorScheme.dark(
+                          primary: HotstarPlayerStyle.accent,
+                          surface: HotstarPlayerStyle.background,
+                          onSurface: HotstarPlayerStyle.primaryText,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          isCompact ? 16 : 24,
+                          isCompact ? 18 : 24,
+                          isCompact ? 16 : 24,
+                          isCompact ? 16 : 24,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Volume',
+                              style: TextStyle(
+                                color: HotstarPlayerStyle.primaryText,
+                                fontSize: isCompact ? 15 : 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            SizedBox(height: isCompact ? 10 : 20),
+                            Text(
+                              localMuted
+                                  ? 'Muted'
+                                  : '${(selectedVolume * 100).round()}%',
+                              style: TextStyle(
+                                color: HotstarPlayerStyle.primaryText,
+                                fontSize: isCompact ? 23 : 28,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: isCompact ? 14 : 24),
+                            Row(
+                              children: [
+                                _ModalStepButton(
+                                  icon: Icons.volume_down,
+                                  onPressed: () =>
+                                      setVol(selectedVolume - 0.05),
+                                  compact: isCompact,
+                                  gamepadHint: "LB",
+                                ),
+                                SizedBox(width: isCompact ? 10 : 18),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: SliderThemeData(
+                                      trackHeight: isCompact ? 10 : 18,
+                                      activeTrackColor: Colors.white,
+                                      inactiveTrackColor: Colors.white
+                                          .withValues(alpha: 0.08),
+                                      thumbColor: Colors.white,
+                                      overlayColor: HotstarPlayerStyle.accent
+                                          .withValues(alpha: 0.12),
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 4,
+                                      ),
+                                      trackShape:
+                                          const RoundedRectSliderTrackShape(),
+                                    ),
+                                    child: CustomSlider(
+                                      value: selectedVolume,
+                                      min: 0.0,
+                                      max: sliderMax,
+                                      step: 0.05,
+                                      divisions: sliderDivisions > 0
+                                          ? sliderDivisions
+                                          : null,
+                                      focusable: false,
+                                      onChanged: setVol,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: isCompact ? 10 : 18),
+                                _ModalStepButton(
+                                  icon: Icons.volume_up,
+                                  onPressed: () =>
+                                      setVol(selectedVolume + 0.05),
+                                  compact: isCompact,
+                                  gamepadHint: "RB",
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: isCompact ? 14 : 24),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: isCompact ? 7 : 10,
+                              runSpacing: isCompact ? 7 : 10,
+                              children: [
+                                _ModalPresetChip(
+                                  label: localMuted ? 'Unmute' : 'Mute',
+                                  isSelected: localMuted,
+                                  isCompact: isCompact,
+                                  autofocus: false,
+                                  onTap: toggleMute,
+                                ),
+                                ...presets.map((vol) {
+                                  final isSelected =
+                                      !localMuted &&
+                                      (selectedVolume - vol).abs() < 0.01;
+                                  final shouldAutofocus =
+                                      isSelected ||
+                                      (!anySelected && vol == 1.0);
+                                  return _ModalPresetChip(
+                                    label: '${(vol * 100).round()}%',
+                                    isSelected: isSelected,
+                                    isCompact: isCompact,
+                                    autofocus: shouldAutofocus,
+                                    onTap: () => setVol(vol),
+                                  );
+                                }),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // SPEED SELECTION DIALOG
+  // ───────────────────────────────────────────────────────────────────────────
+  static Future<void> showSpeedSelection({
     required BuildContext context,
     required double currentSpeed,
     required double maxSpeed,
@@ -388,13 +627,14 @@ class PlayerBottomSheets {
     final sliderDivisions = ((sliderMax - 0.25) / 0.05).round();
     double selectedSpeed = currentSpeed.clamp(0.25, sliderMax).toDouble();
 
-    showDialog<void>(
+    return showDialog<void>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setState) {
             void setSpeed(double value) {
-              final next = value.clamp(0.25, sliderMax).toDouble();
+              final rounded = (value * 20).round() / 20.0;
+              final next = rounded.clamp(0.25, sliderMax).toDouble();
               setState(() => selectedSpeed = next);
               onSpeedSelected(next);
             }
@@ -409,153 +649,161 @@ class PlayerBottomSheets {
                 .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
                 .toDouble();
 
-            return Dialog(
-              backgroundColor: HotstarPlayerStyle.background,
-              insetPadding: EdgeInsets.symmetric(
-                horizontal: isCompact ? 14 : 16,
-                vertical: isCompact ? 16 : 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(isCompact ? 14 : 20),
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: maxWidth,
-                  maxHeight: compactHeight,
+            final bool anySelected = speeds.any(
+              (s) => (selectedSpeed - s).abs() < 0.01,
+            );
+
+            return Actions(
+              actions: <Type, Action<Intent>>{
+                AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+                  onInvoke: (_) {
+                    setSpeed(selectedSpeed - 0.05);
+                    return null;
+                  },
                 ),
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    brightness: Brightness.dark,
-                    colorScheme: const ColorScheme.dark(
-                      primary: HotstarPlayerStyle.accent,
-                      surface: HotstarPlayerStyle.background,
-                      onSurface: HotstarPlayerStyle.primaryText,
-                    ),
-                    chipTheme: ChipThemeData(
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      selectedColor: HotstarPlayerStyle.accent.withValues(
-                        alpha: 0.22,
-                      ),
-                      disabledColor: Colors.white.withValues(alpha: 0.04),
-                      labelStyle: const TextStyle(
-                        color: HotstarPlayerStyle.secondaryText,
-                      ),
-                      secondaryLabelStyle: const TextStyle(
-                        color: HotstarPlayerStyle.primaryText,
-                      ),
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
+                AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+                  onInvoke: (_) {
+                    setSpeed(selectedSpeed + 0.05);
+                    return null;
+                  },
+                ),
+              },
+              child: Shortcuts(
+                shortcuts: const <ShortcutActivator, Intent>{
+                  SingleActivator(LogicalKeyboardKey.minus):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadSubtract):
+                      AppLeftBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.equal):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.add):
+                      AppRightBumperIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadAdd):
+                      AppRightBumperIntent(),
+                },
+                child: Dialog(
+                  backgroundColor: HotstarPlayerStyle.background,
+                  insetPadding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 14 : 16,
+                    vertical: isCompact ? 16 : 24,
                   ),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      isCompact ? 16 : 24,
-                      isCompact ? 12 : 18,
-                      isCompact ? 16 : 24,
-                      isCompact ? 16 : 24,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(isCompact ? 14 : 20),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: maxWidth,
+                      maxHeight: compactHeight,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        brightness: Brightness.dark,
+                        colorScheme: const ColorScheme.dark(
+                          primary: HotstarPlayerStyle.accent,
+                          surface: HotstarPlayerStyle.background,
+                          onSurface: HotstarPlayerStyle.primaryText,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          isCompact ? 16 : 24,
+                          isCompact ? 18 : 24,
+                          isCompact ? 16 : 24,
+                          isCompact ? 16 : 24,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(
-                              child: Text(
-                                l10n.playbackSpeed,
-                                style: TextStyle(
-                                  color: HotstarPlayerStyle.primaryText,
-                                  fontSize: isCompact ? 15 : 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            Text(
+                              l10n.playbackSpeed,
+                              style: TextStyle(
+                                color: HotstarPlayerStyle.primaryText,
+                                fontSize: isCompact ? 15 : 18,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              icon: const Icon(Icons.close),
-                              color: HotstarPlayerStyle.secondaryText,
-                              autofocus: true,
+                            SizedBox(height: isCompact ? 10 : 20),
+                            Text(
+                              _formatSpeed(selectedSpeed),
+                              style: TextStyle(
+                                color: HotstarPlayerStyle.primaryText,
+                                fontSize: isCompact ? 23 : 28,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(height: isCompact ? 14 : 24),
+                            Row(
+                              children: [
+                                _ModalStepButton(
+                                  icon: Icons.remove,
+                                  onPressed: () =>
+                                      setSpeed(selectedSpeed - 0.05),
+                                  compact: isCompact,
+                                  gamepadHint: "LB",
+                                ),
+                                SizedBox(width: isCompact ? 10 : 18),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: SliderThemeData(
+                                      trackHeight: isCompact ? 10 : 18,
+                                      activeTrackColor: Colors.white,
+                                      inactiveTrackColor: Colors.white
+                                          .withValues(alpha: 0.08),
+                                      thumbColor: Colors.white,
+                                      overlayColor: HotstarPlayerStyle.accent
+                                          .withValues(alpha: 0.12),
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 4,
+                                      ),
+                                      trackShape:
+                                          const RoundedRectSliderTrackShape(),
+                                    ),
+                                    child: CustomSlider(
+                                      value: selectedSpeed,
+                                      min: 0.25,
+                                      max: sliderMax,
+                                      step: 0.05,
+                                      divisions: sliderDivisions > 0
+                                          ? sliderDivisions
+                                          : null,
+                                      focusable: false,
+                                      onChanged: setSpeed,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: isCompact ? 10 : 18),
+                                _ModalStepButton(
+                                  icon: Icons.add,
+                                  onPressed: () =>
+                                      setSpeed(selectedSpeed + 0.05),
+                                  compact: isCompact,
+                                  gamepadHint: "RB",
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: isCompact ? 14 : 24),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: isCompact ? 7 : 10,
+                              runSpacing: isCompact ? 7 : 10,
+                              children: speeds.map((speed) {
+                                final isSelected =
+                                    (selectedSpeed - speed).abs() < 0.01;
+                                final shouldAutofocus =
+                                    isSelected ||
+                                    (!anySelected && speed == 1.0);
+                                return _ModalPresetChip(
+                                  label: _formatSpeed(speed),
+                                  isSelected: isSelected,
+                                  isCompact: isCompact,
+                                  autofocus: shouldAutofocus,
+                                  onTap: () => setSpeed(speed),
+                                );
+                              }).toList(),
                             ),
                           ],
                         ),
-                        SizedBox(height: isCompact ? 10 : 20),
-                        Text(
-                          _formatSpeed(selectedSpeed),
-                          style: TextStyle(
-                            color: HotstarPlayerStyle.primaryText,
-                            fontSize: isCompact ? 23 : 28,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: isCompact ? 14 : 24),
-                        Row(
-                          children: [
-                            _speedStepButton(
-                              icon: Icons.remove,
-                              onPressed: () => setSpeed(selectedSpeed - 0.1),
-                              compact: isCompact,
-                            ),
-                            SizedBox(width: isCompact ? 10 : 18),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: isCompact ? 10 : 18,
-                                  activeTrackColor: Colors.white,
-                                  inactiveTrackColor: Colors.white.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  thumbColor: Colors.white,
-                                  overlayColor: HotstarPlayerStyle.accent
-                                      .withValues(alpha: 0.12),
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 4,
-                                  ),
-                                  trackShape:
-                                      const RoundedRectSliderTrackShape(),
-                                ),
-                                child: CustomSlider(
-                                  value: selectedSpeed,
-                                  min: 0.25,
-                                  max: sliderMax,
-                                  step: 0.05,
-                                  divisions: sliderDivisions > 0
-                                      ? sliderDivisions
-                                      : null,
-                                  // Pure visual indicator on TV — the −/+
-                                  // buttons adjust it. Keeping it out of focus
-                                  // traversal means D-pad Up/Down isn't trapped
-                                  // and moves between the buttons and presets.
-                                  focusable: false,
-                                  onChanged: setSpeed,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: isCompact ? 10 : 18),
-                            _speedStepButton(
-                              icon: Icons.add,
-                              onPressed: () => setSpeed(selectedSpeed + 0.1),
-                              compact: isCompact,
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: isCompact ? 14 : 24),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: isCompact ? 7 : 10,
-                          runSpacing: isCompact ? 7 : 10,
-                          children: speeds.map((speed) {
-                            final isSelected =
-                                (selectedSpeed - speed).abs() < 0.01;
-                            return _SpeedPresetChip(
-                              speed: speed,
-                              isSelected: isSelected,
-                              isCompact: isCompact,
-                              onTap: () => setSpeed(speed),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -569,14 +817,6 @@ class PlayerBottomSheets {
 
   static String _formatSpeed(double speed) {
     return '${speed.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')}x';
-  }
-
-  static Widget _speedStepButton({
-    required IconData icon,
-    required VoidCallback? onPressed,
-    bool compact = false,
-  }) {
-    return _SpeedStepButton(icon: icon, onPressed: onPressed, compact: compact);
   }
 
   static Widget _fullscreenShell({
@@ -624,15 +864,9 @@ class PlayerBottomSheets {
     );
   }
 
-  /// Public entry point for the subtitle-options dialog (sync / styles /
-  /// search / load external). Retained for callers that still want the legacy
-  /// dialog; the sources side panel now inlines these controls instead.
   static void showSubtitleOptions(BuildContext context) =>
       _showSubtitleOptions(context);
 
-  /// Public entry point for the online subtitle search dialog. The sources
-  /// side panel's "Search online" row opens this directly (pending its own
-  /// redesign).
   static void showSubtitleSearch(BuildContext context) =>
       _showSubtitleSearch(context);
 
@@ -822,8 +1056,9 @@ class PlayerBottomSheets {
   static void _showSubtitleSync(BuildContext context) {
     Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Consumer(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => Consumer(
           builder: (context, ref, child) {
             final controller = ref.read(playerControllerProvider.notifier);
             final wasPlaying = controller.isPlaying;
@@ -837,8 +1072,9 @@ class PlayerBottomSheets {
   static void _showSubtitleStyles(BuildContext context) {
     Navigator.push<void>(
       context,
-      MaterialPageRoute(
-        builder: (context) => Consumer(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => Consumer(
           builder: (context, ref, child) {
             final controller = ref.read(playerControllerProvider.notifier);
             final wasPlaying = controller.isPlaying;
@@ -851,7 +1087,6 @@ class PlayerBottomSheets {
   }
 
   static void _showSubtitleSearch(BuildContext context) {
-    final parentContext = context;
     final TextEditingController queryController = TextEditingController();
 
     final scrollController = ScrollController();
@@ -1147,21 +1382,13 @@ class PlayerBottomSheets {
                                     FilledButton.icon(
                                       onPressed: () {
                                         Navigator.pop(ctx); // Close search
-                                        // The user is already in the player, we'll suggest they go to main settings
-                                        // or we can try to show the specific dialogs here if they were available.
-                                        // For now, let's provide a clear toast or action.
-                                        if (parentContext.mounted) {
-                                          ScaffoldMessenger.of(
-                                            parentContext,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Go to App Settings > Player > Subtitle Accounts to configure.',
-                                              ),
-                                              duration: Duration(seconds: 4),
-                                            ),
-                                          );
-                                        }
+                                        ref
+                                            .read(notificationServiceProvider)
+                                            .showInfo(
+                                              'Go to App Settings > Player > Subtitle Accounts to configure.',
+                                              title: 'Subtitles',
+                                              icon: Icons.subtitles_rounded,
+                                            );
                                       },
                                       icon: const Icon(
                                         Icons.settings_outlined,
@@ -1215,20 +1442,20 @@ class PlayerBottomSheets {
                               onTap: () async {
                                 ref
                                     .read(notificationServiceProvider)
-                                    .showInfo(l10n.downloadingApplyingSubtitle);
+                                    .showInfo(
+                                      l10n.downloadingApplyingSubtitle,
+                                      title: 'Subtitles',
+                                      icon: Icons.subtitles_rounded,
+                                    );
 
                                 final path = await ref
                                     .read(subtitleSearchProvider.notifier)
                                     .downloadAndPrepare(sub);
 
                                 if (path != null) {
-                                  unawaited(
-                                    ref
-                                        .read(playerControllerProvider.notifier)
-                                        .loadExternalSubtitleFile(
-                                          filePath: path,
-                                        ),
-                                  );
+                                  unawaited(ref
+                                      .read(playerControllerProvider.notifier)
+                                      .loadExternalSubtitleFile(filePath: path));
                                   if (context.mounted) Navigator.pop(ctx);
                                 } else {
                                   if (context.mounted) {
@@ -1236,6 +1463,8 @@ class PlayerBottomSheets {
                                         .read(notificationServiceProvider)
                                         .showError(
                                           l10n.failedToDownloadSubtitle,
+                                          title: 'Subtitles',
+                                          icon: Icons.subtitles_off_rounded,
                                         );
                                   }
                                 }
@@ -1438,13 +1667,10 @@ class _HotstarSourcesTab extends StatefulWidget {
 }
 
 class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
-  /// The quality badge label the user has tapped to filter by, or null = show all.
   String? _activeFilter;
 
-  /// Returns the quality badge label for a stream.
   String _badge(StreamResult s) => qualityBadgeLabel(s);
 
-  /// Distinct quality tiers that appear in the stream list (smart: only present tiers).
   List<String> get _presentTiers {
     final seen = <String>{};
     final tiers = <String>[];
@@ -1452,7 +1678,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
       final b = _badge(s);
       if (seen.add(b)) tiers.add(b);
     }
-    // Sort in a sensible display order
     const order = ['4K', '1080p', '720p', '480p', '360p', 'Auto'];
     tiers.sort((a, b) {
       final ai = order.indexOf(a);
@@ -1491,7 +1716,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Fallback banner ─────────────────────────────────────────────────
         if (widget.qualityFilteredFallback)
           Container(
             margin: EdgeInsets.only(bottom: isCompact ? 10 : 16),
@@ -1503,8 +1727,11 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_alt_off_rounded,
-                    color: Colors.amber, size: 18),
+                const Icon(
+                  Icons.filter_alt_off_rounded,
+                  color: Colors.amber,
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1521,8 +1748,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
               ],
             ),
           ),
-
-        // ── Quality filter chips ─────────────────────────────────────────────
         if (tiers.length > 1) ...[
           SizedBox(
             height: isCompact ? 34 : 40,
@@ -1540,7 +1765,9 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? HotstarPlayerStyle.accent
@@ -1569,8 +1796,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
           ),
           SizedBox(height: isCompact ? 10 : 16),
         ],
-
-        // ── Stream list ──────────────────────────────────────────────────────
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.only(
@@ -1584,11 +1809,15 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
               final selected =
                   widget.selectedStream != null &&
                   widget.selectedStream!.url == stream.url &&
-                  widget.selectedStream!.source == stream.source;
+                  widget.selectedStream!.source == stream.source &&
+                  widget.selectedStream!.providerName == stream.providerName;
               final badge = _badge(stream);
 
               return _HotstarOptionRow(
                 label: stream.source,
+                overline: stream.providerName == 'Unknown'
+                    ? null
+                    : stream.providerName,
                 metadata: selected ? 'Current source' : null,
                 selected: selected,
                 badge: badge != 'Auto' ? badge : null,
@@ -1601,7 +1830,6 @@ class _HotstarSourcesTabState extends State<_HotstarSourcesTab> {
     );
   }
 }
-
 
 class _PendingSourceTracksMessage extends StatelessWidget {
   const _PendingSourceTracksMessage();
@@ -1817,16 +2045,17 @@ class _HotstarOptionColumn extends StatelessWidget {
 
 class _HotstarOptionRow extends StatefulWidget {
   final String label;
+  final String? overline;
   final String? metadata;
   final bool selected;
   final VoidCallback onTap;
-  /// Optional quality badge shown as a small pill on the right (e.g. "1080p").
   final String? badge;
 
   const _HotstarOptionRow({
     required this.label,
     required this.selected,
     required this.onTap,
+    this.overline,
     this.metadata,
     this.badge,
   });
@@ -1901,58 +2130,80 @@ class _HotstarOptionRowState extends State<_HotstarOptionRow> {
                 ),
                 SizedBox(width: isCompact ? 10 : 18),
                 Flexible(
-                  child: RichText(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      text: widget.label,
-                      style: TextStyle(
-                        color: widget.selected
-                            ? HotstarPlayerStyle.primaryText
-                            : HotstarPlayerStyle.mutedText,
-                        fontSize: isCompact ? 15 : 18,
-                        fontWeight: widget.selected
-                            ? FontWeight.w800
-                            : FontWeight.w700,
-                      ),
-                      children: [
-                        if (widget.metadata != null &&
-                            widget.metadata!.trim().isNotEmpty)
-                          TextSpan(
-                            text: '  ${widget.metadata!.trim()}',
-                            style: TextStyle(
-                              color: HotstarPlayerStyle.mutedText,
-                              fontSize: isCompact ? 15 : 18,
-                              fontWeight: FontWeight.w700,
-                            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.overline != null &&
+                          widget.overline!.trim().isNotEmpty)
+                        Text(
+                          widget.overline!.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: HotstarPlayerStyle.accent,
+                            fontSize: isCompact ? 10 : 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
                           ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (widget.badge != null) ...
-                  [
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: HotstarPlayerStyle.panelElevated,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                            color: HotstarPlayerStyle.divider, width: 0.8),
-                      ),
-                      child: Text(
-                        widget.badge!,
-                        style: TextStyle(
-                          color: HotstarPlayerStyle.secondaryText,
-                          fontSize: isCompact ? 10 : 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
+                        ),
+                      RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          text: widget.label,
+                          style: TextStyle(
+                            color: widget.selected
+                                ? HotstarPlayerStyle.primaryText
+                                : HotstarPlayerStyle.mutedText,
+                            fontSize: isCompact ? 15 : 18,
+                            fontWeight: widget.selected
+                                ? FontWeight.w800
+                                : FontWeight.w700,
+                          ),
+                          children: [
+                            if (widget.metadata != null &&
+                                widget.metadata!.trim().isNotEmpty)
+                              TextSpan(
+                                text: '  ${widget.metadata!.trim()}',
+                                style: TextStyle(
+                                  color: HotstarPlayerStyle.mutedText,
+                                  fontSize: isCompact ? 15 : 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                if (widget.badge != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
                     ),
-                  ],
+                    decoration: BoxDecoration(
+                      color: HotstarPlayerStyle.panelElevated,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: HotstarPlayerStyle.divider,
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      widget.badge!,
+                      style: TextStyle(
+                        color: HotstarPlayerStyle.secondaryText,
+                        fontSize: isCompact ? 10 : 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1962,80 +2213,122 @@ class _HotstarOptionRowState extends State<_HotstarOptionRow> {
   }
 }
 
-class _SpeedPresetChip extends StatefulWidget {
-  final double speed;
+class _ModalPresetChip extends StatefulWidget {
+  final String label;
   final bool isSelected;
   final bool isCompact;
+  final bool autofocus;
   final VoidCallback onTap;
 
-  const _SpeedPresetChip({
-    required this.speed,
+  const _ModalPresetChip({
+    required this.label,
     required this.isSelected,
     required this.isCompact,
+    this.autofocus = false,
     required this.onTap,
   });
 
   @override
-  State<_SpeedPresetChip> createState() => _SpeedPresetChipState();
+  State<_ModalPresetChip> createState() => _ModalPresetChipState();
 }
 
-class _SpeedPresetChipState extends State<_SpeedPresetChip> {
+class _ModalPresetChipState extends State<_ModalPresetChip> {
   bool _isFocused = false;
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final showHighlight = _isHovered || _isFocused;
-    return FocusableActionDetector(
-      onShowFocusHighlight: (v) => setState(() => _isFocused = v),
-      onShowHoverHighlight: (v) => setState(() => _isHovered = v),
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(6),
-        child: AnimatedScale(
-          scale: _isFocused ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: HotstarPlayerStyle.fastMotionDuration,
-            width: widget.isCompact ? 76 : 104,
-            padding: EdgeInsets.symmetric(vertical: widget.isCompact ? 10 : 14),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? HotstarPlayerStyle.accent.withValues(alpha: 0.22)
-                  : (showHighlight
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : Colors.white.withValues(alpha: 0.06)),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: _isFocused
-                    ? HotstarPlayerStyle.accent
-                    : Colors.transparent,
-                width: 1.5,
-              ),
-              boxShadow: _isFocused
-                  ? [
-                      BoxShadow(
-                        color: HotstarPlayerStyle.accent.withValues(
-                          alpha: 0.25,
-                        ),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              PlayerBottomSheets._formatSpeed(widget.speed),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              style: TextStyle(
-                color: widget.isSelected
-                    ? HotstarPlayerStyle.primaryText
-                    : HotstarPlayerStyle.secondaryText,
-                fontSize: widget.isCompact ? 13 : 15,
-                fontWeight: FontWeight.w800,
+
+    return Semantics(
+      button: true,
+      label: widget.label,
+      selected: widget.isSelected,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: widget.autofocus,
+          onFocusChange: (v) => setState(() => _isFocused = v),
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space ||
+                key == LogicalKeyboardKey.select) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: GestureDetector(
+              onTap: widget.onTap,
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedScale(
+                scale: _isFocused ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: HotstarPlayerStyle.fastMotionDuration,
+                  width: widget.isCompact ? 76 : 104,
+                  padding: EdgeInsets.symmetric(
+                    vertical: widget.isCompact ? 10 : 14,
+                  ),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: widget.isSelected
+                        ? HotstarPlayerStyle.accent.withValues(alpha: 0.22)
+                        : (showHighlight
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.06)),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: _isFocused
+                          ? HotstarPlayerStyle.accent
+                          : Colors.transparent,
+                      width: 1.5,
+                    ),
+                    boxShadow: _isFocused
+                        ? [
+                            BoxShadow(
+                              color: HotstarPlayerStyle.accent.withValues(
+                                alpha: 0.25,
+                              ),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: widget.isSelected
+                          ? HotstarPlayerStyle.primaryText
+                          : HotstarPlayerStyle.secondaryText,
+                      fontSize: widget.isCompact ? 13 : 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -2045,52 +2338,56 @@ class _SpeedPresetChipState extends State<_SpeedPresetChip> {
   }
 }
 
-class _SpeedStepButton extends StatefulWidget {
+class _ModalStepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final bool compact;
+  final String? gamepadHint;
 
-  const _SpeedStepButton({
+  const _ModalStepButton({
     required this.icon,
     required this.onPressed,
     required this.compact,
+    this.gamepadHint,
   });
 
   @override
-  State<_SpeedStepButton> createState() => _SpeedStepButtonState();
-}
-
-class _SpeedStepButtonState extends State<_SpeedStepButton> {
-  bool _isFocused = false;
-
-  @override
   Widget build(BuildContext context) {
-    return FocusableActionDetector(
-      onShowFocusHighlight: (v) => setState(() => _isFocused = v),
-      child: AnimatedScale(
-        scale: _isFocused ? 1.08 : 1.0,
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        child: IconButton(
-          onPressed: widget.onPressed,
-          icon: Icon(widget.icon, size: widget.compact ? 20 : 24),
-          color: HotstarPlayerStyle.primaryText,
-          style: IconButton.styleFrom(
-            backgroundColor: _isFocused
-                ? HotstarPlayerStyle.accent.withValues(alpha: 0.22)
-                : Colors.white.withValues(alpha: 0.06),
-            fixedSize: Size(widget.compact ? 42 : 56, widget.compact ? 42 : 56),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(widget.compact ? 10 : 14),
-              side: BorderSide(
-                color: _isFocused
-                    ? HotstarPlayerStyle.accent
-                    : Colors.transparent,
-                width: 1.5,
+    return ExcludeFocus(
+      excluding: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (gamepadHint != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                gamepadHint!,
+                style: TextStyle(
+                  color: HotstarPlayerStyle.accent.withValues(alpha: 0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(compact ? 10 : 14),
+            child: Container(
+              width: compact ? 42 : 56,
+              height: compact ? 42 : 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(compact ? 10 : 14),
+              ),
+              child: Icon(
+                icon,
+                size: compact ? 20 : 24,
+                color: HotstarPlayerStyle.primaryText,
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

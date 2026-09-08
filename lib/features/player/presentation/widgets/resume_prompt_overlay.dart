@@ -10,7 +10,7 @@ class ResumePromptOverlay extends StatelessWidget {
   final double? percentage;
   final VoidCallback onResume;
   final VoidCallback onStartOver;
-  final bool isTv;
+  final bool isBigPicture; // Renamed to match architecture
   final FocusNode? focusNode;
 
   const ResumePromptOverlay({
@@ -19,7 +19,7 @@ class ResumePromptOverlay extends StatelessWidget {
     this.percentage,
     required this.onResume,
     required this.onStartOver,
-    this.isTv = false,
+    this.isBigPicture = false,
     this.focusNode,
   });
 
@@ -44,7 +44,7 @@ class ResumePromptOverlay extends StatelessWidget {
       subtitle = 'Synced progress: ${percentage!.toStringAsFixed(0)}%';
     }
     return PlayerPromptPlacement(
-      isTv: isTv,
+      isTv: isBigPicture, // Pass state down to placement
       child: CountdownFillButton(
         focusNode: focusNode,
         label: l10n.resumeNow,
@@ -52,7 +52,7 @@ class ResumePromptOverlay extends StatelessWidget {
         duration: const Duration(seconds: 8),
         onPressed: onResume,
         onTimeout: onStartOver,
-        isTv: isTv,
+        isBigPicture: isBigPicture,
       ),
     );
   }
@@ -66,7 +66,7 @@ class CountdownFillButton extends StatefulWidget {
   final VoidCallback onTimeout;
   final bool showDismiss;
   final VoidCallback? onDismiss;
-  final bool isTv;
+  final bool isBigPicture; // Renamed
   final FocusNode? focusNode;
 
   const CountdownFillButton({
@@ -78,7 +78,7 @@ class CountdownFillButton extends StatefulWidget {
     required this.onTimeout,
     this.showDismiss = false,
     this.onDismiss,
-    this.isTv = false,
+    this.isBigPicture = false,
     this.focusNode,
   });
 
@@ -130,6 +130,27 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
     widget.onDismiss?.call();
   }
 
+  Widget _buildGamepadBadge(String label, Color color, bool isCompact) {
+    return Container(
+      width: isCompact ? 18 : 22,
+      height: isCompact ? 18 : 22,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: isCompact ? 10 : 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -144,7 +165,7 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
     return FocusTraversalGroup(
       child: Focus(
         focusNode: _focusNode,
-        autofocus: widget.isTv,
+        autofocus: widget.isBigPicture,
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
           final key = event.logicalKey;
@@ -165,12 +186,6 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
           builder: (context) {
             final isFocused = Focus.of(context).hasFocus;
 
-            // Layout: DecoratedBox (border + shadow) → ClipRRect → Material
-            // (ink) → Row [ icon | labels | dismiss? ]
-            //
-            // The countdown fill is painted as a custom background on the
-            // Material using AnimatedBuilder, so there is NO Stack at all —
-            // just a single layered widget tree.
             return SizedBox(
               width: buttonWidth,
               height: buttonHeight,
@@ -180,12 +195,12 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                   color: Colors.black.withValues(alpha: 0.52),
                   borderRadius: borderRadius,
                   border: Border.all(
-                    color: isFocused && widget.isTv
+                    color: isFocused && widget.isBigPicture
                         ? HotstarPlayerStyle.accent
                         : Colors.white.withValues(alpha: 0.22),
-                    width: isFocused && widget.isTv ? 2 : 1,
+                    width: isFocused && widget.isBigPicture ? 2 : 1,
                   ),
-                  boxShadow: isFocused && widget.isTv
+                  boxShadow: isFocused && widget.isBigPicture
                       ? [
                           BoxShadow(
                             color: HotstarPlayerStyle.accent.withValues(
@@ -198,9 +213,6 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                 ),
                 child: ClipRRect(
                   borderRadius: borderRadius,
-                  // AnimatedBuilder drives the fill width; the content Row
-                  // sits on top via foregroundDecoration on a second
-                  // DecoratedBox so there is still no Stack.
                   child: AnimatedBuilder(
                     animation: _controller,
                     builder: (context, child) => DecoratedBox(
@@ -229,11 +241,19 @@ class _CountdownFillButtonState extends State<CountdownFillButton>
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
+                              // Conditionally render Gamepad Badge vs Touch Icon
+                              if (widget.isBigPicture)
+                                _buildGamepadBadge(
+                                  'Y',
+                                  Colors.amberAccent.shade400,
+                                  isCompact,
+                                )
+                              else
+                                const Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
                               SizedBox(width: isCompact ? 6 : 8),
                               Expanded(
                                 child: Column(

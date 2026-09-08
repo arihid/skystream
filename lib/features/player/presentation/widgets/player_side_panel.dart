@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:video_view/video_view.dart' as vv;
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
@@ -37,7 +38,7 @@ const List<Shadow> _kGlassTextShadow = [
 /// chrome below.
 class PlayerSidePanel extends StatelessWidget {
   final bool isVisible;
-  final bool isTv;
+  final bool isBigPicture;
   final VoidCallback onDismiss;
   final Widget child;
 
@@ -46,7 +47,7 @@ class PlayerSidePanel extends StatelessWidget {
     required this.isVisible,
     required this.onDismiss,
     required this.child,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -255,7 +256,7 @@ class _PanelSurface extends StatelessWidget {
 class PlayerSourcesPanel extends ConsumerStatefulWidget {
   final Player player;
   final vv.VideoController? videoViewController;
-  final bool isTv;
+  final bool isBigPicture;
   final VoidCallback onClose;
 
   const PlayerSourcesPanel({
@@ -263,7 +264,7 @@ class PlayerSourcesPanel extends ConsumerStatefulWidget {
     required this.player,
     required this.onClose,
     this.videoViewController,
-    this.isTv = false,
+    this.isBigPicture = false,
   });
 
   @override
@@ -334,7 +335,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
     _focusActiveTab();
   }
 
-  String _sourceKey(StreamResult s) => '${s.source} ${s.url}';
+  String _sourceKey(StreamResult s) => '${s.source}|${s.url}';
 
   /// The id of the active tab's current selection — used to capture a stable
   /// anchor row. Returns null when nothing is selected (anchor falls to row 0).
@@ -371,7 +372,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
         return;
       }
       final ctx = _anchorNode.context;
-      if (ctx != null) {
+      if (ctx != null && ctx.mounted) {
         _anchorNode.requestFocus();
         Scrollable.ensureVisible(
           ctx,
@@ -379,7 +380,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
         );
-      } else {
+      } else if (mounted) {
         _rootNode.requestFocus();
       }
     });
@@ -607,12 +608,15 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_alt_off_rounded,
-                    color: Colors.amber, size: 16),
+                const Icon(
+                  Icons.filter_alt_off_rounded,
+                  color: Colors.amber,
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'No sources matched your quality filter — showing all sources.',
+                    l10n.noSourcesQualityFilterFallback,
                     style: TextStyle(
                       color: Colors.amber.shade200,
                       fontSize: 11,
@@ -642,7 +646,9 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: selected
                           ? HotstarPlayerStyle.accent
@@ -685,7 +691,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
               return _PanelOptionRow(
                 label: stream.source,
                 selected: selected,
-                isTv: widget.isTv,
+                isTv: widget.isBigPicture,
                 focusNode: isAnchor ? _anchorNode : null,
                 badge: badge != 'Auto' ? badge : null,
                 onTap: () {
@@ -737,7 +743,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: track.label,
           metadata: track.subtitle,
           selected: selected,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           focusNode: isAnchor ? _anchorNode : null,
           onTap: () {
             setState(() => _audioId = track.id);
@@ -771,7 +777,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
       _PanelOptionRow(
         label: l10n.off,
         selected: _subtitlesOff,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         focusNode: (_anchorId == _kOffId || _anchorId == null)
             ? _anchorNode
             : null,
@@ -789,7 +795,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: track.label,
           metadata: track.subtitle,
           selected: selected,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           focusNode: track.id == _anchorId ? _anchorNode : null,
           onTap: () {
             setState(() {
@@ -806,7 +812,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
         label: l10n.loadFromDevice,
         leadingIcon: Icons.file_open_outlined,
         selected: false,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         enabled: supportsExternal,
         onTap: () => controller.loadExternalSubtitleFile(),
       ),
@@ -814,7 +820,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
         label: l10n.searchOnline,
         leadingIcon: Icons.search_rounded,
         selected: false,
-        isTv: widget.isTv,
+        isTv: widget.isBigPicture,
         enabled: supportsExternal,
         onTap: () => PlayerBottomSheets.showSubtitleSearch(context),
       ),
@@ -826,7 +832,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: l10n.syncDelay,
           leadingIcon: Icons.sync,
           selected: false,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           onTap: () {
             // Dismiss the side panel first
             widget.onClose();
@@ -846,7 +852,7 @@ class _PlayerSourcesPanelState extends ConsumerState<PlayerSourcesPanel>
           label: "Subtitle Appearance",
           leadingIcon: Icons.palette_outlined,
           selected: false,
-          isTv: widget.isTv,
+          isTv: widget.isBigPicture,
           onTap: () {
             // Dismiss the side panel first
             widget.onClose();
@@ -914,7 +920,7 @@ class _PlayerEpisodesPanelState extends ConsumerState<PlayerEpisodesPanel> {
         return;
       }
       final ctx = _anchorNode.context;
-      if (ctx != null) {
+      if (ctx != null && ctx.mounted) {
         _anchorNode.requestFocus();
         Scrollable.ensureVisible(
           ctx,
@@ -942,20 +948,26 @@ class _PlayerEpisodesPanelState extends ConsumerState<PlayerEpisodesPanel> {
           playerControllerProvider.select((s) => s.currentStream?.url),
         ) ??
         ref.read(playerControllerProvider.notifier).currentEpisodeUrl;
-    var episodes = widget.item.episodes ?? const <Episode>[];
-    final currentEpisode = episodes.firstWhereOrNull(
+    final allEpisodes = widget.item.episodes ?? const <Episode>[];
+    final hasDub = allEpisodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = allEpisodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
+    final currentEpisode = allEpisodes.firstWhereOrNull(
       (e) => e.url == currentUrl,
     );
     final isSeries =
         widget.item.contentType == MultimediaContentType.series ||
         widget.item.contentType == MultimediaContentType.anime;
-    if (isSeries &&
-        currentEpisode != null &&
-        currentEpisode.dubStatus != DubStatus.none) {
-      episodes = episodes
-          .where((e) => e.dubStatus == currentEpisode.dubStatus)
-          .toList();
-    }
+    final episodes =
+        (isSeries &&
+            isMixed &&
+            currentEpisode != null &&
+            currentEpisode.dubStatus != DubStatus.none)
+        ? allEpisodes
+              .where((e) => e.dubStatus == currentEpisode.dubStatus)
+              .toList()
+        : allEpisodes;
     final historyRepo = ref.read(historyRepositoryProvider);
 
     final seasons = episodes.map((e) => e.season).toSet().toList()..sort();
@@ -988,6 +1000,7 @@ class _PlayerEpisodesPanelState extends ConsumerState<PlayerEpisodesPanel> {
           _EpisodeRow(
             episode: ep,
             isCurrent: isCurrent,
+            showDubBadge: isMixed,
             progress: dur > 0 ? (pos / dur).clamp(0.0, 1.0) : 0.0,
             isTv: widget.isTv,
             focusNode: isAnchor ? _anchorNode : null,
@@ -1005,6 +1018,7 @@ class _PlayerEpisodesPanelState extends ConsumerState<PlayerEpisodesPanel> {
         rows[firstEpIndex] = _EpisodeRow(
           episode: r.episode,
           isCurrent: r.isCurrent,
+          showDubBadge: r.showDubBadge,
           progress: r.progress,
           isTv: r.isTv,
           focusNode: _anchorNode,
@@ -1076,6 +1090,7 @@ class _PlayerEpisodesPanelState extends ConsumerState<PlayerEpisodesPanel> {
 class _EpisodeRow extends StatefulWidget {
   final Episode episode;
   final bool isCurrent;
+  final bool showDubBadge;
   final double progress;
   final bool isTv;
   final FocusNode? focusNode;
@@ -1084,6 +1099,7 @@ class _EpisodeRow extends StatefulWidget {
   const _EpisodeRow({
     required this.episode,
     required this.isCurrent,
+    this.showDubBadge = true,
     required this.progress,
     required this.isTv,
     required this.onTap,
@@ -1104,97 +1120,118 @@ class _EpisodeRowState extends State<_EpisodeRow> {
     final showHighlight = _focused || _hovered;
     final ring = _focused && widget.isTv;
     const accent = HotstarPlayerStyle.accent;
+
     return Semantics(
       button: true,
       selected: widget.isCurrent,
       label: ep.name,
-      child: Focus(
-        focusNode: widget.focusNode,
-        onFocusChange: (v) => setState(() => _focused = v),
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.space) {
-            widget.onTap();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
         },
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onTap,
-            child: AnimatedContainer(
-              duration: HotstarPlayerStyle.fastMotionDuration,
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: _panelRowDecoration(
-                focusedOnTv: ring,
-                selected: widget.isCurrent,
-                hovered: showHighlight,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _EpisodeThumbnail(
-                    posterUrl: ep.posterUrl,
-                    isCurrent: widget.isCurrent,
-                    progress: widget.progress,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'S${ep.season} : E${ep.episode}',
-                              style: TextStyle(
-                                color: widget.isCurrent
-                                    ? accent
-                                    : HotstarPlayerStyle.mutedText,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                shadows: _kGlassTextShadow,
-                              ),
-                            ),
-                            if (ep.dubStatus != DubStatus.none) ...[
-                              const SizedBox(width: 6),
-                              _DubBadge(
-                                dubStatus: ep.dubStatus,
-                                isCurrent: widget.isCurrent,
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          ep.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: widget.isCurrent
-                                ? HotstarPlayerStyle.primaryText
-                                : HotstarPlayerStyle.secondaryText,
-                            fontSize: 14,
-                            fontWeight: widget.isCurrent
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            shadows: _kGlassTextShadow,
-                          ),
-                        ),
-                      ],
+        child: Focus(
+          focusNode: widget.focusNode,
+          onFocusChange: (v) => setState(() => _focused = v),
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() => _hovered = false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onTap,
+              child: AnimatedContainer(
+                duration: HotstarPlayerStyle.fastMotionDuration,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: _panelRowDecoration(
+                  focusedOnTv: ring,
+                  selected: widget.isCurrent,
+                  hovered: showHighlight,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _EpisodeThumbnail(
+                      posterUrl: ep.posterUrl,
+                      isCurrent: widget.isCurrent,
+                      progress: widget.progress,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'S${ep.season} : E${ep.episode}',
+                                style: TextStyle(
+                                  color: widget.isCurrent
+                                      ? accent
+                                      : HotstarPlayerStyle.mutedText,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  shadows: _kGlassTextShadow,
+                                ),
+                              ),
+                              if (widget.showDubBadge &&
+                                  ep.dubStatus != DubStatus.none) ...[
+                                const SizedBox(width: 6),
+                                _DubBadge(
+                                  dubStatus: ep.dubStatus,
+                                  isCurrent: widget.isCurrent,
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            ep.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: widget.isCurrent
+                                  ? HotstarPlayerStyle.primaryText
+                                  : HotstarPlayerStyle.secondaryText,
+                              fontSize: 14,
+                              fontWeight: widget.isCurrent
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              shadows: _kGlassTextShadow,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1628,114 +1665,140 @@ class _PanelOptionRowState extends State<_PanelOptionRow> {
         : (widget.selected
               ? HotstarPlayerStyle.primaryText
               : HotstarPlayerStyle.secondaryText);
+
     return Semantics(
       button: true,
       enabled: enabled,
       selected: widget.selected,
       label: widget.label,
-      child: Focus(
-        focusNode: widget.focusNode,
-        onFocusChange: (v) => setState(() => _focused = v),
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.select ||
-              key == LogicalKeyboardKey.enter ||
-              key == LogicalKeyboardKey.space) {
-            if (enabled) widget.onTap();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              if (enabled) widget.onTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              if (enabled) widget.onTap();
+              return null;
+            },
+          ),
         },
-        child: MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          onEnter: (_) => setState(() => _hovered = true),
-          onExit: (_) => setState(() => _hovered = false),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: enabled ? widget.onTap : null,
-            child: AnimatedContainer(
-              duration: HotstarPlayerStyle.fastMotionDuration,
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-              decoration: _panelRowDecoration(
-                focusedOnTv: enabled && _focused && widget.isTv,
-                selected: widget.selected,
-                hovered: showHighlight,
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 22,
-                    child: widget.leadingIcon != null
-                        ? Icon(
-                            widget.leadingIcon,
-                            color: enabled
-                                ? HotstarPlayerStyle.secondaryText
-                                : HotstarPlayerStyle.mutedText,
-                            size: 20,
-                          )
-                        : (widget.selected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: HotstarPlayerStyle.accent,
-                                  size: 20,
-                                )
-                              : null),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        text: widget.label,
-                        children: [
-                          if (hasMeta)
-                            TextSpan(
-                              text: '   $meta',
-                              style: const TextStyle(
-                                color: HotstarPlayerStyle.mutedText,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                shadows: _kGlassTextShadow,
-                              ),
-                            ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: labelColor,
-                        fontSize: 15,
-                        fontWeight: widget.selected
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                        shadows: _kGlassTextShadow,
-                      ),
+        child: Focus(
+          focusNode: widget.focusNode,
+          onFocusChange: (v) => setState(() => _focused = v),
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              if (enabled) widget.onTap();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: MouseRegion(
+            cursor: enabled
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.basic,
+            onEnter: (_) => setState(() => _hovered = true),
+            onExit: (_) => setState(() => _hovered = false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: enabled ? widget.onTap : null,
+              child: AnimatedContainer(
+                duration: HotstarPlayerStyle.fastMotionDuration,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 13,
+                ),
+                decoration: _panelRowDecoration(
+                  focusedOnTv: enabled && _focused && widget.isTv,
+                  selected: widget.selected,
+                  hovered: showHighlight,
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      child: widget.leadingIcon != null
+                          ? Icon(
+                              widget.leadingIcon,
+                              color: enabled
+                                  ? HotstarPlayerStyle.secondaryText
+                                  : HotstarPlayerStyle.mutedText,
+                              size: 20,
+                            )
+                          : (widget.selected
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    color: HotstarPlayerStyle.accent,
+                                    size: 20,
+                                  )
+                                : null),
                     ),
-                  ),
-                  if (widget.badge != null) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: HotstarPlayerStyle.panelElevated,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                            color: HotstarPlayerStyle.divider, width: 0.8),
-                      ),
-                      child: Text(
-                        widget.badge!,
-                        style: const TextStyle(
-                          color: HotstarPlayerStyle.secondaryText,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: widget.label,
+                          children: [
+                            if (hasMeta)
+                              TextSpan(
+                                text: '   $meta',
+                                style: const TextStyle(
+                                  color: HotstarPlayerStyle.mutedText,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  shadows: _kGlassTextShadow,
+                                ),
+                              ),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: labelColor,
+                          fontSize: 15,
+                          fontWeight: widget.selected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          shadows: _kGlassTextShadow,
                         ),
                       ),
                     ),
+                    if (widget.badge != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: HotstarPlayerStyle.panelElevated,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: HotstarPlayerStyle.divider,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          widget.badge!,
+                          style: const TextStyle(
+                            color: HotstarPlayerStyle.secondaryText,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

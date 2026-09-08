@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +49,6 @@ class SkyStreamSubtitleView extends ConsumerStatefulWidget {
 class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
   List<SubtitleCue> _cues = [];
   String? _loadedUrl;
-  bool _loading = false;
   StreamSubscription<Duration>? _positionSub;
   Duration _currentPosition = Duration.zero;
   bool _customFontLoaded = false;
@@ -65,19 +65,20 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
   void didUpdateWidget(covariant SkyStreamSubtitleView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.useExoPlayer != widget.useExoPlayer ||
-        oldWidget.videoViewController != widget.videoViewController) {
-      _cleanupPositionListener();
+        oldWidget.videoViewController != widget.videoViewController ||
+        oldWidget.player != widget.player) {
+      _cleanupPositionListener(oldWidget);
       _listenPosition();
     }
     _loadCues();
     _loadCustomFontIfNeeded();
   }
 
-  void _cleanupPositionListener() {
+  void _cleanupPositionListener(SkyStreamSubtitleView oldWidget) {
     _positionSub?.cancel();
     _positionSub = null;
     try {
-      widget.videoViewController?.position.removeListener(
+      oldWidget.videoViewController?.position.removeListener(
         _onExoPositionChanged,
       );
     } catch (_) {}
@@ -112,7 +113,7 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
 
   @override
   void dispose() {
-    _cleanupPositionListener();
+    _cleanupPositionListener(widget);
     super.dispose();
   }
 
@@ -206,19 +207,23 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
     final cacheKey =
         "${url}_${settings.subRemoveBloat}_${settings.subRemoveCaptions}_${settings.subUpperCase}";
 
-    if (cacheKey == _loadedUrl && !_loading) return;
+    if (cacheKey == _loadedUrl) return;
 
     _loadedUrl = cacheKey;
-    _loading = true;
 
     try {
       String content = '';
       if (url.startsWith('http://') || url.startsWith('https://')) {
-        final response = await Dio().get<String>(
+        final response = await Dio().get<List<int>>(
           url,
-          options: Options(responseType: ResponseType.plain),
+          options: Options(responseType: ResponseType.bytes),
         );
-        content = response.data ?? '';
+        final bytes = response.data ?? [];
+        try {
+          content = utf8.decode(bytes);
+        } catch (_) {
+          content = latin1.decode(bytes);
+        }
       } else {
         var filePath = url;
         if (filePath.startsWith('file://')) {
@@ -226,7 +231,12 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
         }
         final file = File(filePath);
         if (await file.exists()) {
-          content = await file.readAsString();
+          final bytes = await file.readAsBytes();
+          try {
+            content = utf8.decode(bytes);
+          } catch (_) {
+            content = latin1.decode(bytes);
+          }
         }
       }
 
@@ -240,16 +250,10 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
       if (mounted && cacheKey == _loadedUrl) {
         setState(() {
           _cues = parsed;
-          _loading = false;
         });
       }
     } catch (e) {
       debugPrint("Failed to load/parse subtitle cues: $e");
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
 
@@ -343,6 +347,14 @@ class _SkyStreamSubtitleViewState extends ConsumerState<SkyStreamSubtitleView> {
               }
               if (textLine.contains('-->')) {
                 i--; // Rewind
+                break;
+              }
+              // Check if this line is the next cue's ID (number followed by timestamp)
+              final isNextCueId =
+                  int.tryParse(textLine) != null &&
+                  (i + 1 < lines.length && lines[i + 1].trim().contains('-->'));
+              if (isNextCueId) {
+                i--; // Rewind to process the index line in outer loop (where it gets skipped)
                 break;
               }
               var cleaned = textLine.replaceAll(RegExp(r'<[^>]*>'), '');
