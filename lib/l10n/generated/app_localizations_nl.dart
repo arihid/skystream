@@ -33,134 +33,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get extensions => 'Extensies';
 
   @override
-  String get updateAvailable => 'Update beschikbaar';
+  String get downloads => 'Downloads';
 
   @override
-  String get retry => 'Opnieuw proberen';
-
-  @override
-  String get factoryReset => 'Fabrieksinstellingen';
-
-  @override
-  String get startupError => 'Opstartfout';
-
-  @override
-  String get general => 'Algemeen';
-
-  @override
-  String get appTheme => 'App-thema';
-
-  @override
-  String get recordWatchHistory => 'Kijkgeschiedenis bijhouden';
-
-  @override
-  String get defaultHomeScreen => 'Standaard startscherm';
-
-  @override
-  String get player => 'Speler';
-
-  @override
-  String get defaultPlayer => 'Standaard speler';
-
-  @override
-  String get leftGesture => 'Lings gebaar';
-
-  @override
-  String get rightGesture => 'Rechts gebaar';
-
-  @override
-  String get doubleTapToSeek => 'Dubbeltikken om te spoelen';
-
-  @override
-  String get swipeToSeek => 'Vegen om te spoelen';
-
-  @override
-  String get seekDuration => 'Spoelduur';
-
-  @override
-  String get bufferDepth => 'Bufferdiepte';
-
-  @override
-  String get defaultResizeMode => 'Standaard weergavemodus';
-
-  @override
-  String get hardwareDecoding => 'Hardwaredecodering';
-
-  @override
-  String get network => 'Netwerk';
-
-  @override
-  String get dnsOverHttps => 'DNS over HTTPS';
-
-  @override
-  String get dohProvider => 'DoH-provider';
-
-  @override
-  String get githubProxy => 'GitHub Proxy';
-
-  @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
-
-  @override
-  String get manageExtensions => 'Extensies beheren';
-
-  @override
-  String get appData => 'App-gegevens';
-
-  @override
-  String get resetDataKeepExtensions =>
-      'Gegevens resetten (extensies behouden)';
-
-  @override
-  String get developer => 'Ontwikkelaar';
-
-  @override
-  String get developerOptions => 'Ontwikkelaarsopties';
-
-  @override
-  String get about => 'Over';
-
-  @override
-  String get version => 'Versie';
-
-  @override
-  String get enabled => 'Ingeschakeld';
-
-  @override
-  String get disabled => 'Uitgeschakeld';
-
-  @override
-  String get discord => 'Discord';
-
-  @override
-  String get discordSubtitle => 'Word lid van onze server';
-
-  @override
-  String get telegram => 'Telegram';
-
-  @override
-  String get telegramSubtitle => 'Word lid van ons kanaal';
-
-  @override
-  String developedBy(String name) {
-    return 'Ontwikkeld door $name';
-  }
-
-  @override
-  String get system => 'Systeem';
-
-  @override
-  String get dark => 'Donker';
-
-  @override
-  String get light => 'Licht';
-
-  @override
-  String get later => 'Later';
-
-  @override
-  String get updateNow => 'Nu bijwerken';
+  String get bookmarks => 'Bladwijzers';
 
   @override
   String get save => 'Opslaan';
@@ -175,13 +51,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get delete => 'Verwijderen';
 
   @override
-  String get viewDetails => 'Details bekijken';
+  String get retry => 'Opnieuw proberen';
 
   @override
-  String get clearAll => 'Alles wissen';
-
-  @override
-  String get clearAllHistory => 'Kijkgeschiedenis wissen';
+  String get ok => 'OK';
 
   @override
   String get all => 'Alles';
@@ -190,86 +63,189 @@ class AppLocalizationsNl extends AppLocalizations {
   String get none => 'Geen';
 
   @override
-  String get confirmDownload => 'Download bevestigen';
+  String get on => 'Aan';
 
   @override
-  String get downloadNow => 'Nu downloaden';
+  String get off => 'Uit';
 
   @override
-  String get selectSource => 'Bron selecteren';
+  String get yesDelete => 'Ja, verwijderen';
 
   @override
-  String get downloadUnavailable => 'Niet beschikbaar';
+  String get no => 'Nee';
 
   @override
-  String get selectAnotherSource => 'Selecteer andere bron';
+  String get viewDetails => 'Details bekijken';
 
   @override
-  String get watchHistoryCleared => 'Kijkgeschiedenis gewist';
+  String get viewAll => 'Alles tonen';
 
   @override
-  String get downloadingUpdate => 'Update downloaden...';
+  String get clearAll => 'Alles wissen';
 
   @override
-  String errorPrefix(String message) {
-    return 'Fout: $message';
+  String get startOver => 'Opnieuw beginnen';
+
+  @override
+  String get goBack => 'Terug';
+
+  @override
+  String get showMore => 'Meer';
+
+  @override
+  String get showLess => 'Minder';
+
+  @override
+  String get install => 'Installeren';
+
+  @override
+  String get updateNow => 'Nu bijwerken';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get enabled => 'Ingeschakeld';
+
+  @override
+  String get disabled => 'Uitgeschakeld';
+
+  @override
+  String get recommended => 'Aanbevolen';
+
+  @override
+  String get loading => 'Laden...';
+
+  @override
+  String get hintSelect => 'Select';
+
+  @override
+  String get hintBack => 'Back';
+
+  @override
+  String get hintExit => 'Exit';
+
+  @override
+  String get hintMenu => 'Menu';
+
+  @override
+  String get hintView => 'View';
+
+  @override
+  String get hintKeyboard => 'Keyboard';
+
+  @override
+  String get hintFilter => 'Filter';
+
+  @override
+  String get hintFilters => 'Filters';
+
+  @override
+  String get hintSearch => 'Search';
+
+  @override
+  String get hintFillQuery => 'Fill Query';
+
+  @override
+  String get hintType => 'Type';
+
+  @override
+  String get hintList => 'List';
+
+  @override
+  String get hintExpand => 'Expand';
+
+  @override
+  String get hintCollapse => 'Collapse';
+
+  @override
+  String get hintDeleteAll => 'Delete All';
+
+  @override
+  String get hintDelete => 'Delete';
+
+  @override
+  String get hintPrevTab => 'Prev Tab';
+
+  @override
+  String get hintNextTab => 'Next Tab';
+
+  @override
+  String get hintPlay => 'Play';
+
+  @override
+  String get hintPause => 'Pause';
+
+  @override
+  String get hintResume => 'Resume';
+
+  @override
+  String get hintRemove => 'Remove';
+
+  @override
+  String get hintClearAll => 'Clear All';
+
+  @override
+  String get hintSearchField => 'Search field';
+
+  @override
+  String get hintSelectToggle => 'Select / Toggle';
+
+  @override
+  String get hintBrowse => 'Browse';
+
+  @override
+  String get hintAddRepo => 'Add Repo';
+
+  @override
+  String get hintDownloadAll => 'Download All';
+
+  @override
+  String get hintDeleteRepo => 'Delete Repo';
+
+  @override
+  String get hintSettings => 'Settings';
+
+  @override
+  String get hintInstall => 'Install';
+
+  @override
+  String get hintUpdate => 'Update';
+
+  @override
+  String get hintViewAll => 'View All';
+
+  @override
+  String get hintDeselect => 'Deselect';
+
+  @override
+  String get hintRemoveBookmark => 'Remove Bookmark';
+
+  @override
+  String get hintAddBookmark => 'Add Bookmark';
+
+  @override
+  String get hintManageDownload => 'Manage Download';
+
+  @override
+  String get hintDownloading => 'Downloading...';
+
+  @override
+  String get hintDownload => 'Download';
+
+  @override
+  String get hintScroll => 'Scroll';
+
+  @override
+  String hintSeek(Object seconds) {
+    return 'Seek ${seconds}s';
   }
 
   @override
-  String updateAvailableTag(String tag) {
-    return 'Update beschikbaar: $tag';
-  }
+  String get exploreAnime => 'Anime ontdekken';
 
   @override
-  String get selectProviderToStart => 'Selecteer een provider om te beginnen';
-
-  @override
-  String get tapExtensionIcon => 'Tik op het extensie-icoon in de hoek';
-
-  @override
-  String get continueWatching => 'Verder kijken';
-
-  @override
-  String get noInternetConnection => 'Geen internetverbinding';
-
-  @override
-  String get siteNotReachable => 'Site niet bereikbaar';
-
-  @override
-  String get checkConnectionOrDownloads =>
-      'Controleer je verbinding of bekijk je downloads.';
-
-  @override
-  String get tryVpnOrConnection =>
-      'Probeer een VPN of controleer je internetverbinding.';
-
-  @override
-  String errorDetails(String error) {
-    return 'Foutdetails: $error';
-  }
-
-  @override
-  String get goToDownloads => 'Ga naar downloads';
-
-  @override
-  String get selectProvider => 'Provider selecteren';
-
-  @override
-  String get searchHint => 'Zoek films, series...';
-
-  @override
-  String get searchFavoriteContent => 'Zoek je favoriete content';
-
-  @override
-  String get pressSearchOrEnter =>
-      'Druk op de zoektoets of Enter om te beginnen';
-
-  @override
-  String get noResultsFound => 'Geen resultaten gevonden.';
-
-  @override
-  String get couldNotLoadTrending =>
-      'Trending items konden niet worden geladen';
+  String get exploreMovies => 'Films ontdekken';
 
   @override
   String get popularMovies => 'Populaire films';
@@ -293,180 +269,57 @@ class AppLocalizationsNl extends AppLocalizations {
   String get lastVideosTVShows => 'Laatste afleveringen';
 
   @override
-  String get downloads => 'Downloads';
+  String get continueWatching => 'Verder kijken';
 
   @override
-  String get bookmarks => 'Bladwijzers';
+  String get couldNotLoadTrending =>
+      'Trending items konden niet worden geladen';
 
   @override
-  String get noDownloadsYet => 'Nog geen downloads';
+  String get selectProviderToStart => 'Selecteer een provider om te beginnen';
 
   @override
-  String episodesCount(int count, int done) {
-    return '$count afleveringen • $done voltooid';
-  }
+  String get tapExtensionIcon => 'Tik op het extensie-icoon in de hoek';
 
   @override
-  String get deleteAllEpisodes => 'Alle afleveringen verwijderen';
+  String get searchFavoriteContent => 'Zoek je favoriete content';
 
   @override
-  String confirmDeleteAllEpisodes(int count, String title) {
-    return 'Weet je zeker dat je alle $count afleveringen van \"$title\" en hun bestanden wilt verwijderen?';
-  }
+  String get pressSearchOrEnter =>
+      'Druk op de zoektoets of Enter om te beginnen';
 
   @override
-  String get deleteAll => 'Alles verwijderen';
+  String get noResultsFound => 'Geen resultaten gevonden.';
 
   @override
-  String get completed => 'Voltooid';
+  String get searchHint => 'Zoek films, series...';
 
   @override
-  String get statusQueued => 'In wachtrij...';
+  String get searchScope => 'Search Scope';
 
   @override
-  String get statusDownloading => 'Downloaden...';
+  String get nonLivestreams => 'Non Livestreams';
 
   @override
-  String get statusFinished => 'Voltooid';
+  String get movies => 'Films';
 
   @override
-  String get statusFailed => 'Mislukt';
+  String get series => 'Series';
 
   @override
-  String get statusCanceled => 'Geannuleerd';
+  String get anime => 'Anime';
 
   @override
-  String get statusPaused => 'Gepauzeerd';
+  String get liveStreams => 'Live-streams';
 
   @override
-  String get statusWaiting => 'Wachten...';
+  String get live => 'LIVE';
 
   @override
-  String get fileNotFoundRemoving =>
-      'Bestand niet gevonden. Record wordt verwijderd.';
+  String get movieDetails => 'Filmdetails';
 
   @override
-  String get fileNotFound => 'Bestand niet gevonden';
-
-  @override
-  String get deleteDownload => 'Download verwijderen';
-
-  @override
-  String get confirmDeleteDownload =>
-      'Weet je zeker dat je deze download wilt verwijderen?';
-
-  @override
-  String get libraryEmpty => 'Je bibliotheek is leeg';
-
-  @override
-  String get language => 'Taal';
-
-  @override
-  String get english => 'Engels';
-
-  @override
-  String get hindi => 'Hindi';
-
-  @override
-  String get kannada => 'Kannada';
-
-  @override
-  String get unknown => 'Onbekend';
-
-  @override
-  String get recommended => 'Aanbevolen';
-
-  @override
-  String get on => 'Aan';
-
-  @override
-  String get off => 'Uit';
-
-  @override
-  String get installRemoveProviders => 'Providers installeren/verwijderen';
-
-  @override
-  String get resetDataSubtitle =>
-      'Instellingen en database wissen, plug-ins behouden';
-
-  @override
-  String get factoryResetSubtitle =>
-      'Alle gegevens, instellingen en extensies verwijderen';
-
-  @override
-  String get developerOptionsSubtitle => 'Debug-tools en lokale weergave';
-
-  @override
-  String get loading => 'Laden...';
-
-  @override
-  String get sec => 'sec';
-
-  @override
-  String get min => 'min';
-
-  @override
-  String get internalPlayer => 'Interne speler (media_kit)';
-
-  @override
-  String get builtInPlayer => 'Ingebouwde speler';
-
-  @override
-  String get customNotSet => 'Aangepast (niet ingesteld)';
-
-  @override
-  String selectGesture(String side) {
-    return 'Selecteer $side gebaar';
-  }
-
-  @override
-  String get left => 'links';
-
-  @override
-  String get right => 'rechts';
-
-  @override
-  String get selectSeekDuration => 'Selecteer spoelduur';
-
-  @override
-  String get selectBufferDepth => 'Selecteer bufferdiepte';
-
-  @override
-  String get subtitleSettings => 'Ondertitelinstellingen';
-
-  @override
-  String size(int size) {
-    return 'Grootte: $size';
-  }
-
-  @override
-  String get background => 'Achtergrond';
-
-  @override
-  String get customDohUrlLabel => 'Aangepaste DoH URL';
-
-  @override
-  String get enterCustomDohUrl => 'Vul je eigen DoH URL in';
-
-  @override
-  String get chooseTheme => 'Thema kiezen';
-
-  @override
-  String get resetDataDialogTitle => 'Gegevens resetten?';
-
-  @override
-  String get resetDataDialogContent =>
-      'Dit wist Instellingen, Favorieten en Geschiedenis. Geïnstalleerde extensies blijven behouden.';
-
-  @override
-  String get factoryResetDialogTitle => 'Fabrieksinstellingen reset?';
-
-  @override
-  String get factoryResetDialogContent =>
-      'Dit wist ALLES. Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get selectLanguage => 'Taal kiezen';
+  String get showDetails => 'Details tonen';
 
   @override
   String get synopsis => 'Synopsis';
@@ -475,45 +328,298 @@ class AppLocalizationsNl extends AppLocalizations {
   String get noDescription => 'Geen beschrijving beschikbaar.';
 
   @override
-  String get videoAlreadyDownloadedPrompt =>
-      'Deze video is al gedownload. Wat wil je doen?';
+  String get director => 'Regisseur';
+
+  @override
+  String get creator => 'Maker';
+
+  @override
+  String get tagline => 'Tagline';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get releaseDate => 'Releasedatum';
+
+  @override
+  String get firstAirDate => 'Eerste uitzending';
+
+  @override
+  String get originalLanguage => 'Originele taal';
+
+  @override
+  String get originCountry => 'Land van herkomst';
+
+  @override
+  String get budgetLabel => 'Budget';
+
+  @override
+  String get revenueLabel => 'Opbrengst';
+
+  @override
+  String get seasons => 'Seizoenen';
+
+  @override
+  String get episodes => 'Afleveringen';
+
+  @override
+  String get noEpisodesFound => 'Geen afleveringen gevonden';
+
+  @override
+  String seasonWithNumber(Object number) {
+    return 'Seizoen $number';
+  }
+
+  @override
+  String seasonsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seizoenen',
+      one: '1 seizoen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seasonWithEpisodes(Object number, int count) {
+    return 'Seizoen $number ($count afl.)';
+  }
+
+  @override
+  String episodesCount(int count, int done) {
+    return '$count afleveringen • $done voltooid';
+  }
+
+  @override
+  String episodeCountOnly(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count afleveringen',
+      one: '1 aflevering',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String titleWithParam(String title) {
+    return 'Titel: $title';
+  }
+
+  @override
+  String sourceWithParam(String source) {
+    return 'Bron: $source';
+  }
+
+  @override
+  String sizeWithParam(String size) {
+    return 'Grootte: $size';
+  }
+
+  @override
+  String get play => 'Afspelen';
 
   @override
   String get playNow => 'Nu afspelen';
 
   @override
-  String get upNext => 'Up Next';
-
-  @override
-  String get deleteDownloadPrompt => 'Download verwijderen?';
-
-  @override
-  String get deleteDownloadConfirmation =>
-      'Weet je zeker dat je dit bestand wilt verwijderen? Dit kan niet ongedaan worden gemaakt.';
-
-  @override
-  String get no => 'Nee';
-
-  @override
-  String get yesDelete => 'Ja, verwijderen';
-
-  @override
-  String get downloadPaused => 'Download gepauzeerd';
-
-  @override
-  String get downloading => 'Downloaden';
-
-  @override
-  String get speed => 'Snelheid';
-
-  @override
-  String get remaining => 'Resterend';
-
-  @override
   String get resume => 'Hervatten';
 
   @override
+  String get resumeNow => 'Nu hervatten';
+
+  @override
   String get pause => 'Pauzeren';
+
+  @override
+  String get watching => 'Aan het kijken';
+
+  @override
+  String get watched => 'Bekeken';
+
+  @override
+  String get lastWatched => 'Laatst bekeken';
+
+  @override
+  String get resumingPlayback => 'Hervatten van afspelen';
+
+  @override
+  String pausedAt(String time) {
+    return 'Gepauzeerd op $time';
+  }
+
+  @override
+  String resumesAutomatically(int count) {
+    return 'Automatisch hervatten over $count sec';
+  }
+
+  @override
+  String percentWatched(int percent) {
+    return '$percent% bekeken';
+  }
+
+  @override
+  String playEpisode(String label, Object season, Object episode) {
+    return '$label S$season E$episode';
+  }
+
+  @override
+  String playEpisodeOnly(String label, int episode) {
+    return '$label E$episode';
+  }
+
+  @override
+  String get skip => 'Overslaan';
+
+  @override
+  String get skipIntro => 'Intro overslaan';
+
+  @override
+  String get skipOutro => 'Aftiteling overslaan';
+
+  @override
+  String get skipRecap => 'Samenvatting overslaan';
+
+  @override
+  String get goLive => 'Ga live';
+
+  @override
+  String get dismiss => 'Sluiten';
+
+  @override
+  String get nextUp => 'Volgende';
+
+  @override
+  String get playing => 'Speelt af';
+
+  @override
+  String get playbackSpeed => 'Afspeelsnelheid';
+
+  @override
+  String get volume => 'Volume';
+
+  @override
+  String get brightness => 'Helderheid';
+
+  @override
+  String get fit => 'Passend';
+
+  @override
+  String get zoom => 'Zoom';
+
+  @override
+  String get stretch => 'Uitrekken';
+
+  @override
+  String get resize => 'Formaat';
+
+  @override
+  String get next => 'Volgende';
+
+  @override
+  String get pip => 'PiP';
+
+  @override
+  String get rotate => 'Draaien';
+
+  @override
+  String get windowed => 'Venster';
+
+  @override
+  String get fullscreen => 'Volledig scherm';
+
+  @override
+  String sourceAttempt(int index, int total) {
+    return 'Poging $index van $total';
+  }
+
+  @override
+  String get unlock => 'Ontgrendelen';
+
+  @override
+  String get lock => 'Vergrendelen';
+
+  @override
+  String get resolving => 'Oplossen...';
+
+  @override
+  String get trying => 'Proberen';
+
+  @override
+  String get failed => 'Mislukt';
+
+  @override
+  String get selected => 'Geselecteerd';
+
+  @override
+  String get pending => 'Wachtend';
+
+  @override
+  String get local => 'Lokaal';
+
+  @override
+  String get remote => 'Remote';
+
+  @override
+  String get torrent => 'Torrent';
+
+  @override
+  String get sources => 'Bronnen';
+
+  @override
+  String get tracks => 'Sporen';
+
+  @override
+  String get content => 'Content';
+
+  @override
+  String get stats => 'Statistieken';
+
+  @override
+  String get selectSource => 'Bron selecteren';
+
+  @override
+  String get selectAnotherSource => 'Selecteer andere bron';
+
+  @override
+  String get selectSourceToPlay => 'Selecteer een bron om te bekijken.';
+
+  @override
+  String selectSourceForPlayer(String playerName) {
+    return 'Bron voor $playerName';
+  }
+
+  @override
+  String get availableSources => 'Beschikbare bronnen';
+
+  @override
+  String get refreshingLiveStream => 'Updaten...';
+
+  @override
+  String get playLocalVideo => 'Lokale video';
+
+  @override
+  String get playLocalVideoSubtitle => 'Speel bestand van apparaat af';
+
+  @override
+  String get streamUrl => 'Stream URL';
+
+  @override
+  String get streamUrlSubtitle => 'Speel af van URL';
+
+  @override
+  String get streamTorrent => 'Stream torrent';
+
+  @override
+  String get streamTorrentSubtitle => 'Selecteer lokaal torrent-bestand';
+
+  @override
+  String get enterVideoUrlHint => 'Video URL (http, magnet etc.)';
+
+  @override
+  String get networkStream => 'Netwerkstream';
 
   @override
   String get torrentContent => 'Torrent-inhoud';
@@ -525,6 +631,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String get noAudioTracks => 'Geen audiosporen gevonden';
 
   @override
+  String get qualityNotGuaranteed =>
+      'Kwaliteit is niet gegarandeerd. Bronnen worden gesorteerd op voorkeur, maar weergave hangt af van het aanbod van de provider.';
+
+  @override
+  String get keepSourcesOriginalOrder => 'Bronnen in originele volgorde houden';
+
+  @override
+  String get noSourcesQualityFilterFallback =>
+      'No sources matched your quality filter — showing all sources.';
+
+  @override
   String get subtitles => 'Ondertitels';
 
   @override
@@ -532,9 +649,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get noSubtitlesFound => 'Geen ondertitels gevonden';
-
-  @override
-  String get playbackSpeed => 'Afspeelsnelheid';
 
   @override
   String get subtitleOptions => 'Ondertitelopties';
@@ -573,24 +687,6 @@ class AppLocalizationsNl extends AppLocalizations {
       'Ondertitelstijl is momenteel alleen beschikbaar voor media_kit.';
 
   @override
-  String get resetToDefault => 'Standaardinstellingen';
-
-  @override
-  String get fontSize => 'Lettergrootte';
-
-  @override
-  String get verticalPosition => 'Verticale positie';
-
-  @override
-  String get textColor => 'Tekstkleur';
-
-  @override
-  String get backgroundColor => 'Achtergrondkleur';
-
-  @override
-  String get backgroundOpacity => 'Achtergronddoorzichtigheid';
-
-  @override
   String get subtitleSearch => 'Ondertitels zoeken';
 
   @override
@@ -615,122 +711,95 @@ class AppLocalizationsNl extends AppLocalizations {
       'Ondertitels laden mislukt. Probeer het opnieuw.';
 
   @override
-  String get noReposFound => 'Geen repository\'s of plug-ins gevonden';
+  String get sub => 'Sub';
 
   @override
-  String get downloadAllProviders => 'Alles downloaden';
-
-  @override
-  String get removeRepository => 'Repository verwijderen';
-
-  @override
-  String get addRepo => 'Repo toevoegen';
-
-  @override
-  String get extensionsNotInRepos => 'Extensies niet in repository\'s';
-
-  @override
-  String get noLongerInRepo => 'Niet langer in een repository';
-
-  @override
-  String get addRepoToBrowse =>
-      'Voeg een repository toe om plug-ins te bekijken';
-
-  @override
-  String get debugExtensions => 'Debug-extensies';
-
-  @override
-  String removeRepoConfirm(String repoName) {
-    return '$repoName verwijderen?';
-  }
-
-  @override
-  String get removeRepoWarning =>
-      'Dit verwijdert de repository en de-installeert alle bijbehorende plug-ins.';
-
-  @override
-  String get addRepository => 'Repository toevoegen';
-
-  @override
-  String get repoUrlOrShortcode => 'Repo URL of shortcode';
-
-  @override
-  String get assetPlugin => 'Asset-plug-in';
-
-  @override
-  String get installed => 'Geïnstalleerd';
-
-  @override
-  String updateTo(String version) {
-    return 'Bijwerken naar $version';
-  }
-
-  @override
-  String get install => 'Installeren';
-
-  @override
-  String get error => 'Fout';
-
-  @override
-  String get ok => 'OK';
-
-  @override
-  String pluginSettings(String pluginName) {
-    return '$pluginName instellingen';
-  }
-
-  @override
-  String get movies => 'Films';
-
-  @override
-  String get series => 'Series';
-
-  @override
-  String get anime => 'Anime';
-
-  @override
-  String get liveStreams => 'Live-streams';
-
-  @override
-  String get debug => 'DEBUG';
-
-  @override
-  String extensionsUpdated(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count extensies bijgewerkt',
-      one: '1 extensie bijgewerkt',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get invalidNavigation => 'Ongeldige navigatie.';
-
-  @override
-  String get startOver => 'Opnieuw beginnen';
-
-  @override
-  String get goBack => 'Terug';
-
-  @override
-  String get resolving => 'Oplossen...';
-
-  @override
-  String get downloaded => 'Gedownload';
+  String get dub => 'Dub';
 
   @override
   String get download => 'Downloaden';
 
   @override
-  String get debugOnlyFeature => 'Alleen voor debug-builds';
+  String get downloading => 'Downloaden';
 
   @override
-  String get streamUrl => 'Stream URL';
+  String get downloaded => 'Gedownload';
 
   @override
-  String get play => 'Afspelen';
+  String get downloadNow => 'Nu downloaden';
+
+  @override
+  String get confirmDownload => 'Download bevestigen';
+
+  @override
+  String get downloadUnavailable => 'Niet beschikbaar';
+
+  @override
+  String get downloadPaused => 'Download gepauzeerd';
+
+  @override
+  String get downloadingUpdate => 'Update downloaden...';
+
+  @override
+  String get manageExtensions => 'Extensies beheren';
+
+  @override
+  String get deleteDownload => 'Download verwijderen';
+
+  @override
+  String get deleteDownloadPrompt => 'Download verwijderen?';
+
+  @override
+  String get deleteDownloadConfirmation =>
+      'Weet je zeker dat je dit bestand wilt verwijderen? Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get deleteAllEpisodes => 'Alle afleveringen verwijderen';
+
+  @override
+  String confirmDeleteAllEpisodes(int count, String title) {
+    return 'Weet je zeker dat je alle $count afleveringen van \"$title\" en hun bestanden wilt verwijderen?';
+  }
+
+  @override
+  String get noDownloadsYet => 'Nog geen downloads';
+
+  @override
+  String get goToDownloads => 'Ga naar downloads';
+
+  @override
+  String get speed => 'Snelheid';
+
+  @override
+  String get remaining => 'Resterend';
+
+  @override
+  String get statusQueued => 'In wachtrij...';
+
+  @override
+  String get statusDownloading => 'Downloaden...';
+
+  @override
+  String get statusFinished => 'Voltooid';
+
+  @override
+  String get statusFailed => 'Mislukt';
+
+  @override
+  String get statusCanceled => 'Geannuleerd';
+
+  @override
+  String get statusPaused => 'Gepauzeerd';
+
+  @override
+  String get statusWaiting => 'Wachten...';
+
+  @override
+  String get fileNotFoundRemoving =>
+      'Bestand niet gevonden. Record wordt verwijderd.';
+
+  @override
+  String get fileNotFound => 'Bestand niet gevonden';
 
   @override
   String get verifyingSourceSize => 'Bron en grootte verifiëren...';
@@ -740,82 +809,35 @@ class AppLocalizationsNl extends AppLocalizations {
       'Bestand wordt opgeslagen in je downloadmap.';
 
   @override
-  String get resumingPlayback => 'Hervatten van afspelen';
+  String get videoAlreadyDownloadedPrompt =>
+      'Deze video is al gedownload. Wat wil je doen?';
 
   @override
-  String pausedAt(String time) {
-    return 'Gepauzeerd op $time';
+  String size(int size) {
+    return 'Grootte: $size';
   }
 
   @override
-  String resumesAutomatically(int count) {
-    return 'Automatisch hervatten over $count sec';
-  }
+  String get deleteAll => 'Alles verwijderen';
 
   @override
-  String get resumeNow => 'Nu hervatten';
+  String get completed => 'Voltooid';
 
   @override
-  String get playbackError => 'Afspeelfout';
+  String get confirmDeleteDownload =>
+      'Weet je zeker dat je deze download wilt verwijderen?';
 
   @override
-  String get confirmClearHistory => 'Kijkgeschiedenis volledig wissen?';
+  String get libraryEmpty => 'Je bibliotheek is leeg';
 
   @override
-  String seasonWithNumber(Object number) {
-    return 'Seizoen $number';
-  }
+  String get addedToLibrary => 'Added to library';
 
   @override
-  String get starting => 'Starten...';
+  String get removedFromLibrary => 'Removed from library';
 
   @override
-  String percentWatched(int percent) {
-    return '$percent% bekeken';
-  }
-
-  @override
-  String get sub => 'Sub';
-
-  @override
-  String get dub => 'Dub';
-
-  @override
-  String playEpisode(String label, Object season, Object episode) {
-    return '$label S$season E$episode';
-  }
-
-  @override
-  String playEpisodeOnly(String label, int episode) {
-    return '$label E$episode';
-  }
-
-  @override
-  String get debugTools => 'Debug-tools';
-
-  @override
-  String get playLocalVideo => 'Lokale video';
-
-  @override
-  String get playLocalVideoSubtitle => 'Speel bestand van apparaat af';
-
-  @override
-  String get streamUrlSubtitle => 'Speel af van URL';
-
-  @override
-  String get streamTorrent => 'Stream torrent';
-
-  @override
-  String get streamTorrentSubtitle => 'Selecteer lokaal torrent-bestand';
-
-  @override
-  String get loadPluginFromAssets => 'Plug-in laden uit assets';
-
-  @override
-  String get enterVideoUrlHint => 'Video URL (http, magnet etc.)';
-
-  @override
-  String get networkStream => 'Netwerkstream';
+  String get removeFromHistory => 'Uit geschiedenis verwijderen';
 
   @override
   String removedFromHistory(String title) {
@@ -823,61 +845,198 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get custom => 'Aangepast';
+  String get clearAllHistory => 'Kijkgeschiedenis wissen';
 
   @override
-  String get refreshingLiveStream => 'Updaten...';
+  String get watchHistoryCleared => 'Kijkgeschiedenis gewist';
 
   @override
-  String get removeFromHistory => 'Uit geschiedenis verwijderen';
+  String get confirmClearHistory => 'Kijkgeschiedenis volledig wissen?';
 
   @override
-  String get live => 'LIVE';
-
-  @override
-  String get volume => 'Volume';
-
-  @override
-  String get brightness => 'Helderheid';
-
-  @override
-  String get fit => 'Passend';
-
-  @override
-  String get zoom => 'Zoom';
-
-  @override
-  String get stretch => 'Uitrekken';
-
-  @override
-  String titleWithParam(String title) {
-    return 'Titel: $title';
+  String syncedProgress(String percentage) {
+    return 'Synced progress: $percentage%';
   }
 
   @override
-  String sourceWithParam(String source) {
-    return 'Bron: $source';
+  String get general => 'Algemeen';
+
+  @override
+  String get player => 'Speler';
+
+  @override
+  String get network => 'Netwerk';
+
+  @override
+  String get appData => 'App-gegevens';
+
+  @override
+  String get developer => 'Ontwikkelaar';
+
+  @override
+  String get about => 'Over';
+
+  @override
+  String get system => 'Systeem';
+
+  @override
+  String get saveSettings => 'Save settings';
+
+  @override
+  String get applySettings => 'Apply Settings';
+
+  @override
+  String get resetToDefault => 'Standaardinstellingen';
+
+  @override
+  String get appTheme => 'App-thema';
+
+  @override
+  String get dark => 'Donker';
+
+  @override
+  String get light => 'Licht';
+
+  @override
+  String get chooseTheme => 'Thema kiezen';
+
+  @override
+  String get recordWatchHistory => 'Kijkgeschiedenis bijhouden';
+
+  @override
+  String get defaultHomeScreen => 'Standaard startscherm';
+
+  @override
+  String get titlePosition => 'Titelpositie';
+
+  @override
+  String get titlePositionBelowPoster => 'Onder de poster';
+
+  @override
+  String get titlePositionInsidePoster => 'In de poster';
+
+  @override
+  String get bigPictureMode => 'Experimental: Big Picture Mode';
+
+  @override
+  String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
+
+  @override
+  String get targetDisplay => 'Preferred Display';
+
+  @override
+  String get whichMonitorShouldBigPictureUse =>
+      'Which monitor should Big Picture use?';
+
+  @override
+  String get language => 'Taal';
+
+  @override
+  String get selectLanguage => 'Taal kiezen';
+
+  @override
+  String get english => 'Engels';
+
+  @override
+  String get hindi => 'Hindi';
+
+  @override
+  String get kannada => 'Kannada';
+
+  @override
+  String get unknown => 'Onbekend';
+
+  @override
+  String get defaultPlayer => 'Standaard speler';
+
+  @override
+  String get internalPlayer => 'Interne speler (media_kit)';
+
+  @override
+  String get builtInPlayer => 'Ingebouwde speler';
+
+  @override
+  String get customNotSet => 'Aangepast (niet ingesteld)';
+
+  @override
+  String get leftGesture => 'Lings gebaar';
+
+  @override
+  String get rightGesture => 'Rechts gebaar';
+
+  @override
+  String selectGesture(String side) {
+    return 'Selecteer $side gebaar';
   }
 
   @override
-  String sizeWithParam(String size) {
-    return 'Grootte: $size';
-  }
+  String get left => 'links';
 
   @override
-  String usingInternalPlayerError(String error) {
-    return 'Fout: $error. Gebruik interne speler.';
-  }
+  String get right => 'rechts';
 
   @override
-  String playerNotDetected(String playerName) {
-    return '$playerName niet gevonden.';
-  }
+  String get doubleTapToSeek => 'Dubbeltikken om te spoelen';
 
   @override
-  String seasonWithEpisodes(Object number, int count) {
-    return 'Seizoen $number ($count afl.)';
-  }
+  String get swipeToSeek => 'Vegen om te spoelen';
+
+  @override
+  String get seekDuration => 'Spoelduur';
+
+  @override
+  String get selectSeekDuration => 'Selecteer spoelduur';
+
+  @override
+  String get min => 'min';
+
+  @override
+  String get sec => 'sec';
+
+  @override
+  String get bufferDepth => 'Bufferdiepte';
+
+  @override
+  String get selectBufferDepth => 'Selecteer bufferdiepte';
+
+  @override
+  String get defaultResizeMode => 'Standaard weergavemodus';
+
+  @override
+  String get hardwareDecoding => 'Hardwaredecodering';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
+
+  @override
+  String get dnsOverHttps => 'DNS over HTTPS';
+
+  @override
+  String get dohProvider => 'DoH-provider';
+
+  @override
+  String get customDohUrlLabel => 'Aangepaste DoH URL';
+
+  @override
+  String get enterCustomDohUrl => 'Vul je eigen DoH URL in';
 
   @override
   String get cloudflare => 'Cloudflare';
@@ -901,241 +1060,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get tmdb => 'TMDB';
+  String get githubProxy => 'GitHub-proxy';
 
   @override
-  String selectSourceForPlayer(String playerName) {
-    return 'Bron voor $playerName';
-  }
-
-  @override
-  String get noPluginsInstalled => 'Geen plug-ins geïnstalleerd';
-
-  @override
-  String get noPluginsMessage =>
-      'Installeer extensies om inhoud te browsen en te streamen.';
-
-  @override
-  String get goToExtensions => 'Ga naar extensies';
-
-  @override
-  String get availableSources => 'Beschikbare bronnen';
-
-  @override
-  String get seasons => 'Seizoenen';
-
-  @override
-  String get episodes => 'Afleveringen';
-
-  @override
-  String get selectSourceToPlay => 'Selecteer een bron om te bekijken.';
-
-  @override
-  String episodeCountOnly(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count afleveringen',
-      one: '1 aflevering',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noEpisodesFound => 'Geen afleveringen gevonden';
-
-  @override
-  String get local => 'Lokaal';
-
-  @override
-  String get remote => 'Remote';
-
-  @override
-  String get torrent => 'Torrent';
-
-  @override
-  String get unlock => 'Ontgrendelen';
-
-  @override
-  String get lock => 'Vergrendelen';
-
-  @override
-  String get sources => 'Bronnen';
-
-  @override
-  String get tracks => 'Sporen';
-
-  @override
-  String get content => 'Content';
-
-  @override
-  String get stats => 'Statistieken';
-
-  @override
-  String get resize => 'Formaat';
-
-  @override
-  String get next => 'Volgende';
-
-  @override
-  String get pip => 'PiP';
-
-  @override
-  String get rotate => 'Draaien';
-
-  @override
-  String get windowed => 'Venster';
-
-  @override
-  String get fullscreen => 'Volledig scherm';
-
-  @override
-  String get movieDetails => 'Filmdetails';
-
-  @override
-  String get showDetails => 'Details tonen';
-
-  @override
-  String get tagline => 'Tagline';
-
-  @override
-  String get status => 'Status';
-
-  @override
-  String get releaseDate => 'Releasedatum';
-
-  @override
-  String get firstAirDate => 'Eerste uitzending';
-
-  @override
-  String get originalLanguage => 'Originele taal';
-
-  @override
-  String get originCountry => 'Land van herkomst';
-
-  @override
-  String get budgetLabel => 'Budget';
-
-  @override
-  String get revenueLabel => 'Opbrengst';
-
-  @override
-  String get paused => 'Gepauzeerd';
-
-  @override
-  String get watched => 'Bekeken';
-
-  @override
-  String get watching => 'Aan het kijken';
-
-  @override
-  String get lastWatched => 'Laatst bekeken';
-
-  @override
-  String get movie => 'Film';
-
-  @override
-  String get tvShow => 'TV-serie';
-
-  @override
-  String get failedToLoadContent => 'Laden mislukt';
-
-  @override
-  String get director => 'Regisseur';
-
-  @override
-  String get creator => 'Maker';
-
-  @override
-  String get showMore => 'Meer';
-
-  @override
-  String get showLess => 'Minder';
-
-  @override
-  String get viewAll => 'Alles tonen';
-
-  @override
-  String seasonsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count seizoenen',
-      one: '1 seizoen',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noInternetError => 'Geen internet';
-
-  @override
-  String get timeoutError => 'Time-out.';
-
-  @override
-  String get serverError => 'Serverfout.';
-
-  @override
-  String get contentNotFoundError => 'Niet gevonden.';
-
-  @override
-  String get accessDeniedError => 'Toegang geweigerd.';
-
-  @override
-  String get serviceUnavailableError => 'Service niet beschikbaar.';
-
-  @override
-  String get generalError => 'Fout.';
-
-  @override
-  String get skip => 'Overslaan';
-
-  @override
-  String get skipIntro => 'Skip Intro';
-
-  @override
-  String get skipOutro => 'Skip Outro';
-
-  @override
-  String get skipRecap => 'Skip Recap';
-
-  @override
-  String get goLive => 'Ga live';
-
-  @override
-  String get dismiss => 'Sluiten';
-
-  @override
-  String get nextUp => 'Volgende';
-
-  @override
-  String sourceAttempt(int index, int total) {
-    return 'Poging $index van $total';
-  }
-
-  @override
-  String get trying => 'Proberen';
-
-  @override
-  String get failed => 'Mislukt';
-
-  @override
-  String get selected => 'Geselecteerd';
-
-  @override
-  String get playing => 'Speelt af';
-
-  @override
-  String get pending => 'Wachtend';
-
-  @override
-  String get openSubtitles => 'OpenSubtitles';
-
-  @override
-  String get subDl => 'SubDL';
-
-  @override
-  String get subSource => 'SubSource';
+  String get githubProxySubtitle =>
+      'Downloads van extensies via jsDelivr leiden om blokkades van de provider te omzeilen.';
 
   @override
   String get wifiQualityPreference => 'Kwaliteitsvoorkeur voor wifi';
@@ -1146,6 +1075,165 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get anyNoPreference => 'Geen voorkeur';
+
+  @override
+  String get custom => 'Aangepast';
+
+  @override
+  String get subtitleSettings => 'Ondertitelinstellingen';
+
+  @override
+  String get subtitleAppearance => 'Subtitle Appearance';
+
+  @override
+  String get background => 'Achtergrond';
+
+  @override
+  String get fontSettings => 'Font Settings';
+
+  @override
+  String get fontSize => 'Lettergrootte';
+
+  @override
+  String get fontSizeSubtitle =>
+      'Overriding text size from subtitle files (6sp-60sp)';
+
+  @override
+  String get selectFontSize => 'Select Font Size';
+
+  @override
+  String get fileDefault => 'File Default';
+
+  @override
+  String get fontTypeface => 'Font Typeface';
+
+  @override
+  String get fontTypefaceSubtitle =>
+      'Choose from built-in fonts or load custom OTF/TTF';
+
+  @override
+  String get selectFontTypeface => 'Select Font Typeface';
+
+  @override
+  String get customFontFile => 'Custom Font File...';
+
+  @override
+  String get boldTextStyle => 'Bold Text Style';
+
+  @override
+  String get boldTextStyleSubtitle => 'Make subtitle text bold';
+
+  @override
+  String get italicTextStyle => 'Italic Text Style';
+
+  @override
+  String get italicTextStyleSubtitle => 'Make subtitle text slanted';
+
+  @override
+  String get textColor => 'Tekstkleur';
+
+  @override
+  String get navigateAndSelectColor => 'Navigate and select color';
+
+  @override
+  String get edgeSettings => 'Edge Settings';
+
+  @override
+  String get edgeType => 'Edge Type';
+
+  @override
+  String get edgeTypeSubtitle => 'Text borders/shadows (outline default)';
+
+  @override
+  String get selectEdgeType => 'Select Edge Type';
+
+  @override
+  String get edgeOutline => 'Outline';
+
+  @override
+  String get edgeDepressed => 'Depressed';
+
+  @override
+  String get edgeDropShadow => 'Drop Shadow';
+
+  @override
+  String get edgeRaised => 'Raised';
+
+  @override
+  String get edgeStrokeSize => 'Edge Stroke Size';
+
+  @override
+  String get edgeStrokeSizeSubtitle => 'Thicker outline borders (1px-60px)';
+
+  @override
+  String get outlineColor => 'Outline Color';
+
+  @override
+  String get backgroundAndLayout => 'Background & Layout';
+
+  @override
+  String get backgroundPillColor => 'Background Pill Color';
+
+  @override
+  String get backgroundOpacity => 'Achtergronddoorzichtigheid';
+
+  @override
+  String get backgroundOpacitySubtitle => 'Pill opacity level (0% to 100%)';
+
+  @override
+  String get selectCornerRadius => 'Select Corner Radius';
+
+  @override
+  String get noneSharp => 'None (Sharp)';
+
+  @override
+  String get backgroundCornerRadius => 'Background Corner Radius';
+
+  @override
+  String get backgroundCornerRadiusSubtitle =>
+      'Round background corners (5px-50px)';
+
+  @override
+  String get elevationBottomPadding => 'Elevation (Bottom padding)';
+
+  @override
+  String get elevationSubtitle => 'Push subtitles higher (0dp-400dp)';
+
+  @override
+  String get selectAlignment => 'Select Alignment';
+
+  @override
+  String get autoExoAssDefault => 'Auto (Exo/Ass default)';
+
+  @override
+  String get alignment => 'Alignment';
+
+  @override
+  String get alignmentSubtitle => 'Screen alignment (SSA 1-9 coordinates)';
+
+  @override
+  String get contentCleaningAndFiltering => 'Content Cleaning & Filtering';
+
+  @override
+  String get removeBloat => 'Remove Bloat';
+
+  @override
+  String get removeBloatSubtitle =>
+      'Strip OpenSubtitles ads/promos (re-parses stream)';
+
+  @override
+  String get removeCaptions => 'Remove Captions';
+
+  @override
+  String get removeCaptionsSubtitle =>
+      'Strips bracketed text like [Music] or (cough)';
+
+  @override
+  String get forceUppercase => 'Force Uppercase';
+
+  @override
+  String get forceUppercaseSubtitle =>
+      'Display all subtitle cues in capital letters';
 
   @override
   String get subtitleAccounts => 'Ondertitelaccounts';
@@ -1201,6 +1289,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get invalidApiKey => 'Ongeldige API-sleutel';
 
   @override
+  String get openSubtitles => 'OpenSubtitles';
+
+  @override
+  String get subDl => 'SubDL';
+
+  @override
+  String get subSource => 'SubSource';
+
+  @override
+  String get tmdb => 'TMDB';
+
+  @override
   String get openSubtitlesAuthSubtitle =>
       'Voer uw inloggegevens in voor hogere limieten en reclamevrije ondertitels.';
 
@@ -1227,14 +1327,175 @@ class AppLocalizationsNl extends AppLocalizations {
       'Haal uw API-sleutel uit uw SubSource-profiel';
 
   @override
-  String get qualityNotGuaranteed =>
-      'Kwaliteit is niet gegarandeerd. Bronnen worden gesorteerd op voorkeur, maar weergave hangt af van het aanbod van de provider.';
-
-  @override
-  String get keepSourcesOriginalOrder => 'Bronnen in originele volgorde houden';
-
-  @override
   String get openLink => 'Link openen';
+
+  @override
+  String pluginSettings(String pluginName) {
+    return '$pluginName instellingen';
+  }
+
+  @override
+  String get noConfigurableSettings =>
+      'This extension does not define configurable settings.';
+
+  @override
+  String get installRemoveProviders => 'Providers installeren/verwijderen';
+
+  @override
+  String get selectProvider => 'Provider selecteren';
+
+  @override
+  String get noPluginsInstalled => 'Geen plug-ins geïnstalleerd';
+
+  @override
+  String get noPluginsMessage =>
+      'Installeer extensies om inhoud te browsen en te streamen.';
+
+  @override
+  String get goToExtensions => 'Ga naar extensies';
+
+  @override
+  String get noReposFound => 'Geen repository\'s of plug-ins gevonden';
+
+  @override
+  String get downloadAllProviders => 'Alles downloaden';
+
+  @override
+  String get removeRepository => 'Repository verwijderen';
+
+  @override
+  String get addRepo => 'Repo toevoegen';
+
+  @override
+  String get extensionsNotInRepos => 'Extensies niet in repository\'s';
+
+  @override
+  String get noLongerInRepo => 'Niet langer in een repository';
+
+  @override
+  String get addRepoToBrowse =>
+      'Voeg een repository toe om plug-ins te bekijken';
+
+  @override
+  String removeRepoConfirm(String repoName) {
+    return '$repoName verwijderen?';
+  }
+
+  @override
+  String get removeRepoWarning =>
+      'Dit verwijdert de repository en de-installeert alle bijbehorende plug-ins.';
+
+  @override
+  String get addRepository => 'Repository toevoegen';
+
+  @override
+  String get repoUrlOrShortcode => 'Repo URL of shortcode';
+
+  @override
+  String get assetPlugin => 'Asset-plug-in';
+
+  @override
+  String get installed => 'Geïnstalleerd';
+
+  @override
+  String get repositories => 'Repository\'s';
+
+  @override
+  String get noExtensionsInstalled => 'Geen extensies geïnstalleerd';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Open het tabblad Repository\'s om extensies te ontdekken en te installeren.';
+
+  @override
+  String get browseRepositories => 'Repository\'s verkennen';
+
+  @override
+  String get addRepoDescription =>
+      'Voeg een repository-URL of shortcode toe om extensieplug-ins te ontdekken en te installeren.';
+
+  @override
+  String updateTo(String version) {
+    return 'Bijwerken naar $version';
+  }
+
+  @override
+  String extensionsUpdated(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count extensies bijgewerkt',
+      one: '1 extensie bijgewerkt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadPluginFromAssets => 'Plug-in laden uit assets';
+
+  @override
+  String get resetDataKeepExtensions =>
+      'Gegevens resetten (extensies behouden)';
+
+  @override
+  String get resetDataSubtitle =>
+      'Instellingen en database wissen, plug-ins behouden';
+
+  @override
+  String get resetDataDialogTitle => 'Gegevens resetten?';
+
+  @override
+  String get resetDataDialogContent =>
+      'Dit wist Instellingen, Favorieten en Geschiedenis. Geïnstalleerde extensies blijven behouden.';
+
+  @override
+  String get factoryReset => 'Fabrieksinstellingen';
+
+  @override
+  String get factoryResetSubtitle =>
+      'Alle gegevens, instellingen en extensies verwijderen';
+
+  @override
+  String get factoryResetDialogTitle => 'Fabrieksinstellingen reset?';
+
+  @override
+  String get factoryResetDialogContent =>
+      'Dit wist ALLES. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get clearCache => 'Clear image and video cache';
+
+  @override
+  String get clearCacheSubtitle =>
+      'Frees up storage used by cached images and videos';
+
+  @override
+  String get clearCacheDialogTitle => 'Clear cache?';
+
+  @override
+  String get clearCacheDialogContent =>
+      'This will delete cached images and video files. Your settings, history, and extensions will not be affected.';
+
+  @override
+  String get clearCacheNow => 'Clear Cache';
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get calculating => 'Calculating…';
+
+  @override
+  String get developerOptions => 'Ontwikkelaarsopties';
+
+  @override
+  String get developerOptionsSubtitle => 'Debug-tools en lokale weergave';
+
+  @override
+  String get debugExtensions => 'Debug-extensies';
+
+  @override
+  String get debugTools => 'Debug-tools';
 
   @override
   String get diagnostics => 'Diagnostiek';
@@ -1246,5 +1507,115 @@ class AppLocalizationsNl extends AppLocalizations {
   String get viewLogsSubtitle => 'Bekijk applicatie-activiteit en fouten';
 
   @override
-  String get bookmarked => 'Bookmarked';
+  String get debug => 'DEBUG';
+
+  @override
+  String get debugOnlyFeature => 'Alleen voor debug-builds';
+
+  @override
+  String get version => 'Versie';
+
+  @override
+  String get discord => 'Discord';
+
+  @override
+  String get discordSubtitle => 'Word lid van onze server';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get telegramSubtitle => 'Word lid van ons kanaal';
+
+  @override
+  String developedBy(String name) {
+    return 'Ontwikkeld door $name';
+  }
+
+  @override
+  String get updateAvailable => 'Update beschikbaar';
+
+  @override
+  String updateAvailableTag(String tag) {
+    return 'Update beschikbaar: $tag';
+  }
+
+  @override
+  String get error => 'Fout';
+
+  @override
+  String errorPrefix(String message) {
+    return 'Fout: $message';
+  }
+
+  @override
+  String errorDetails(String error) {
+    return 'Foutdetails: $error';
+  }
+
+  @override
+  String get startupError => 'Opstartfout';
+
+  @override
+  String get noInternetConnection => 'Geen internetverbinding';
+
+  @override
+  String get siteNotReachable => 'Site niet bereikbaar';
+
+  @override
+  String get checkConnectionOrDownloads =>
+      'Controleer je verbinding of bekijk je downloads.';
+
+  @override
+  String get tryVpnOrConnection =>
+      'Probeer een VPN of controleer je internetverbinding.';
+
+  @override
+  String get noInternetError => 'Geen internet';
+
+  @override
+  String get timeoutError => 'Time-out.';
+
+  @override
+  String get serverError => 'Serverfout.';
+
+  @override
+  String get contentNotFoundError => 'Niet gevonden.';
+
+  @override
+  String get accessDeniedError => 'Toegang geweigerd.';
+
+  @override
+  String get serviceUnavailableError => 'Service niet beschikbaar.';
+
+  @override
+  String get generalError => 'Fout.';
+
+  @override
+  String usingInternalPlayerError(String error) {
+    return 'Fout: $error. Gebruik interne speler.';
+  }
+
+  @override
+  String playerNotDetected(String playerName) {
+    return '$playerName niet gevonden.';
+  }
+
+  @override
+  String get failedToLoadContent => 'Laden mislukt';
+
+  @override
+  String get invalidNavigation => 'Ongeldige navigatie.';
+
+  @override
+  String get playbackError => 'Afspeelfout';
+
+  @override
+  String get exitApp => 'Exit SkyStream';
+
+  @override
+  String get confirmExitTitle => 'Exit SkyStream?';
+
+  @override
+  String get confirmExitMessage => 'Are you sure you want to exit the app?';
 }

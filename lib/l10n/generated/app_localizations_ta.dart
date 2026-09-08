@@ -33,133 +33,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get extensions => 'நீட்டிப்புகள்';
 
   @override
-  String get updateAvailable => 'புதிய பதிப்பு உள்ளது';
+  String get downloads => 'பதிவிறக்கங்கள்';
 
   @override
-  String get retry => 'மீண்டும் முயற்சி செய்';
-
-  @override
-  String get factoryReset => 'தொழிற்சாலை மீட்டமைப்பு';
-
-  @override
-  String get startupError => 'தொடக்கப் பிழை';
-
-  @override
-  String get general => 'பொது';
-
-  @override
-  String get appTheme => 'பயன்பாட்டு தீம்';
-
-  @override
-  String get recordWatchHistory => 'பார்த்த வரலாற்றைப் பதிவு செய்';
-
-  @override
-  String get defaultHomeScreen => 'இயல்புநிலை முகப்புத் திரை';
-
-  @override
-  String get player => 'வீடியோ பிளேயர்';
-
-  @override
-  String get defaultPlayer => 'இயல்புநிலை பிளேயர்';
-
-  @override
-  String get leftGesture => 'இடது சைகை';
-
-  @override
-  String get rightGesture => 'வலது சைகை';
-
-  @override
-  String get doubleTapToSeek => 'தேடுவதற்கு இருமுறை தட்டவும்';
-
-  @override
-  String get swipeToSeek => 'தேடுவதற்கு ஸ்வைப் செய்யவும்';
-
-  @override
-  String get seekDuration => 'தேடுதல் கால அளவு';
-
-  @override
-  String get bufferDepth => 'பஃபர் ஆழம்';
-
-  @override
-  String get defaultResizeMode => 'இயல்புநிலை மறுஅளவிடுதல் முறை';
-
-  @override
-  String get hardwareDecoding => 'ஹார்டுவேர் டிகோடிங்';
-
-  @override
-  String get network => 'பிணையம்';
-
-  @override
-  String get dnsOverHttps => 'DNS ஓவர் HTTPS';
-
-  @override
-  String get dohProvider => 'DoH வழங்குநர்';
-
-  @override
-  String get githubProxy => 'GitHub Proxy';
-
-  @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
-
-  @override
-  String get manageExtensions => 'நீட்டிப்புகளை நிர்வகி';
-
-  @override
-  String get appData => 'பயன்பாட்டுத் தரவு';
-
-  @override
-  String get resetDataKeepExtensions => 'தரவை மீட்டமை (நீட்டிப்புகளை வைத்திரு)';
-
-  @override
-  String get developer => 'டெவலப்பர்';
-
-  @override
-  String get developerOptions => 'டெவலப்பர் விருப்பங்கள்';
-
-  @override
-  String get about => 'பற்றி';
-
-  @override
-  String get version => 'பதிப்பு';
-
-  @override
-  String get enabled => 'இயக்கப்பட்டது';
-
-  @override
-  String get disabled => 'முடக்கப்பட்டது';
-
-  @override
-  String get discord => 'Discord';
-
-  @override
-  String get discordSubtitle => 'எங்கள் சர்வரில் சேரவும்';
-
-  @override
-  String get telegram => 'Telegram';
-
-  @override
-  String get telegramSubtitle => 'எங்கள் சேனலில் சேரவும்';
-
-  @override
-  String developedBy(String name) {
-    return '$name ஆல் உருவாக்கப்பட்டது';
-  }
-
-  @override
-  String get system => 'சிஸ்டம்';
-
-  @override
-  String get dark => 'இருண்ட';
-
-  @override
-  String get light => 'ஒளி';
-
-  @override
-  String get later => 'பிறகு';
-
-  @override
-  String get updateNow => 'இப்போது புதுப்பி';
+  String get bookmarks => 'புத்தகக்க்குறிகள்';
 
   @override
   String get save => 'சேமி';
@@ -174,13 +51,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get delete => 'நீக்கு';
 
   @override
-  String get viewDetails => 'விவரங்களைக் காண்க';
+  String get retry => 'மீண்டும் முயற்சி செய்';
 
   @override
-  String get clearAll => 'அனைத்தையும் அழி';
-
-  @override
-  String get clearAllHistory => 'அனைத்து வரலாற்றையும் அழி';
+  String get ok => 'சரி';
 
   @override
   String get all => 'அனைத்தும்';
@@ -189,87 +63,189 @@ class AppLocalizationsTa extends AppLocalizations {
   String get none => 'எதுவுமில்லை';
 
   @override
-  String get confirmDownload => 'பதிவிறக்கத்தை உறுதிப்படுத்து';
+  String get on => 'ஆன்';
 
   @override
-  String get downloadNow => 'இப்போதே பதிவிறக்கு';
+  String get off => 'ஆஃப்';
 
   @override
-  String get selectSource => 'மூலத்தைத் தேர்ந்தெடு';
+  String get yesDelete => 'ஆம், நீக்கு';
 
   @override
-  String get downloadUnavailable => 'பதிவிறக்கம் கிடைக்கவில்லை';
+  String get no => 'இல்லை';
 
   @override
-  String get selectAnotherSource => 'வேறொரு மூலத்தைத் தேர்ந்தெடு';
+  String get viewDetails => 'விவரங்களைக் காண்க';
 
   @override
-  String get watchHistoryCleared => 'பார்த்த வரலாறு அழிக்கப்பட்டது';
+  String get viewAll => 'அனைத்தையும் காண்க';
 
   @override
-  String get downloadingUpdate => 'புதுப்பிப்பு பதிவிறக்கம் செய்யப்படுகிறது...';
+  String get clearAll => 'அனைத்தையும் அழி';
 
   @override
-  String errorPrefix(String message) {
-    return 'பிழை: $message';
+  String get startOver => 'மீண்டும் தொடங்கு';
+
+  @override
+  String get goBack => 'பின்னோக்கி';
+
+  @override
+  String get showMore => 'மேலும் காட்டு';
+
+  @override
+  String get showLess => 'குறைவாகக் காட்டு';
+
+  @override
+  String get install => 'நிறுவு';
+
+  @override
+  String get updateNow => 'இப்போது புதுப்பி';
+
+  @override
+  String get later => 'பிறகு';
+
+  @override
+  String get enabled => 'இயக்கப்பட்டது';
+
+  @override
+  String get disabled => 'முடக்கப்பட்டது';
+
+  @override
+  String get recommended => 'பரிந்துரைக்கப்படுகிறது';
+
+  @override
+  String get loading => 'ஏற்றப்படுகிறது...';
+
+  @override
+  String get hintSelect => 'Select';
+
+  @override
+  String get hintBack => 'Back';
+
+  @override
+  String get hintExit => 'Exit';
+
+  @override
+  String get hintMenu => 'Menu';
+
+  @override
+  String get hintView => 'View';
+
+  @override
+  String get hintKeyboard => 'Keyboard';
+
+  @override
+  String get hintFilter => 'Filter';
+
+  @override
+  String get hintFilters => 'Filters';
+
+  @override
+  String get hintSearch => 'Search';
+
+  @override
+  String get hintFillQuery => 'Fill Query';
+
+  @override
+  String get hintType => 'Type';
+
+  @override
+  String get hintList => 'List';
+
+  @override
+  String get hintExpand => 'Expand';
+
+  @override
+  String get hintCollapse => 'Collapse';
+
+  @override
+  String get hintDeleteAll => 'Delete All';
+
+  @override
+  String get hintDelete => 'Delete';
+
+  @override
+  String get hintPrevTab => 'Prev Tab';
+
+  @override
+  String get hintNextTab => 'Next Tab';
+
+  @override
+  String get hintPlay => 'Play';
+
+  @override
+  String get hintPause => 'Pause';
+
+  @override
+  String get hintResume => 'Resume';
+
+  @override
+  String get hintRemove => 'Remove';
+
+  @override
+  String get hintClearAll => 'Clear All';
+
+  @override
+  String get hintSearchField => 'Search field';
+
+  @override
+  String get hintSelectToggle => 'Select / Toggle';
+
+  @override
+  String get hintBrowse => 'Browse';
+
+  @override
+  String get hintAddRepo => 'Add Repo';
+
+  @override
+  String get hintDownloadAll => 'Download All';
+
+  @override
+  String get hintDeleteRepo => 'Delete Repo';
+
+  @override
+  String get hintSettings => 'Settings';
+
+  @override
+  String get hintInstall => 'Install';
+
+  @override
+  String get hintUpdate => 'Update';
+
+  @override
+  String get hintViewAll => 'View All';
+
+  @override
+  String get hintDeselect => 'Deselect';
+
+  @override
+  String get hintRemoveBookmark => 'Remove Bookmark';
+
+  @override
+  String get hintAddBookmark => 'Add Bookmark';
+
+  @override
+  String get hintManageDownload => 'Manage Download';
+
+  @override
+  String get hintDownloading => 'Downloading...';
+
+  @override
+  String get hintDownload => 'Download';
+
+  @override
+  String get hintScroll => 'Scroll';
+
+  @override
+  String hintSeek(Object seconds) {
+    return 'Seek ${seconds}s';
   }
 
   @override
-  String updateAvailableTag(String tag) {
-    return 'புதுப்பிப்பு உள்ளது: $tag';
-  }
+  String get exploreAnime => 'அனிமேவை உலாவுக';
 
   @override
-  String get selectProviderToStart =>
-      'பார்க்கத் தொடங்க ஒரு வழங்குநரைத் தேர்ந்தெடுக்கவும்';
-
-  @override
-  String get tapExtensionIcon => 'மூலையில் உள்ள நீட்டிப்பு ஐகானைத் தட்டவும்';
-
-  @override
-  String get continueWatching => 'தொடர்ந்து பார்க்கவும்';
-
-  @override
-  String get noInternetConnection => 'இணைய இணைப்பு இல்லை';
-
-  @override
-  String get siteNotReachable => 'தளத்தை அணுக முடியவில்லை';
-
-  @override
-  String get checkConnectionOrDownloads =>
-      'உங்கள் இணைப்பைச் சரிபார்க்கவும் அல்லது உங்கள் பதிவிறக்கங்களைக் காணவும்.';
-
-  @override
-  String get tryVpnOrConnection =>
-      'தயவுசெய்து VPN ஐப் பயன்படுத்தி தளத்தை அணுக முயற்சிக்கவும் அல்லது உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்.';
-
-  @override
-  String errorDetails(String error) {
-    return 'பிழை விவரங்கள்: $error';
-  }
-
-  @override
-  String get goToDownloads => 'பதிவிறக்கங்களுக்குச் செல்';
-
-  @override
-  String get selectProvider => 'வழங்குநரைத் தேர்ந்தெடு';
-
-  @override
-  String get searchHint => 'படங்கள், தொடர்களைத் தேடுக...';
-
-  @override
-  String get searchFavoriteContent =>
-      'உங்களுக்குப் பிடித்த உள்ளடக்கத்தைத் தேடுங்கள்';
-
-  @override
-  String get pressSearchOrEnter =>
-      'தொடங்க தேடல் விசை அல்லது Enter ஐ அழுத்தவும்';
-
-  @override
-  String get noResultsFound => 'முடிவுகள் எதுவும் இல்லை.';
-
-  @override
-  String get couldNotLoadTrending => 'ட்ரெண்டிங் உருப்படிகளை ஏற்ற முடியவில்லை';
+  String get exploreMovies => 'திரைப்படங்களை உலாவுக';
 
   @override
   String get popularMovies => 'பிரபலமான திரைப்படங்கள்';
@@ -293,181 +269,58 @@ class AppLocalizationsTa extends AppLocalizations {
   String get lastVideosTVShows => 'கடைசி வீடியோக்கள் தொலைக்காட்சி நிகழ்ச்சிகள்';
 
   @override
-  String get downloads => 'பதிவிறக்கங்கள்';
+  String get continueWatching => 'தொடர்ந்து பார்க்கவும்';
 
   @override
-  String get bookmarks => 'புத்தகக்க்குறிகள்';
+  String get couldNotLoadTrending => 'ட்ரெண்டிங் உருப்படிகளை ஏற்ற முடியவில்லை';
 
   @override
-  String get noDownloadsYet => 'பதிவிறக்கங்கள் எதுவும் இல்லை';
+  String get selectProviderToStart =>
+      'பார்க்கத் தொடங்க ஒரு வழங்குநரைத் தேர்ந்தெடுக்கவும்';
 
   @override
-  String episodesCount(int count, int done) {
-    return '$count எபிசோடுகள் • $done முடிந்தது';
-  }
+  String get tapExtensionIcon => 'மூலையில் உள்ள நீட்டிப்பு ஐகானைத் தட்டவும்';
 
   @override
-  String get deleteAllEpisodes => 'அனைத்து எபிசோடுகளையும் நீக்கு';
+  String get searchFavoriteContent =>
+      'உங்களுக்குப் பிடித்த உள்ளடக்கத்தைத் தேடுங்கள்';
 
   @override
-  String confirmDeleteAllEpisodes(int count, String title) {
-    return '\"$title\" இன் அனைத்து $count எபிசோடுகளையும் அவற்றின் கோப்புகளையும் நீக்க விரும்புகிறீர்களா?';
-  }
+  String get pressSearchOrEnter =>
+      'தொடங்க தேடல் விசை அல்லது Enter ஐ அழுத்தவும்';
 
   @override
-  String get deleteAll => 'அனைத்தையும் நீக்கு';
+  String get noResultsFound => 'முடிவுகள் எதுவும் இல்லை.';
 
   @override
-  String get completed => 'முடிந்தது';
+  String get searchHint => 'படங்கள், தொடர்களைத் தேடுக...';
 
   @override
-  String get statusQueued => 'வரிசையில்...';
+  String get searchScope => 'Search Scope';
 
   @override
-  String get statusDownloading => 'பதிவிறக்கம் செய்யப்படுகிறது...';
+  String get nonLivestreams => 'Non Livestreams';
 
   @override
-  String get statusFinished => 'முடிந்தது';
+  String get movies => 'திரைப்படங்கள்';
 
   @override
-  String get statusFailed => 'தோல்வியடைந்தது';
+  String get series => 'தொடர்கள்';
 
   @override
-  String get statusCanceled => 'ரத்து செய்யப்பட்டது';
+  String get anime => 'அனிம்';
 
   @override
-  String get statusPaused => 'நிறுத்தப்பட்டது';
+  String get liveStreams => 'நேரடி ஒளிபரப்புகள்';
 
   @override
-  String get statusWaiting => 'காத்திருக்கிறது...';
+  String get live => 'நேரடி';
 
   @override
-  String get fileNotFoundRemoving =>
-      'கோப்பு வட்டில் இல்லை. பதிவு நீக்கப்படுகிறது.';
+  String get movieDetails => 'திரைப்பட விவரங்கள்';
 
   @override
-  String get fileNotFound => 'கோப்பு இல்லை';
-
-  @override
-  String get deleteDownload => 'பதிவிறக்கத்தை நீக்கு';
-
-  @override
-  String get confirmDeleteDownload =>
-      'இந்த பதிவிறக்கத்தையும் அதன் கோப்பையும் நீக்க விரும்புகிறீர்களா?';
-
-  @override
-  String get libraryEmpty => 'உங்கள் நூலகம் காலியாக உள்ளது';
-
-  @override
-  String get language => 'மொழி';
-
-  @override
-  String get english => 'ஆங்கிலம்';
-
-  @override
-  String get hindi => 'ஹிந்தி';
-
-  @override
-  String get kannada => 'கன்னடம்';
-
-  @override
-  String get unknown => 'தெரியாதது';
-
-  @override
-  String get recommended => 'பரிந்துரைக்கப்படுகிறது';
-
-  @override
-  String get on => 'ஆன்';
-
-  @override
-  String get off => 'ஆஃப்';
-
-  @override
-  String get installRemoveProviders => 'வழங்குநர்களை நிறுவு அல்லது நீக்கு';
-
-  @override
-  String get resetDataSubtitle =>
-      'அமைப்புகள் மற்றும் தரவுத்தளத்தை அழி, செருகுநிரல்களை வைத்திரு';
-
-  @override
-  String get factoryResetSubtitle =>
-      'அனைத்து தரவு, அமைப்புகள் மற்றும் நீட்டிப்புகளை நீக்கு';
-
-  @override
-  String get developerOptionsSubtitle =>
-      'பிழைத்திருத்த கருவிகள் மற்றும் உள்ளூர் பிளேபேக்';
-
-  @override
-  String get loading => 'ஏற்றப்படுகிறது...';
-
-  @override
-  String get sec => 'வினாடி';
-
-  @override
-  String get min => 'நிமிடம்';
-
-  @override
-  String get internalPlayer => 'உள் பிளேயர் (media_kit)';
-
-  @override
-  String get builtInPlayer => 'உள்ளமைக்கப்பட்ட பிளேயர்';
-
-  @override
-  String get customNotSet => 'தனிப்பயன் (அமைக்கப்படவில்லை)';
-
-  @override
-  String selectGesture(String side) {
-    return '$side சைகையைத் தேர்ந்தெடு';
-  }
-
-  @override
-  String get left => 'இடது';
-
-  @override
-  String get right => 'வலது';
-
-  @override
-  String get selectSeekDuration => 'தேடுதல் கால அளவைத் தேர்ந்தெடு';
-
-  @override
-  String get selectBufferDepth => 'பஃபர் ஆழத்தைத் தேர்ந்தெடு';
-
-  @override
-  String get subtitleSettings => 'துணைத்தலைப்பு அமைப்புகள்';
-
-  @override
-  String size(int size) {
-    return 'அளவு: $size';
-  }
-
-  @override
-  String get background => 'பின்னணி';
-
-  @override
-  String get customDohUrlLabel => 'தனிப்பயன் DoH URL';
-
-  @override
-  String get enterCustomDohUrl => 'உங்கள் சொந்த DoH URL ஐ உள்ளிடவும்';
-
-  @override
-  String get chooseTheme => 'தீமைத் தேர்ந்தெடு';
-
-  @override
-  String get resetDataDialogTitle => 'தரவை மீட்டமைக்கவா?';
-
-  @override
-  String get resetDataDialogContent =>
-      'இது அமைப்புகள், பிடித்தவை மற்றும் வரலாற்றை அழிக்கும். உங்கள் நிறுவப்பட்ட நீட்டிப்புகள் நீக்கப்படாது.';
-
-  @override
-  String get factoryResetDialogTitle => 'தொழிற்சாலை மீட்டமைப்பா?';
-
-  @override
-  String get factoryResetDialogContent =>
-      'இது அனைத்தையும் நீக்கும்: பிடித்தவை, வரலாறு, அமைப்புகள் மற்றும் அனைத்து நீட்டிப்புகள். இதை மாற்ற முடியாது.';
-
-  @override
-  String get selectLanguage => 'மொழியைத் தேர்ந்தெடு';
+  String get showDetails => 'விவரங்களைக் காட்டு';
 
   @override
   String get synopsis => 'சுருக்கம்';
@@ -476,45 +329,302 @@ class AppLocalizationsTa extends AppLocalizations {
   String get noDescription => 'விளக்கம் இல்லை.';
 
   @override
-  String get videoAlreadyDownloadedPrompt =>
-      'இந்த வீடியோ ஏற்கனவே பதிவிறக்கம் செய்யப்பட்டுள்ளது. நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?';
+  String get director => 'இயக்குநர்';
+
+  @override
+  String get creator => 'உருவாக்கியவர்';
+
+  @override
+  String get tagline => 'டேக்லைன்';
+
+  @override
+  String get status => 'நிலை';
+
+  @override
+  String get releaseDate => 'வெளியீட்டு தேதி';
+
+  @override
+  String get firstAirDate => 'முதல் ஒளிபரப்பு தேதி';
+
+  @override
+  String get originalLanguage => 'அசல் மொழி';
+
+  @override
+  String get originCountry => 'பிறந்த நாடு';
+
+  @override
+  String get budgetLabel => 'பட்ஜெட்';
+
+  @override
+  String get revenueLabel => 'வருவாய்';
+
+  @override
+  String get seasons => 'சீசன்கள்';
+
+  @override
+  String get episodes => 'எபிசோடுகள்';
+
+  @override
+  String get noEpisodesFound => 'எபிசோடுகள் எதுவும் இல்லை';
+
+  @override
+  String seasonWithNumber(Object number) {
+    return 'சீசன் $number';
+  }
+
+  @override
+  String seasonsCount(int count) {
+    return '$count சீசன்கள்';
+  }
+
+  @override
+  String seasonWithEpisodes(Object number, int count) {
+    return 'சீசன் $number ($count எபிசோடுகள்)';
+  }
+
+  @override
+  String episodesCount(int count, int done) {
+    return '$count எபிசோடுகள் • $done முடிந்தது';
+  }
+
+  @override
+  String episodeCountOnly(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count எபிசோடுகள்',
+      one: '1 எபிசோட்',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String titleWithParam(String title) {
+    return 'தலைப்பு: $title';
+  }
+
+  @override
+  String sourceWithParam(String source) {
+    return 'மூலம்: $source';
+  }
+
+  @override
+  String sizeWithParam(String size) {
+    return 'அளவு: $size';
+  }
+
+  @override
+  String get play => 'பிளே செய்';
 
   @override
   String get playNow => 'இப்போது பிளே செய்';
 
   @override
-  String get upNext => 'Up Next';
-
-  @override
-  String get deleteDownloadPrompt => 'பதிவிறக்கத்தை நீக்கவா?';
-
-  @override
-  String get deleteDownloadConfirmation =>
-      'இந்த கோப்பை நீக்க விரும்புகிறீர்களா? இதை மாற்ற முடியாது.';
-
-  @override
-  String get no => 'இல்லை';
-
-  @override
-  String get yesDelete => 'ஆம், நீக்கு';
-
-  @override
-  String get downloadPaused => 'பதிவிறக்கம் நிறுத்தப்பட்டது';
-
-  @override
-  String get downloading => 'பதிவிறக்கம் செய்யப்படுகிறது';
-
-  @override
-  String get speed => 'வேகம்';
-
-  @override
-  String get remaining => 'மீதமுள்ளது';
-
-  @override
   String get resume => 'தொடரவும்';
 
   @override
+  String get resumeNow => 'இப்போதே தொடங்கு';
+
+  @override
   String get pause => 'நிறுத்தி வை';
+
+  @override
+  String get watching => 'பார்க்கப்படுகிறது';
+
+  @override
+  String get watched => 'பார்த்தவை';
+
+  @override
+  String get lastWatched => 'கடைசியாகப் பார்த்தது';
+
+  @override
+  String get resumingPlayback => 'பிளேபேக் மீண்டும் தொடங்கப்படுகிறது';
+
+  @override
+  String pausedAt(String time) {
+    return '$time-இல் நிறுத்தப்பட்டது';
+  }
+
+  @override
+  String resumesAutomatically(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count வினாடிகளில் தானாகவே தொடங்கும்',
+      one: '1 வினாடியில் தானாகவே தொடங்கும்',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String percentWatched(int percent) {
+    return '$percent% பார்க்கப்பட்டது';
+  }
+
+  @override
+  String playEpisode(String label, Object season, Object episode) {
+    return '$label சீசன் $season எபிசோட் $episode';
+  }
+
+  @override
+  String playEpisodeOnly(String label, int episode) {
+    return '$label E$episode';
+  }
+
+  @override
+  String get skip => 'தவிர்';
+
+  @override
+  String get skipIntro => 'தொடக்கத்தைத் தவிர்';
+
+  @override
+  String get skipOutro => 'முடிவைத் தவிர்';
+
+  @override
+  String get skipRecap => 'சுருக்கத்தைத் தவிர்';
+
+  @override
+  String get goLive => 'நேரலை';
+
+  @override
+  String get dismiss => 'மூடு';
+
+  @override
+  String get nextUp => 'அடுத்தது';
+
+  @override
+  String get playing => 'ஒளிர்கிறது';
+
+  @override
+  String get playbackSpeed => 'பிளேபேக் வேகம்';
+
+  @override
+  String get volume => 'ஒலி அளவு';
+
+  @override
+  String get brightness => 'பிரகாசம்';
+
+  @override
+  String get fit => 'பொருத்து';
+
+  @override
+  String get zoom => 'ஜூம்';
+
+  @override
+  String get stretch => 'நீட்டு';
+
+  @override
+  String get resize => 'மறுஅளவிடு';
+
+  @override
+  String get next => 'அடுத்தது';
+
+  @override
+  String get pip => 'PiP';
+
+  @override
+  String get rotate => 'சுழற்று';
+
+  @override
+  String get windowed => 'சாளரம்';
+
+  @override
+  String get fullscreen => 'முழுத் திரை';
+
+  @override
+  String sourceAttempt(int index, int total) {
+    return 'மூலம் $index / $total';
+  }
+
+  @override
+  String get unlock => 'திற';
+
+  @override
+  String get lock => 'பூட்டு';
+
+  @override
+  String get resolving => 'தீர்வு காணப்படுகிறது...';
+
+  @override
+  String get trying => 'முயற்சிக்கிறது';
+
+  @override
+  String get failed => 'தோல்வி';
+
+  @override
+  String get selected => 'தேர்ந்தெடுக்கப்பட்டது';
+
+  @override
+  String get pending => 'நிலுவையில் உள்ளது';
+
+  @override
+  String get local => 'உள்ளூர்';
+
+  @override
+  String get remote => 'ரிமோட்';
+
+  @override
+  String get torrent => 'டொரண்ட்';
+
+  @override
+  String get sources => 'மூலங்கள்';
+
+  @override
+  String get tracks => 'டிராக்குகள்';
+
+  @override
+  String get content => 'உள்ளடக்கம்';
+
+  @override
+  String get stats => 'புள்ளிவிவரங்கள்';
+
+  @override
+  String get selectSource => 'மூலத்தைத் தேர்ந்தெடு';
+
+  @override
+  String get selectAnotherSource => 'வேறொரு மூலத்தைத் தேர்ந்தெடு';
+
+  @override
+  String get selectSourceToPlay =>
+      'பிளே செய்ய மேலே உள்ள \'கிடைக்கும் மூலங்கள்\' இலிருந்து ஒரு மூலத்தைத் தேர்ந்தெடுக்கவும்.';
+
+  @override
+  String selectSourceForPlayer(String playerName) {
+    return '$playerName-க்கான மூலத்தைத் தேர்ந்தெடு';
+  }
+
+  @override
+  String get availableSources => 'கிடைக்கும் மூலங்கள்';
+
+  @override
+  String get refreshingLiveStream => 'நேரடி ஒளிபரப்பு புதுப்பிக்கப்படுகிறது...';
+
+  @override
+  String get playLocalVideo => 'உள்ளூர் வீடியோ கோப்பை பிளே செய்';
+
+  @override
+  String get playLocalVideoSubtitle =>
+      'சாதனத்திலிருந்து எந்த வீடியோவையும் பிளே செய்';
+
+  @override
+  String get streamUrl => 'ஸ்ட்ரீம் URL';
+
+  @override
+  String get streamUrlSubtitle => 'பிணைய URL இலிருந்து பிளே செய்';
+
+  @override
+  String get streamTorrent => 'டொரண்ட் ஸ்ட்ரீம் செய்';
+
+  @override
+  String get streamTorrentSubtitle =>
+      'பிளே செய்ய உள்ளூர் டொரண்ட் கோப்பைத் தேர்ந்தெடுக்கவும்';
+
+  @override
+  String get enterVideoUrlHint =>
+      'வீடியோ URL ஐ உள்ளிடவும் (http, magnet போன்றவை)';
+
+  @override
+  String get networkStream => 'பிணைய ஸ்ட்ரீம்';
 
   @override
   String get torrentContent => 'டொரண்ட் உள்ளடக்கம்';
@@ -526,6 +636,17 @@ class AppLocalizationsTa extends AppLocalizations {
   String get noAudioTracks => 'ஆடியோ டிராக்குகள் எதுவும் இல்லை';
 
   @override
+  String get qualityNotGuaranteed =>
+      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
+
+  @override
+  String get keepSourcesOriginalOrder => 'Keep sources in original order';
+
+  @override
+  String get noSourcesQualityFilterFallback =>
+      'No sources matched your quality filter — showing all sources.';
+
+  @override
   String get subtitles => 'துணைத்தலைப்புகள்';
 
   @override
@@ -533,9 +654,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get noSubtitlesFound => 'துணைத்தலைப்பு டிராக்குகள் எதுவும் இல்லை';
-
-  @override
-  String get playbackSpeed => 'பிளேபேக் வேகம்';
 
   @override
   String get subtitleOptions => 'துணைத்தலைப்பு விருப்பங்கள்';
@@ -574,24 +692,6 @@ class AppLocalizationsTa extends AppLocalizations {
       'துணைத்தலைப்பு ஸ்டைலிங் இப்போது media_kit பிளேயரில் மட்டுமே கிடைக்கிறது.';
 
   @override
-  String get resetToDefault => 'இயல்புநிலைக்கு மீட்டமை';
-
-  @override
-  String get fontSize => 'எழுத்து அளவு';
-
-  @override
-  String get verticalPosition => 'செங்குத்து நிலை';
-
-  @override
-  String get textColor => 'உரை நிறம்';
-
-  @override
-  String get backgroundColor => 'பின்னணி நிறம்';
-
-  @override
-  String get backgroundOpacity => 'பின்னணி ஒளிபுகாநிலை';
-
-  @override
   String get subtitleSearch => 'துணைத்தலைப்பு தேடல்';
 
   @override
@@ -618,125 +718,95 @@ class AppLocalizationsTa extends AppLocalizations {
       'துணைத்தலைப்புகளை ஏற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
 
   @override
-  String get noReposFound =>
-      'ரிப்போசிட்டரிகள் அல்லது செருகுநிரல்கள் எதுவும் இல்லை';
+  String get sub => 'துணைத்.';
 
   @override
-  String get downloadAllProviders => 'அனைத்தையும் பதிவிறக்கு';
-
-  @override
-  String get removeRepository => 'ரிப்போசிட்டரியை நீக்கு';
-
-  @override
-  String get addRepo => 'ரிப்போசிட்டரியைச் சேர்';
-
-  @override
-  String get extensionsNotInRepos => 'ரிப்போசிட்டரிகளில் இல்லாத நீட்டிப்புகள்';
-
-  @override
-  String get noLongerInRepo => 'இனி எந்த ரிப்போசிட்டரியிலும் இல்லை';
-
-  @override
-  String get addRepoToBrowse =>
-      'செருகுநிரல்களை உலாவவும் புதுப்பிக்கவும் ஒரு ரிப்போசிட்டரியைச் சேர்க்கவும்';
-
-  @override
-  String get debugExtensions => 'நீட்டிப்புகளைப் பிழைத்திருத்தம் செய்';
-
-  @override
-  String removeRepoConfirm(String repoName) {
-    return '$repoName-ஐ நீக்கவா?';
-  }
-
-  @override
-  String get removeRepoWarning =>
-      'இது ரிப்போசிட்டரியை நீக்கி அதன் அனைத்து செருகுநிரல்களையும் அகற்றும்.';
-
-  @override
-  String get addRepository => 'ரிப்போசிட்டரியைச் சேர்';
-
-  @override
-  String get repoUrlOrShortcode => 'ரிப்போசிட்டரி URL அல்லது ஷார்ட்கோட்';
-
-  @override
-  String get assetPlugin => 'அசெட் செருகுநிரல்';
-
-  @override
-  String get installed => 'நிறுவப்பட்டது';
-
-  @override
-  String updateTo(String version) {
-    return '$version-க்குப் புதுப்பி';
-  }
-
-  @override
-  String get install => 'நிறுவு';
-
-  @override
-  String get error => 'பிழை';
-
-  @override
-  String get ok => 'சரி';
-
-  @override
-  String pluginSettings(String pluginName) {
-    return '$pluginName அமைப்புகள்';
-  }
-
-  @override
-  String get movies => 'திரைப்படங்கள்';
-
-  @override
-  String get series => 'தொடர்கள்';
-
-  @override
-  String get anime => 'அனிம்';
-
-  @override
-  String get liveStreams => 'நேரடி ஒளிபரப்புகள்';
-
-  @override
-  String get debug => 'பிழைத்திருத்தம்';
-
-  @override
-  String extensionsUpdated(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count நீட்டிப்புகள் புதுப்பிக்கப்பட்டன',
-      one: '1 நீட்டிப்பு புதுப்பிக்கப்பட்டது',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get invalidNavigation =>
-      'தவறான வழிசெலுத்தல். தயவுசெய்து பின்னோக்கிச் செல்லவும்.';
-
-  @override
-  String get startOver => 'மீண்டும் தொடங்கு';
-
-  @override
-  String get goBack => 'பின்னோக்கி';
-
-  @override
-  String get resolving => 'தீர்வு காணப்படுகிறது...';
-
-  @override
-  String get downloaded => 'பதிவிறக்கம் செய்யப்பட்டது';
+  String get dub => 'டப்பிங்';
 
   @override
   String get download => 'பதிவிறக்கு';
 
   @override
-  String get debugOnlyFeature =>
-      'இந்த அம்சம் பிழைத்திருத்த உருவாக்கங்களில் மட்டுமே கிடைக்கும்';
+  String get downloading => 'பதிவிறக்கம் செய்யப்படுகிறது';
 
   @override
-  String get streamUrl => 'ஸ்ட்ரீம் URL';
+  String get downloaded => 'பதிவிறக்கம் செய்யப்பட்டது';
 
   @override
-  String get play => 'பிளே செய்';
+  String get downloadNow => 'இப்போதே பதிவிறக்கு';
+
+  @override
+  String get confirmDownload => 'பதிவிறக்கத்தை உறுதிப்படுத்து';
+
+  @override
+  String get downloadUnavailable => 'பதிவிறக்கம் கிடைக்கவில்லை';
+
+  @override
+  String get downloadPaused => 'பதிவிறக்கம் நிறுத்தப்பட்டது';
+
+  @override
+  String get downloadingUpdate => 'புதுப்பிப்பு பதிவிறக்கம் செய்யப்படுகிறது...';
+
+  @override
+  String get manageExtensions => 'நீட்டிப்புகளை நிர்வகி';
+
+  @override
+  String get deleteDownload => 'பதிவிறக்கத்தை நீக்கு';
+
+  @override
+  String get deleteDownloadPrompt => 'பதிவிறக்கத்தை நீக்கவா?';
+
+  @override
+  String get deleteDownloadConfirmation =>
+      'இந்த கோப்பை நீக்க விரும்புகிறீர்களா? இதை மாற்ற முடியாது.';
+
+  @override
+  String get deleteAllEpisodes => 'அனைத்து எபிசோடுகளையும் நீக்கு';
+
+  @override
+  String confirmDeleteAllEpisodes(int count, String title) {
+    return '\"$title\" இன் அனைத்து $count எபிசோடுகளையும் அவற்றின் கோப்புகளையும் நீக்க விரும்புகிறீர்களா?';
+  }
+
+  @override
+  String get noDownloadsYet => 'பதிவிறக்கங்கள் எதுவும் இல்லை';
+
+  @override
+  String get goToDownloads => 'பதிவிறக்கங்களுக்குச் செல்';
+
+  @override
+  String get speed => 'வேகம்';
+
+  @override
+  String get remaining => 'மீதமுள்ளது';
+
+  @override
+  String get statusQueued => 'வரிசையில்...';
+
+  @override
+  String get statusDownloading => 'பதிவிறக்கம் செய்யப்படுகிறது...';
+
+  @override
+  String get statusFinished => 'முடிந்தது';
+
+  @override
+  String get statusFailed => 'தோல்வியடைந்தது';
+
+  @override
+  String get statusCanceled => 'ரத்து செய்யப்பட்டது';
+
+  @override
+  String get statusPaused => 'நிறுத்தப்பட்டது';
+
+  @override
+  String get statusWaiting => 'காத்திருக்கிறது...';
+
+  @override
+  String get fileNotFoundRemoving =>
+      'கோப்பு வட்டில் இல்லை. பதிவு நீக்கப்படுகிறது.';
+
+  @override
+  String get fileNotFound => 'கோப்பு இல்லை';
 
   @override
   String get verifyingSourceSize =>
@@ -747,92 +817,35 @@ class AppLocalizationsTa extends AppLocalizations {
       'கோப்பு உங்கள் பதிவிறக்கங்கள் கோப்புறையில் சேமிக்கப்படும்.';
 
   @override
-  String get resumingPlayback => 'பிளேபேக் மீண்டும் தொடங்கப்படுகிறது';
+  String get videoAlreadyDownloadedPrompt =>
+      'இந்த வீடியோ ஏற்கனவே பதிவிறக்கம் செய்யப்பட்டுள்ளது. நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?';
 
   @override
-  String pausedAt(String time) {
-    return '$time-இல் நிறுத்தப்பட்டது';
+  String size(int size) {
+    return 'அளவு: $size';
   }
 
   @override
-  String resumesAutomatically(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count வினாடிகளில் தானாகவே தொடங்கும்',
-      one: '1 வினாடியில் தானாகவே தொடங்கும்',
-    );
-    return '$_temp0';
-  }
+  String get deleteAll => 'அனைத்தையும் நீக்கு';
 
   @override
-  String get resumeNow => 'இப்போதே தொடங்கு';
+  String get completed => 'முடிந்தது';
 
   @override
-  String get playbackError => 'பிளேபேக் பிழை';
+  String get confirmDeleteDownload =>
+      'இந்த பதிவிறக்கத்தையும் அதன் கோப்பையும் நீக்க விரும்புகிறீர்களா?';
 
   @override
-  String get confirmClearHistory =>
-      'உங்கள் பார்த்த வரலாற்றிலிருந்து அனைத்து உருப்படிகளையும் நீக்க விரும்புகிறீர்களா?';
+  String get libraryEmpty => 'உங்கள் நூலகம் காலியாக உள்ளது';
 
   @override
-  String seasonWithNumber(Object number) {
-    return 'சீசன் $number';
-  }
+  String get addedToLibrary => 'Added to library';
 
   @override
-  String get starting => 'தொடங்குகிறது...';
+  String get removedFromLibrary => 'Removed from library';
 
   @override
-  String percentWatched(int percent) {
-    return '$percent% பார்க்கப்பட்டது';
-  }
-
-  @override
-  String get sub => 'துணைத்.';
-
-  @override
-  String get dub => 'டப்பிங்';
-
-  @override
-  String playEpisode(String label, Object season, Object episode) {
-    return '$label சீசன் $season எபிசோட் $episode';
-  }
-
-  @override
-  String playEpisodeOnly(String label, int episode) {
-    return '$label E$episode';
-  }
-
-  @override
-  String get debugTools => 'பிழைத்திருத்த கருவிகள்';
-
-  @override
-  String get playLocalVideo => 'உள்ளூர் வீடியோ கோப்பை பிளே செய்';
-
-  @override
-  String get playLocalVideoSubtitle =>
-      'சாதனத்திலிருந்து எந்த வீடியோவையும் பிளே செய்';
-
-  @override
-  String get streamUrlSubtitle => 'பிணைய URL இலிருந்து பிளே செய்';
-
-  @override
-  String get streamTorrent => 'டொரண்ட் ஸ்ட்ரீம் செய்';
-
-  @override
-  String get streamTorrentSubtitle =>
-      'பிளே செய்ய உள்ளூர் டொரண்ட் கோப்பைத் தேர்ந்தெடுக்கவும்';
-
-  @override
-  String get loadPluginFromAssets => 'அசெட்டிலிருந்து செருகுநிரலை ஏற்று';
-
-  @override
-  String get enterVideoUrlHint =>
-      'வீடியோ URL ஐ உள்ளிடவும் (http, magnet போன்றவை)';
-
-  @override
-  String get networkStream => 'பிணைய ஸ்ட்ரீம்';
+  String get removeFromHistory => 'வரலாற்றிலிருந்து நீக்கு';
 
   @override
   String removedFromHistory(String title) {
@@ -840,61 +853,199 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get custom => 'தனிப்பயன்';
+  String get clearAllHistory => 'அனைத்து வரலாற்றையும் அழி';
 
   @override
-  String get refreshingLiveStream => 'நேரடி ஒளிபரப்பு புதுப்பிக்கப்படுகிறது...';
+  String get watchHistoryCleared => 'பார்த்த வரலாறு அழிக்கப்பட்டது';
 
   @override
-  String get removeFromHistory => 'வரலாற்றிலிருந்து நீக்கு';
+  String get confirmClearHistory =>
+      'உங்கள் பார்த்த வரலாற்றிலிருந்து அனைத்து உருப்படிகளையும் நீக்க விரும்புகிறீர்களா?';
 
   @override
-  String get live => 'நேரடி';
-
-  @override
-  String get volume => 'ஒலி அளவு';
-
-  @override
-  String get brightness => 'பிரகாசம்';
-
-  @override
-  String get fit => 'பொருத்து';
-
-  @override
-  String get zoom => 'ஜூம்';
-
-  @override
-  String get stretch => 'நீட்டு';
-
-  @override
-  String titleWithParam(String title) {
-    return 'தலைப்பு: $title';
+  String syncedProgress(String percentage) {
+    return 'Synced progress: $percentage%';
   }
 
   @override
-  String sourceWithParam(String source) {
-    return 'மூலம்: $source';
+  String get general => 'பொது';
+
+  @override
+  String get player => 'வீடியோ பிளேயர்';
+
+  @override
+  String get network => 'பிணையம்';
+
+  @override
+  String get appData => 'பயன்பாட்டுத் தரவு';
+
+  @override
+  String get developer => 'டெவலப்பர்';
+
+  @override
+  String get about => 'பற்றி';
+
+  @override
+  String get system => 'சிஸ்டம்';
+
+  @override
+  String get saveSettings => 'Save settings';
+
+  @override
+  String get applySettings => 'Apply Settings';
+
+  @override
+  String get resetToDefault => 'இயல்புநிலைக்கு மீட்டமை';
+
+  @override
+  String get appTheme => 'பயன்பாட்டு தீம்';
+
+  @override
+  String get dark => 'இருண்ட';
+
+  @override
+  String get light => 'ஒளி';
+
+  @override
+  String get chooseTheme => 'தீமைத் தேர்ந்தெடு';
+
+  @override
+  String get recordWatchHistory => 'பார்த்த வரலாற்றைப் பதிவு செய்';
+
+  @override
+  String get defaultHomeScreen => 'இயல்புநிலை முகப்புத் திரை';
+
+  @override
+  String get titlePosition => 'தலைப்பு இடம்';
+
+  @override
+  String get titlePositionBelowPoster => 'போஸ்டருக்குக் கீழே';
+
+  @override
+  String get titlePositionInsidePoster => 'போஸ்டருக்குள்';
+
+  @override
+  String get bigPictureMode => 'Experimental: Big Picture Mode';
+
+  @override
+  String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
+
+  @override
+  String get targetDisplay => 'Preferred Display';
+
+  @override
+  String get whichMonitorShouldBigPictureUse =>
+      'Which monitor should Big Picture use?';
+
+  @override
+  String get language => 'மொழி';
+
+  @override
+  String get selectLanguage => 'மொழியைத் தேர்ந்தெடு';
+
+  @override
+  String get english => 'ஆங்கிலம்';
+
+  @override
+  String get hindi => 'ஹிந்தி';
+
+  @override
+  String get kannada => 'கன்னடம்';
+
+  @override
+  String get unknown => 'தெரியாதது';
+
+  @override
+  String get defaultPlayer => 'இயல்புநிலை பிளேயர்';
+
+  @override
+  String get internalPlayer => 'உள் பிளேயர் (media_kit)';
+
+  @override
+  String get builtInPlayer => 'உள்ளமைக்கப்பட்ட பிளேயர்';
+
+  @override
+  String get customNotSet => 'தனிப்பயன் (அமைக்கப்படவில்லை)';
+
+  @override
+  String get leftGesture => 'இடது சைகை';
+
+  @override
+  String get rightGesture => 'வலது சைகை';
+
+  @override
+  String selectGesture(String side) {
+    return '$side சைகையைத் தேர்ந்தெடு';
   }
 
   @override
-  String sizeWithParam(String size) {
-    return 'அளவு: $size';
-  }
+  String get left => 'இடது';
 
   @override
-  String usingInternalPlayerError(String error) {
-    return 'பிழை: $error. உள் பிளேயர் பயன்படுத்தப்படுகிறது.';
-  }
+  String get right => 'வலது';
 
   @override
-  String playerNotDetected(String playerName) {
-    return '$playerName கண்டறியப்படவில்லை. உள் பிளேயர் தொடங்கப்படுகிறது.';
-  }
+  String get doubleTapToSeek => 'தேடுவதற்கு இருமுறை தட்டவும்';
 
   @override
-  String seasonWithEpisodes(Object number, int count) {
-    return 'சீசன் $number ($count எபிசோடுகள்)';
-  }
+  String get swipeToSeek => 'தேடுவதற்கு ஸ்வைப் செய்யவும்';
+
+  @override
+  String get seekDuration => 'தேடுதல் கால அளவு';
+
+  @override
+  String get selectSeekDuration => 'தேடுதல் கால அளவைத் தேர்ந்தெடு';
+
+  @override
+  String get min => 'நிமிடம்';
+
+  @override
+  String get sec => 'வினாடி';
+
+  @override
+  String get bufferDepth => 'பஃபர் ஆழம்';
+
+  @override
+  String get selectBufferDepth => 'பஃபர் ஆழத்தைத் தேர்ந்தெடு';
+
+  @override
+  String get defaultResizeMode => 'இயல்புநிலை மறுஅளவிடுதல் முறை';
+
+  @override
+  String get hardwareDecoding => 'ஹார்டுவேர் டிகோடிங்';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
+
+  @override
+  String get dnsOverHttps => 'DNS ஓவர் HTTPS';
+
+  @override
+  String get dohProvider => 'DoH வழங்குநர்';
+
+  @override
+  String get customDohUrlLabel => 'தனிப்பயன் DoH URL';
+
+  @override
+  String get enterCustomDohUrl => 'உங்கள் சொந்த DoH URL ஐ உள்ளிடவும்';
 
   @override
   String get cloudflare => 'Cloudflare';
@@ -918,237 +1069,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get tmdb => 'TMDB';
+  String get githubProxy => 'GitHub ப்ராக்ஸி';
 
   @override
-  String selectSourceForPlayer(String playerName) {
-    return '$playerName-க்கான மூலத்தைத் தேர்ந்தெடு';
-  }
-
-  @override
-  String get noPluginsInstalled => 'செருகுநிரல்கள் எதுவும் நிறுவப்படவில்லை';
-
-  @override
-  String get noPluginsMessage =>
-      'உள்ளடக்கத்தை உலாவவும் ஸ்ட்ரீம் செய்யவும் நீட்டிப்புகளை நிறுவவும்.';
-
-  @override
-  String get goToExtensions => 'நீட்டிப்புகளுக்குச் செல்லவும்';
-
-  @override
-  String get availableSources => 'கிடைக்கும் மூலங்கள்';
-
-  @override
-  String get seasons => 'சீசன்கள்';
-
-  @override
-  String get episodes => 'எபிசோடுகள்';
-
-  @override
-  String get selectSourceToPlay =>
-      'பிளே செய்ய மேலே உள்ள \'கிடைக்கும் மூலங்கள்\' இலிருந்து ஒரு மூலத்தைத் தேர்ந்தெடுக்கவும்.';
-
-  @override
-  String episodeCountOnly(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count எபிசோடுகள்',
-      one: '1 எபிசோட்',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noEpisodesFound => 'எபிசோடுகள் எதுவும் இல்லை';
-
-  @override
-  String get local => 'உள்ளூர்';
-
-  @override
-  String get remote => 'ரிமோட்';
-
-  @override
-  String get torrent => 'டொரண்ட்';
-
-  @override
-  String get unlock => 'திற';
-
-  @override
-  String get lock => 'பூட்டு';
-
-  @override
-  String get sources => 'மூலங்கள்';
-
-  @override
-  String get tracks => 'டிராக்குகள்';
-
-  @override
-  String get content => 'உள்ளடக்கம்';
-
-  @override
-  String get stats => 'புள்ளிவிவரங்கள்';
-
-  @override
-  String get resize => 'மறுஅளவிடு';
-
-  @override
-  String get next => 'அடுத்தது';
-
-  @override
-  String get pip => 'PiP';
-
-  @override
-  String get rotate => 'சுழற்று';
-
-  @override
-  String get windowed => 'சாளரம்';
-
-  @override
-  String get fullscreen => 'முழுத் திரை';
-
-  @override
-  String get movieDetails => 'திரைப்பட விவரங்கள்';
-
-  @override
-  String get showDetails => 'விவரங்களைக் காட்டு';
-
-  @override
-  String get tagline => 'டேக்லைன்';
-
-  @override
-  String get status => 'நிலை';
-
-  @override
-  String get releaseDate => 'வெளியீட்டு தேதி';
-
-  @override
-  String get firstAirDate => 'முதல் ஒளிபரப்பு தேதி';
-
-  @override
-  String get originalLanguage => 'அசல் மொழி';
-
-  @override
-  String get originCountry => 'பிறந்த நாடு';
-
-  @override
-  String get budgetLabel => 'பட்ஜெட்';
-
-  @override
-  String get revenueLabel => 'வருவாய்';
-
-  @override
-  String get paused => 'நிறுத்தப்பட்டது';
-
-  @override
-  String get watched => 'பார்த்தவை';
-
-  @override
-  String get watching => 'பார்க்கப்படுகிறது';
-
-  @override
-  String get lastWatched => 'கடைசியாகப் பார்த்தது';
-
-  @override
-  String get movie => 'திரைப்படம்';
-
-  @override
-  String get tvShow => 'தொலைக்காட்சி நிகழ்ச்சி';
-
-  @override
-  String get failedToLoadContent => 'உள்ளடக்கத்தை ஏற்ற முடியவில்லை';
-
-  @override
-  String get director => 'இயக்குநர்';
-
-  @override
-  String get creator => 'உருவாக்கியவர்';
-
-  @override
-  String get showMore => 'மேலும் காட்டு';
-
-  @override
-  String get showLess => 'குறைவாகக் காட்டு';
-
-  @override
-  String get viewAll => 'அனைத்தையும் காண்க';
-
-  @override
-  String seasonsCount(int count) {
-    return '$count சீசன்கள்';
-  }
-
-  @override
-  String get noInternetError => 'இணைய இணைப்பு இல்லை';
-
-  @override
-  String get timeoutError =>
-      'கோரிக்கை நேரம் முடிந்தது. மீண்டும் முயற்சிக்கவும்.';
-
-  @override
-  String get serverError => 'சர்வர் பிழை. மீண்டும் முயற்சிக்கவும்.';
-
-  @override
-  String get contentNotFoundError => 'உள்ளடக்கம் இல்லை.';
-
-  @override
-  String get accessDeniedError => 'அனுமதி மறுக்கப்பட்டது.';
-
-  @override
-  String get serviceUnavailableError => 'சேவை இல்லை.';
-
-  @override
-  String get generalError => 'ஏதோ தவறு நடந்துவிட்டது.';
-
-  @override
-  String get skip => 'தவிர்';
-
-  @override
-  String get skipIntro => 'Skip Intro';
-
-  @override
-  String get skipOutro => 'Skip Outro';
-
-  @override
-  String get skipRecap => 'Skip Recap';
-
-  @override
-  String get goLive => 'நேரலை';
-
-  @override
-  String get dismiss => 'மூடு';
-
-  @override
-  String get nextUp => 'அடுத்தது';
-
-  @override
-  String sourceAttempt(int index, int total) {
-    return 'மூலம் $index / $total';
-  }
-
-  @override
-  String get trying => 'முயற்சிக்கிறது';
-
-  @override
-  String get failed => 'தோல்வி';
-
-  @override
-  String get selected => 'தேர்ந்தெடுக்கப்பட்டது';
-
-  @override
-  String get playing => 'ஒளிர்கிறது';
-
-  @override
-  String get pending => 'நிலுவையில் உள்ளது';
-
-  @override
-  String get openSubtitles => 'OpenSubtitles';
-
-  @override
-  String get subDl => 'SubDL';
-
-  @override
-  String get subSource => 'SubSource';
+  String get githubProxySubtitle =>
+      'ISP தடைகளைத் தவிர்க்க நீட்சி பதிவிறக்கங்களை jsDelivr வழியாக அனுப்பவும்.';
 
   @override
   String get wifiQualityPreference => 'Wi-Fi தர விருப்பம்';
@@ -1160,10 +1085,169 @@ class AppLocalizationsTa extends AppLocalizations {
   String get anyNoPreference => 'விருப்பம் ஏதுமில்லை';
 
   @override
+  String get custom => 'தனிப்பயன்';
+
+  @override
+  String get subtitleSettings => 'துணைத்தலைப்பு அமைப்புகள்';
+
+  @override
+  String get subtitleAppearance => 'Subtitle Appearance';
+
+  @override
+  String get background => 'பின்னணி';
+
+  @override
+  String get fontSettings => 'Font Settings';
+
+  @override
+  String get fontSize => 'எழுத்து அளவு';
+
+  @override
+  String get fontSizeSubtitle =>
+      'Overriding text size from subtitle files (6sp-60sp)';
+
+  @override
+  String get selectFontSize => 'Select Font Size';
+
+  @override
+  String get fileDefault => 'File Default';
+
+  @override
+  String get fontTypeface => 'Font Typeface';
+
+  @override
+  String get fontTypefaceSubtitle =>
+      'Choose from built-in fonts or load custom OTF/TTF';
+
+  @override
+  String get selectFontTypeface => 'Select Font Typeface';
+
+  @override
+  String get customFontFile => 'Custom Font File...';
+
+  @override
+  String get boldTextStyle => 'Bold Text Style';
+
+  @override
+  String get boldTextStyleSubtitle => 'Make subtitle text bold';
+
+  @override
+  String get italicTextStyle => 'Italic Text Style';
+
+  @override
+  String get italicTextStyleSubtitle => 'Make subtitle text slanted';
+
+  @override
+  String get textColor => 'உரை நிறம்';
+
+  @override
+  String get navigateAndSelectColor => 'Navigate and select color';
+
+  @override
+  String get edgeSettings => 'Edge Settings';
+
+  @override
+  String get edgeType => 'Edge Type';
+
+  @override
+  String get edgeTypeSubtitle => 'Text borders/shadows (outline default)';
+
+  @override
+  String get selectEdgeType => 'Select Edge Type';
+
+  @override
+  String get edgeOutline => 'Outline';
+
+  @override
+  String get edgeDepressed => 'Depressed';
+
+  @override
+  String get edgeDropShadow => 'Drop Shadow';
+
+  @override
+  String get edgeRaised => 'Raised';
+
+  @override
+  String get edgeStrokeSize => 'Edge Stroke Size';
+
+  @override
+  String get edgeStrokeSizeSubtitle => 'Thicker outline borders (1px-60px)';
+
+  @override
+  String get outlineColor => 'Outline Color';
+
+  @override
+  String get backgroundAndLayout => 'Background & Layout';
+
+  @override
+  String get backgroundPillColor => 'Background Pill Color';
+
+  @override
+  String get backgroundOpacity => 'பின்னணி ஒளிபுகாநிலை';
+
+  @override
+  String get backgroundOpacitySubtitle => 'Pill opacity level (0% to 100%)';
+
+  @override
+  String get selectCornerRadius => 'Select Corner Radius';
+
+  @override
+  String get noneSharp => 'None (Sharp)';
+
+  @override
+  String get backgroundCornerRadius => 'Background Corner Radius';
+
+  @override
+  String get backgroundCornerRadiusSubtitle =>
+      'Round background corners (5px-50px)';
+
+  @override
+  String get elevationBottomPadding => 'Elevation (Bottom padding)';
+
+  @override
+  String get elevationSubtitle => 'Push subtitles higher (0dp-400dp)';
+
+  @override
+  String get selectAlignment => 'Select Alignment';
+
+  @override
+  String get autoExoAssDefault => 'Auto (Exo/Ass default)';
+
+  @override
+  String get alignment => 'Alignment';
+
+  @override
+  String get alignmentSubtitle => 'Screen alignment (SSA 1-9 coordinates)';
+
+  @override
+  String get contentCleaningAndFiltering => 'Content Cleaning & Filtering';
+
+  @override
+  String get removeBloat => 'Remove Bloat';
+
+  @override
+  String get removeBloatSubtitle =>
+      'Strip OpenSubtitles ads/promos (re-parses stream)';
+
+  @override
+  String get removeCaptions => 'Remove Captions';
+
+  @override
+  String get removeCaptionsSubtitle =>
+      'Strips bracketed text like [Music] or (cough)';
+
+  @override
+  String get forceUppercase => 'Force Uppercase';
+
+  @override
+  String get forceUppercaseSubtitle =>
+      'Display all subtitle cues in capital letters';
+
+  @override
   String get subtitleAccounts => 'துணைத்தலைப்பு கணக்குகள்';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'கணக்குகள்';
 
   @override
   String get notLoggedIn => 'Not logged in';
@@ -1213,6 +1297,18 @@ class AppLocalizationsTa extends AppLocalizations {
   String get invalidApiKey => 'Invalid API Key';
 
   @override
+  String get openSubtitles => 'OpenSubtitles';
+
+  @override
+  String get subDl => 'SubDL';
+
+  @override
+  String get subSource => 'SubSource';
+
+  @override
+  String get tmdb => 'TMDB';
+
+  @override
   String get openSubtitlesAuthSubtitle =>
       'Enter your account credentials for higher limits and ad-free subtitles.';
 
@@ -1237,14 +1333,176 @@ class AppLocalizationsTa extends AppLocalizations {
   String get getApiKeyFromProfile => 'Get your API Key from SubSource Profile';
 
   @override
-  String get qualityNotGuaranteed =>
-      'Quality is not guaranteed. Sources are sorted by preference, but playback depends on what the provider actually offers.';
-
-  @override
-  String get keepSourcesOriginalOrder => 'Keep sources in original order';
-
-  @override
   String get openLink => 'Open link';
+
+  @override
+  String pluginSettings(String pluginName) {
+    return '$pluginName அமைப்புகள்';
+  }
+
+  @override
+  String get noConfigurableSettings =>
+      'This extension does not define configurable settings.';
+
+  @override
+  String get installRemoveProviders => 'வழங்குநர்களை நிறுவு அல்லது நீக்கு';
+
+  @override
+  String get selectProvider => 'வழங்குநரைத் தேர்ந்தெடு';
+
+  @override
+  String get noPluginsInstalled => 'செருகுநிரல்கள் எதுவும் நிறுவப்படவில்லை';
+
+  @override
+  String get noPluginsMessage =>
+      'உள்ளடக்கத்தை உலாவவும் ஸ்ட்ரீம் செய்யவும் நீட்டிப்புகளை நிறுவவும்.';
+
+  @override
+  String get goToExtensions => 'நீட்டிப்புகளுக்குச் செல்லவும்';
+
+  @override
+  String get noReposFound =>
+      'ரிப்போசிட்டரிகள் அல்லது செருகுநிரல்கள் எதுவும் இல்லை';
+
+  @override
+  String get downloadAllProviders => 'அனைத்தையும் பதிவிறக்கு';
+
+  @override
+  String get removeRepository => 'ரிப்போசிட்டரியை நீக்கு';
+
+  @override
+  String get addRepo => 'ரிப்போசிட்டரியைச் சேர்';
+
+  @override
+  String get extensionsNotInRepos => 'ரிப்போசிட்டரிகளில் இல்லாத நீட்டிப்புகள்';
+
+  @override
+  String get noLongerInRepo => 'இனி எந்த ரிப்போசிட்டரியிலும் இல்லை';
+
+  @override
+  String get addRepoToBrowse =>
+      'செருகுநிரல்களை உலாவவும் புதுப்பிக்கவும் ஒரு ரிப்போசிட்டரியைச் சேர்க்கவும்';
+
+  @override
+  String removeRepoConfirm(String repoName) {
+    return '$repoName-ஐ நீக்கவா?';
+  }
+
+  @override
+  String get removeRepoWarning =>
+      'இது ரிப்போசிட்டரியை நீக்கி அதன் அனைத்து செருகுநிரல்களையும் அகற்றும்.';
+
+  @override
+  String get addRepository => 'ரிப்போசிட்டரியைச் சேர்';
+
+  @override
+  String get repoUrlOrShortcode => 'ரிப்போசிட்டரி URL அல்லது ஷார்ட்கோட்';
+
+  @override
+  String get assetPlugin => 'அசெட் செருகுநிரல்';
+
+  @override
+  String get installed => 'நிறுவப்பட்டது';
+
+  @override
+  String get repositories => 'களஞ்சியங்கள்';
+
+  @override
+  String get noExtensionsInstalled => 'நீட்சிகள் எதுவும் நிறுவப்படவில்லை';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'நீட்சிகளைக் கண்டறிந்து நிறுவ களஞ்சியங்கள் தாவலைப் பார்க்கவும்.';
+
+  @override
+  String get browseRepositories => 'களஞ்சியங்களை உலாவுக';
+
+  @override
+  String get addRepoDescription =>
+      'நீட்சி செருகுநிரல்களைக் கண்டறிந்து நிறுவ களஞ்சிய URL அல்லது குறுங்குறியீட்டைச் சேர்க்கவும்.';
+
+  @override
+  String updateTo(String version) {
+    return '$version-க்குப் புதுப்பி';
+  }
+
+  @override
+  String extensionsUpdated(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count நீட்டிப்புகள் புதுப்பிக்கப்பட்டன',
+      one: '1 நீட்டிப்பு புதுப்பிக்கப்பட்டது',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadPluginFromAssets => 'அசெட்டிலிருந்து செருகுநிரலை ஏற்று';
+
+  @override
+  String get resetDataKeepExtensions => 'தரவை மீட்டமை (நீட்டிப்புகளை வைத்திரு)';
+
+  @override
+  String get resetDataSubtitle =>
+      'அமைப்புகள் மற்றும் தரவுத்தளத்தை அழி, செருகுநிரல்களை வைத்திரு';
+
+  @override
+  String get resetDataDialogTitle => 'தரவை மீட்டமைக்கவா?';
+
+  @override
+  String get resetDataDialogContent =>
+      'இது அமைப்புகள், பிடித்தவை மற்றும் வரலாற்றை அழிக்கும். உங்கள் நிறுவப்பட்ட நீட்டிப்புகள் நீக்கப்படாது.';
+
+  @override
+  String get factoryReset => 'தொழிற்சாலை மீட்டமைப்பு';
+
+  @override
+  String get factoryResetSubtitle =>
+      'அனைத்து தரவு, அமைப்புகள் மற்றும் நீட்டிப்புகளை நீக்கு';
+
+  @override
+  String get factoryResetDialogTitle => 'தொழிற்சாலை மீட்டமைப்பா?';
+
+  @override
+  String get factoryResetDialogContent =>
+      'இது அனைத்தையும் நீக்கும்: பிடித்தவை, வரலாறு, அமைப்புகள் மற்றும் அனைத்து நீட்டிப்புகள். இதை மாற்ற முடியாது.';
+
+  @override
+  String get clearCache => 'Clear image and video cache';
+
+  @override
+  String get clearCacheSubtitle =>
+      'Frees up storage used by cached images and videos';
+
+  @override
+  String get clearCacheDialogTitle => 'Clear cache?';
+
+  @override
+  String get clearCacheDialogContent =>
+      'This will delete cached images and video files. Your settings, history, and extensions will not be affected.';
+
+  @override
+  String get clearCacheNow => 'Clear Cache';
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get calculating => 'Calculating…';
+
+  @override
+  String get developerOptions => 'டெவலப்பர் விருப்பங்கள்';
+
+  @override
+  String get developerOptionsSubtitle =>
+      'பிழைத்திருத்த கருவிகள் மற்றும் உள்ளூர் பிளேபேக்';
+
+  @override
+  String get debugExtensions => 'நீட்டிப்புகளைப் பிழைத்திருத்தம் செய்';
+
+  @override
+  String get debugTools => 'பிழைத்திருத்த கருவிகள்';
 
   @override
   String get diagnostics => 'கண்டறிதல் (Diagnostics)';
@@ -1257,5 +1515,118 @@ class AppLocalizationsTa extends AppLocalizations {
       'செயலி செயல்பாடு மற்றும் பிழைகளைப் பார்க்கவும்';
 
   @override
-  String get bookmarked => 'Bookmarked';
+  String get debug => 'பிழைத்திருத்தம்';
+
+  @override
+  String get debugOnlyFeature =>
+      'இந்த அம்சம் பிழைத்திருத்த உருவாக்கங்களில் மட்டுமே கிடைக்கும்';
+
+  @override
+  String get version => 'பதிப்பு';
+
+  @override
+  String get discord => 'Discord';
+
+  @override
+  String get discordSubtitle => 'எங்கள் சர்வரில் சேரவும்';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get telegramSubtitle => 'எங்கள் சேனலில் சேரவும்';
+
+  @override
+  String developedBy(String name) {
+    return '$name ஆல் உருவாக்கப்பட்டது';
+  }
+
+  @override
+  String get updateAvailable => 'புதிய பதிப்பு உள்ளது';
+
+  @override
+  String updateAvailableTag(String tag) {
+    return 'புதுப்பிப்பு உள்ளது: $tag';
+  }
+
+  @override
+  String get error => 'பிழை';
+
+  @override
+  String errorPrefix(String message) {
+    return 'பிழை: $message';
+  }
+
+  @override
+  String errorDetails(String error) {
+    return 'பிழை விவரங்கள்: $error';
+  }
+
+  @override
+  String get startupError => 'தொடக்கப் பிழை';
+
+  @override
+  String get noInternetConnection => 'இணைய இணைப்பு இல்லை';
+
+  @override
+  String get siteNotReachable => 'தளத்தை அணுக முடியவில்லை';
+
+  @override
+  String get checkConnectionOrDownloads =>
+      'உங்கள் இணைப்பைச் சரிபார்க்கவும் அல்லது உங்கள் பதிவிறக்கங்களைக் காணவும்.';
+
+  @override
+  String get tryVpnOrConnection =>
+      'தயவுசெய்து VPN ஐப் பயன்படுத்தி தளத்தை அணுக முயற்சிக்கவும் அல்லது உங்கள் இணைய இணைப்பைச் சரிபார்க்கவும்.';
+
+  @override
+  String get noInternetError => 'இணைய இணைப்பு இல்லை';
+
+  @override
+  String get timeoutError =>
+      'கோரிக்கை நேரம் முடிந்தது. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get serverError => 'சர்வர் பிழை. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get contentNotFoundError => 'உள்ளடக்கம் இல்லை.';
+
+  @override
+  String get accessDeniedError => 'அனுமதி மறுக்கப்பட்டது.';
+
+  @override
+  String get serviceUnavailableError => 'சேவை இல்லை.';
+
+  @override
+  String get generalError => 'ஏதோ தவறு நடந்துவிட்டது.';
+
+  @override
+  String usingInternalPlayerError(String error) {
+    return 'பிழை: $error. உள் பிளேயர் பயன்படுத்தப்படுகிறது.';
+  }
+
+  @override
+  String playerNotDetected(String playerName) {
+    return '$playerName கண்டறியப்படவில்லை. உள் பிளேயர் தொடங்கப்படுகிறது.';
+  }
+
+  @override
+  String get failedToLoadContent => 'உள்ளடக்கத்தை ஏற்ற முடியவில்லை';
+
+  @override
+  String get invalidNavigation =>
+      'தவறான வழிசெலுத்தல். தயவுசெய்து பின்னோக்கிச் செல்லவும்.';
+
+  @override
+  String get playbackError => 'பிளேபேக் பிழை';
+
+  @override
+  String get exitApp => 'Exit SkyStream';
+
+  @override
+  String get confirmExitTitle => 'Exit SkyStream?';
+
+  @override
+  String get confirmExitMessage => 'Are you sure you want to exit the app?';
 }

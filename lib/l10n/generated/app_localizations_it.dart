@@ -33,133 +33,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get extensions => 'Estensioni';
 
   @override
-  String get updateAvailable => 'Aggiornamento disponibile';
+  String get downloads => 'Download';
 
   @override
-  String get retry => 'Riprova';
-
-  @override
-  String get factoryReset => 'Ripristino di fabbrica';
-
-  @override
-  String get startupError => 'Errore di avvio';
-
-  @override
-  String get general => 'Generale';
-
-  @override
-  String get appTheme => 'Tema applicazione';
-
-  @override
-  String get recordWatchHistory => 'Registra cronologia';
-
-  @override
-  String get defaultHomeScreen => 'Schermata home predefinita';
-
-  @override
-  String get player => 'Lettore';
-
-  @override
-  String get defaultPlayer => 'Lettore predefinito';
-
-  @override
-  String get leftGesture => 'Gesto sinistro';
-
-  @override
-  String get rightGesture => 'Gesto destro';
-
-  @override
-  String get doubleTapToSeek => 'Doppio tocco per cercare';
-
-  @override
-  String get swipeToSeek => 'Scorri per cercare';
-
-  @override
-  String get seekDuration => 'Durata salto';
-
-  @override
-  String get bufferDepth => 'Profondità buffer';
-
-  @override
-  String get defaultResizeMode => 'Ridimensionamento predefinito';
-
-  @override
-  String get hardwareDecoding => 'Decodifica hardware';
-
-  @override
-  String get network => 'Rete';
-
-  @override
-  String get dnsOverHttps => 'DNS su HTTPS';
-
-  @override
-  String get dohProvider => 'Provider DoH';
-
-  @override
-  String get githubProxy => 'GitHub Proxy';
-
-  @override
-  String get githubProxySubtitle =>
-      'Route extension downloads through jsDelivr to bypass ISP blocks.';
-
-  @override
-  String get manageExtensions => 'Gestisci estensioni';
-
-  @override
-  String get appData => 'Dati applicazione';
-
-  @override
-  String get resetDataKeepExtensions => 'Ripristina dati (mantieni estensioni)';
-
-  @override
-  String get developer => 'Sviluppatore';
-
-  @override
-  String get developerOptions => 'Opzioni sviluppatore';
-
-  @override
-  String get about => 'Informazioni';
-
-  @override
-  String get version => 'Versione';
-
-  @override
-  String get enabled => 'Attivato';
-
-  @override
-  String get disabled => 'Disattivato';
-
-  @override
-  String get discord => 'Discord';
-
-  @override
-  String get discordSubtitle => 'Unisciti al nostro server';
-
-  @override
-  String get telegram => 'Telegram';
-
-  @override
-  String get telegramSubtitle => 'Unisciti al nostro canale';
-
-  @override
-  String developedBy(String name) {
-    return 'Sviluppato da $name';
-  }
-
-  @override
-  String get system => 'Sistema';
-
-  @override
-  String get dark => 'Scuro';
-
-  @override
-  String get light => 'Chiaro';
-
-  @override
-  String get later => 'Più tardi';
-
-  @override
-  String get updateNow => 'Aggiorna ora';
+  String get bookmarks => 'Segnalibri';
 
   @override
   String get save => 'Salva';
@@ -174,13 +51,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get delete => 'Elimina';
 
   @override
-  String get viewDetails => 'Visualizza dettagli';
+  String get retry => 'Riprova';
 
   @override
-  String get clearAll => 'Cancella tutto';
-
-  @override
-  String get clearAllHistory => 'Cancella cronologia';
+  String get ok => 'OK';
 
   @override
   String get all => 'Tutto';
@@ -189,84 +63,189 @@ class AppLocalizationsIt extends AppLocalizations {
   String get none => 'Nessuno';
 
   @override
-  String get confirmDownload => 'Conferma download';
+  String get on => 'ON';
 
   @override
-  String get downloadNow => 'Scarica ora';
+  String get off => 'OFF';
 
   @override
-  String get selectSource => 'Seleziona fonte';
+  String get yesDelete => 'Sì, elimina';
 
   @override
-  String get downloadUnavailable => 'Download non disponibile';
+  String get no => 'No';
 
   @override
-  String get selectAnotherSource => 'Seleziona un\'altra fonte';
+  String get viewDetails => 'Visualizza dettagli';
 
   @override
-  String get watchHistoryCleared => 'Cronologia cancellata';
+  String get viewAll => 'Vedi tutto';
 
   @override
-  String get downloadingUpdate => 'Scaricamento aggiornamento...';
+  String get clearAll => 'Cancella tutto';
 
   @override
-  String errorPrefix(String message) {
-    return 'Errore: $message';
+  String get startOver => 'Ricomincia';
+
+  @override
+  String get goBack => 'Torna indietro';
+
+  @override
+  String get showMore => 'Mostra di più';
+
+  @override
+  String get showLess => 'Mostra meno';
+
+  @override
+  String get install => 'Installa';
+
+  @override
+  String get updateNow => 'Aggiorna ora';
+
+  @override
+  String get later => 'Più tardi';
+
+  @override
+  String get enabled => 'Attivato';
+
+  @override
+  String get disabled => 'Disattivato';
+
+  @override
+  String get recommended => 'Consigliato';
+
+  @override
+  String get loading => 'Caricamento...';
+
+  @override
+  String get hintSelect => 'Select';
+
+  @override
+  String get hintBack => 'Back';
+
+  @override
+  String get hintExit => 'Exit';
+
+  @override
+  String get hintMenu => 'Menu';
+
+  @override
+  String get hintView => 'View';
+
+  @override
+  String get hintKeyboard => 'Keyboard';
+
+  @override
+  String get hintFilter => 'Filter';
+
+  @override
+  String get hintFilters => 'Filters';
+
+  @override
+  String get hintSearch => 'Search';
+
+  @override
+  String get hintFillQuery => 'Fill Query';
+
+  @override
+  String get hintType => 'Type';
+
+  @override
+  String get hintList => 'List';
+
+  @override
+  String get hintExpand => 'Expand';
+
+  @override
+  String get hintCollapse => 'Collapse';
+
+  @override
+  String get hintDeleteAll => 'Delete All';
+
+  @override
+  String get hintDelete => 'Delete';
+
+  @override
+  String get hintPrevTab => 'Prev Tab';
+
+  @override
+  String get hintNextTab => 'Next Tab';
+
+  @override
+  String get hintPlay => 'Play';
+
+  @override
+  String get hintPause => 'Pause';
+
+  @override
+  String get hintResume => 'Resume';
+
+  @override
+  String get hintRemove => 'Remove';
+
+  @override
+  String get hintClearAll => 'Clear All';
+
+  @override
+  String get hintSearchField => 'Search field';
+
+  @override
+  String get hintSelectToggle => 'Select / Toggle';
+
+  @override
+  String get hintBrowse => 'Browse';
+
+  @override
+  String get hintAddRepo => 'Add Repo';
+
+  @override
+  String get hintDownloadAll => 'Download All';
+
+  @override
+  String get hintDeleteRepo => 'Delete Repo';
+
+  @override
+  String get hintSettings => 'Settings';
+
+  @override
+  String get hintInstall => 'Install';
+
+  @override
+  String get hintUpdate => 'Update';
+
+  @override
+  String get hintViewAll => 'View All';
+
+  @override
+  String get hintDeselect => 'Deselect';
+
+  @override
+  String get hintRemoveBookmark => 'Remove Bookmark';
+
+  @override
+  String get hintAddBookmark => 'Add Bookmark';
+
+  @override
+  String get hintManageDownload => 'Manage Download';
+
+  @override
+  String get hintDownloading => 'Downloading...';
+
+  @override
+  String get hintDownload => 'Download';
+
+  @override
+  String get hintScroll => 'Scroll';
+
+  @override
+  String hintSeek(Object seconds) {
+    return 'Seek ${seconds}s';
   }
 
   @override
-  String updateAvailableTag(String tag) {
-    return 'Aggiornamento disponibile: $tag';
-  }
+  String get exploreAnime => 'Esplora anime';
 
   @override
-  String get selectProviderToStart => 'Seleziona un provider per iniziare';
-
-  @override
-  String get tapExtensionIcon => 'Tocca l\'icona dell\'estensione nell\'angolo';
-
-  @override
-  String get continueWatching => 'Continua a guardare';
-
-  @override
-  String get noInternetConnection => 'Nessuna connessione Internet';
-
-  @override
-  String get siteNotReachable => 'Sito non raggiungibile';
-
-  @override
-  String get checkConnectionOrDownloads =>
-      'Controlla la connessione o guarda i contenuti scaricati.';
-
-  @override
-  String get tryVpnOrConnection =>
-      'Prova ad accedere con una VPN o controlla la connessione.';
-
-  @override
-  String errorDetails(String error) {
-    return 'Dettagli errore: $error';
-  }
-
-  @override
-  String get goToDownloads => 'Vai ai download';
-
-  @override
-  String get selectProvider => 'Seleziona provider';
-
-  @override
-  String get searchHint => 'Cerca film, serie...';
-
-  @override
-  String get searchFavoriteContent => 'Cerca i tuoi contenuti preferiti';
-
-  @override
-  String get pressSearchOrEnter => 'Premi Cerca o Invio per iniziare';
-
-  @override
-  String get noResultsFound => 'Nessun risultato trovato.';
-
-  @override
-  String get couldNotLoadTrending => 'Impossibile caricare i trend';
+  String get exploreMovies => 'Esplora film';
 
   @override
   String get popularMovies => 'Film popolari';
@@ -290,181 +269,55 @@ class AppLocalizationsIt extends AppLocalizations {
   String get lastVideosTVShows => 'Ultime serie TV';
 
   @override
-  String get downloads => 'Download';
+  String get continueWatching => 'Continua a guardare';
 
   @override
-  String get bookmarks => 'Segnalibri';
+  String get couldNotLoadTrending => 'Impossibile caricare i trend';
 
   @override
-  String get noDownloadsYet => 'Nessun download presente';
+  String get selectProviderToStart => 'Seleziona un provider per iniziare';
 
   @override
-  String episodesCount(int count, int done) {
-    return '$count Episodi • $done Completati';
-  }
+  String get tapExtensionIcon => 'Tocca l\'icona dell\'estensione nell\'angolo';
 
   @override
-  String get deleteAllEpisodes => 'Elimina tutti gli episodi';
+  String get searchFavoriteContent => 'Cerca i tuoi contenuti preferiti';
 
   @override
-  String confirmDeleteAllEpisodes(int count, String title) {
-    return 'Sei sicuro di voler eliminare tutti i $count episodi di \"$title\" e i relativi file?';
-  }
+  String get pressSearchOrEnter => 'Premi Cerca o Invio per iniziare';
 
   @override
-  String get deleteAll => 'Elimina tutto';
+  String get noResultsFound => 'Nessun risultato trovato.';
 
   @override
-  String get completed => 'Completato';
+  String get searchHint => 'Cerca film, serie...';
 
   @override
-  String get statusQueued => 'In coda...';
+  String get searchScope => 'Search Scope';
 
   @override
-  String get statusDownloading => 'Scaricamento...';
+  String get nonLivestreams => 'Non Livestreams';
 
   @override
-  String get statusFinished => 'Finito';
+  String get movies => 'Film';
 
   @override
-  String get statusFailed => 'Fallito';
+  String get series => 'Serie TV';
 
   @override
-  String get statusCanceled => 'Annullato';
+  String get anime => 'Anime';
 
   @override
-  String get statusPaused => 'In pausa';
+  String get liveStreams => 'Dirette live';
 
   @override
-  String get statusWaiting => 'In attesa...';
+  String get live => 'LIVE';
 
   @override
-  String get fileNotFoundRemoving =>
-      'File non trovato sul disco. Rimozione record.';
+  String get movieDetails => 'Dettagli Film';
 
   @override
-  String get fileNotFound => 'File non trovato';
-
-  @override
-  String get deleteDownload => 'Elimina download';
-
-  @override
-  String get confirmDeleteDownload =>
-      'Sei sicuro di voler eliminare questo download e il relativo file?';
-
-  @override
-  String get libraryEmpty => 'La tua libreria è vuota';
-
-  @override
-  String get language => 'Lingua';
-
-  @override
-  String get english => 'Inglese';
-
-  @override
-  String get hindi => 'Hindi';
-
-  @override
-  String get kannada => 'Kannada';
-
-  @override
-  String get unknown => 'Sconosciuto';
-
-  @override
-  String get recommended => 'Consigliato';
-
-  @override
-  String get on => 'ON';
-
-  @override
-  String get off => 'OFF';
-
-  @override
-  String get installRemoveProviders => 'Installa o rimuovi provider';
-
-  @override
-  String get resetDataSubtitle =>
-      'Cancella impostazioni e database, mantieni plugin';
-
-  @override
-  String get factoryResetSubtitle =>
-      'Elimina tutti i dati, impostazioni ed estensioni';
-
-  @override
-  String get developerOptionsSubtitle =>
-      'Strumenti di debug e riproduzione locale';
-
-  @override
-  String get loading => 'Caricamento...';
-
-  @override
-  String get sec => 'sec';
-
-  @override
-  String get min => 'min';
-
-  @override
-  String get internalPlayer => 'Interno (media_kit)';
-
-  @override
-  String get builtInPlayer => 'Lettore integrato';
-
-  @override
-  String get customNotSet => 'Personalizzato (non impostato)';
-
-  @override
-  String selectGesture(String side) {
-    return 'Seleziona gesto $side';
-  }
-
-  @override
-  String get left => 'Sinistra';
-
-  @override
-  String get right => 'Destra';
-
-  @override
-  String get selectSeekDuration => 'Durata salto';
-
-  @override
-  String get selectBufferDepth => 'Profondità buffer';
-
-  @override
-  String get subtitleSettings => 'Impostazioni sottotitoli';
-
-  @override
-  String size(int size) {
-    return 'Dimensione: $size';
-  }
-
-  @override
-  String get background => 'Sfondo';
-
-  @override
-  String get customDohUrlLabel => 'URL DoH personalizzato';
-
-  @override
-  String get enterCustomDohUrl => 'Inserisci il tuo URL DoH';
-
-  @override
-  String get chooseTheme => 'Scegli tema';
-
-  @override
-  String get resetDataDialogTitle => 'Ripristina dati?';
-
-  @override
-  String get resetDataDialogContent =>
-      'Questo cancellerà Impostazioni, Preferiti e Cronologia. Le estensioni installate NON verranno eliminate.';
-
-  @override
-  String get factoryResetDialogTitle => 'Ripristino di fabbrica?';
-
-  @override
-  String get factoryResetDialogContent =>
-      'Questo eliminerà TUTTO: Preferiti, Cronologia, Impostazioni e TUTTE le estensioni. L\'azione è irreversibile.';
-
-  @override
-  String get selectLanguage => 'Seleziona lingua';
+  String get showDetails => 'Mostra Dettagli';
 
   @override
   String get synopsis => 'Sinossi';
@@ -473,45 +326,306 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noDescription => 'Nessuna descrizione disponibile.';
 
   @override
-  String get videoAlreadyDownloadedPrompt =>
-      'Questo video è già stato scaricato. Cosa vuoi fare?';
+  String get director => 'Regista';
+
+  @override
+  String get creator => 'Creatore';
+
+  @override
+  String get tagline => 'Tagline';
+
+  @override
+  String get status => 'Stato';
+
+  @override
+  String get releaseDate => 'Data d\'uscita';
+
+  @override
+  String get firstAirDate => 'Data prima messa in onda';
+
+  @override
+  String get originalLanguage => 'Lingua originale';
+
+  @override
+  String get originCountry => 'Paese d\'origine';
+
+  @override
+  String get budgetLabel => 'Budget';
+
+  @override
+  String get revenueLabel => 'Incasso';
+
+  @override
+  String get seasons => 'Stagioni';
+
+  @override
+  String get episodes => 'Episodi';
+
+  @override
+  String get noEpisodesFound => 'Nessun episodio trovato';
+
+  @override
+  String seasonWithNumber(Object number) {
+    return 'Stagione $number';
+  }
+
+  @override
+  String seasonsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Stagioni',
+      one: '1 Stagione',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seasonWithEpisodes(Object number, int count) {
+    return 'Stagione $number ($count Episodi)';
+  }
+
+  @override
+  String episodesCount(int count, int done) {
+    return '$count Episodi • $done Completati';
+  }
+
+  @override
+  String episodeCountOnly(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Episodi',
+      one: '1 Episodio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String titleWithParam(String title) {
+    return 'Titolo: $title';
+  }
+
+  @override
+  String sourceWithParam(String source) {
+    return 'Fonte: $source';
+  }
+
+  @override
+  String sizeWithParam(String size) {
+    return 'Dimensione: $size';
+  }
+
+  @override
+  String get play => 'Riproduci';
 
   @override
   String get playNow => 'Riproduci ora';
 
   @override
-  String get upNext => 'Up Next';
-
-  @override
-  String get deleteDownloadPrompt => 'Elimina download?';
-
-  @override
-  String get deleteDownloadConfirmation =>
-      'Sei sicuro di voler eliminare questo file? L\'azione è irreversibile.';
-
-  @override
-  String get no => 'No';
-
-  @override
-  String get yesDelete => 'Sì, elimina';
-
-  @override
-  String get downloadPaused => 'Download in pausa';
-
-  @override
-  String get downloading => 'Scaricamento';
-
-  @override
-  String get speed => 'Velocità';
-
-  @override
-  String get remaining => 'Rimanente';
-
-  @override
   String get resume => 'Riprendi';
 
   @override
+  String get resumeNow => 'Riprendi ora';
+
+  @override
   String get pause => 'Pausa';
+
+  @override
+  String get watching => 'In visione';
+
+  @override
+  String get watched => 'Visto';
+
+  @override
+  String get lastWatched => 'Ultima visione';
+
+  @override
+  String get resumingPlayback => 'Ripresa riproduzione';
+
+  @override
+  String pausedAt(String time) {
+    return 'In pausa a $time';
+  }
+
+  @override
+  String resumesAutomatically(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ripresa automatica tra $count secondi',
+      one: 'Ripresa automatica tra 1 secondo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String percentWatched(int percent) {
+    return '$percent% guardato';
+  }
+
+  @override
+  String playEpisode(String label, Object season, Object episode) {
+    return '$label S$season E$episode';
+  }
+
+  @override
+  String playEpisodeOnly(String label, int episode) {
+    return '$label E$episode';
+  }
+
+  @override
+  String get skip => 'Salta';
+
+  @override
+  String get skipIntro => 'Salta introduzione';
+
+  @override
+  String get skipOutro => 'Salta finale';
+
+  @override
+  String get skipRecap => 'Salta riepilogo';
+
+  @override
+  String get goLive => 'Vai in diretta';
+
+  @override
+  String get dismiss => 'Chiudi';
+
+  @override
+  String get nextUp => 'Prossimo';
+
+  @override
+  String get playing => 'In riproduzione';
+
+  @override
+  String get playbackSpeed => 'Velocità di riproduzione';
+
+  @override
+  String get volume => 'Volume';
+
+  @override
+  String get brightness => 'Luminosità';
+
+  @override
+  String get fit => 'Adatta';
+
+  @override
+  String get zoom => 'Zoom';
+
+  @override
+  String get stretch => 'Allunga';
+
+  @override
+  String get resize => 'Ridimensiona';
+
+  @override
+  String get next => 'Successivo';
+
+  @override
+  String get pip => 'PiP';
+
+  @override
+  String get rotate => 'Ruota';
+
+  @override
+  String get windowed => 'Finestra';
+
+  @override
+  String get fullscreen => 'Schermo intero';
+
+  @override
+  String sourceAttempt(int index, int total) {
+    return 'Fonte $index di $total';
+  }
+
+  @override
+  String get unlock => 'Sblocca';
+
+  @override
+  String get lock => 'Blocca';
+
+  @override
+  String get resolving => 'Risoluzione...';
+
+  @override
+  String get trying => 'Tentativo';
+
+  @override
+  String get failed => 'Fallito';
+
+  @override
+  String get selected => 'Selezionato';
+
+  @override
+  String get pending => 'In attesa';
+
+  @override
+  String get local => 'Locale';
+
+  @override
+  String get remote => 'Remoto';
+
+  @override
+  String get torrent => 'Torrent';
+
+  @override
+  String get sources => 'Fonti';
+
+  @override
+  String get tracks => 'Tracce';
+
+  @override
+  String get content => 'Contenuto';
+
+  @override
+  String get stats => 'Statistiche';
+
+  @override
+  String get selectSource => 'Seleziona fonte';
+
+  @override
+  String get selectAnotherSource => 'Seleziona un\'altra fonte';
+
+  @override
+  String get selectSourceToPlay => 'Seleziona una fonte sopra per riprodurre.';
+
+  @override
+  String selectSourceForPlayer(String playerName) {
+    return 'Seleziona fonte per $playerName';
+  }
+
+  @override
+  String get availableSources => 'Fonti disponibili';
+
+  @override
+  String get refreshingLiveStream => 'Aggiornamento diretta live...';
+
+  @override
+  String get playLocalVideo => 'Riproduci file video locale';
+
+  @override
+  String get playLocalVideoSubtitle =>
+      'Riproduci qualsiasi video dal dispositivo';
+
+  @override
+  String get streamUrl => 'URL Streaming';
+
+  @override
+  String get streamUrlSubtitle => 'Riproduci da URL di rete';
+
+  @override
+  String get streamTorrent => 'Streaming torrent';
+
+  @override
+  String get streamTorrentSubtitle =>
+      'Seleziona un file torrent locale per la riproduzione';
+
+  @override
+  String get enterVideoUrlHint => 'Inserisci URL video (http, magnet, ecc.)';
+
+  @override
+  String get networkStream => 'Streaming di rete';
 
   @override
   String get torrentContent => 'Contenuto Torrent';
@@ -523,6 +637,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noAudioTracks => 'Nessuna traccia audio trovata';
 
   @override
+  String get qualityNotGuaranteed =>
+      'La qualità non è garantita. Le fonti sono ordinate per preferenza, ma dipendono dall\'offerta effettiva del fornitore.';
+
+  @override
+  String get keepSourcesOriginalOrder =>
+      'Mantieni l\'ordine originale delle fonti';
+
+  @override
+  String get noSourcesQualityFilterFallback =>
+      'No sources matched your quality filter — showing all sources.';
+
+  @override
   String get subtitles => 'Sottotitoli';
 
   @override
@@ -530,9 +656,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get noSubtitlesFound => 'Nessuna traccia sottotitoli trovata';
-
-  @override
-  String get playbackSpeed => 'Velocità di riproduzione';
 
   @override
   String get subtitleOptions => 'Opzioni sottotitoli';
@@ -571,24 +694,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'La personalizzazione dei sottotitoli è disponibile solo sul lettore media_kit al momento.';
 
   @override
-  String get resetToDefault => 'Ripristina predefiniti';
-
-  @override
-  String get fontSize => 'Dimensione carattere';
-
-  @override
-  String get verticalPosition => 'Posizione verticale';
-
-  @override
-  String get textColor => 'Colore testo';
-
-  @override
-  String get backgroundColor => 'Colore sfondo';
-
-  @override
-  String get backgroundOpacity => 'Opacità sfondo';
-
-  @override
   String get subtitleSearch => 'Ricerca sottotitoli';
 
   @override
@@ -614,123 +719,95 @@ class AppLocalizationsIt extends AppLocalizations {
       'Caricamento sottotitoli fallito. Riprova.';
 
   @override
-  String get noReposFound => 'Nessun repository o plugin trovato';
+  String get sub => 'Sub';
 
   @override
-  String get downloadAllProviders => 'Scarica tutto';
-
-  @override
-  String get removeRepository => 'Rimuovi repository';
-
-  @override
-  String get addRepo => 'Aggiungi repository';
-
-  @override
-  String get extensionsNotInRepos => 'Estensioni non nei repository';
-
-  @override
-  String get noLongerInRepo => 'Non più presente in alcun repository';
-
-  @override
-  String get addRepoToBrowse =>
-      'Aggiungi un repository per sfogliare e aggiornare i plugin';
-
-  @override
-  String get debugExtensions => 'Debug estensioni';
-
-  @override
-  String removeRepoConfirm(String repoName) {
-    return 'Rimuovere $repoName?';
-  }
-
-  @override
-  String get removeRepoWarning =>
-      'Questo rimuoverà il repository e disinstallerà TUTTI i suoi plugin.';
-
-  @override
-  String get addRepository => 'Aggiungi repository';
-
-  @override
-  String get repoUrlOrShortcode => 'URL o Shortcode repository';
-
-  @override
-  String get assetPlugin => 'Plugin asset';
-
-  @override
-  String get installed => 'Installato';
-
-  @override
-  String updateTo(String version) {
-    return 'Aggiorna a $version';
-  }
-
-  @override
-  String get install => 'Installa';
-
-  @override
-  String get error => 'Errore';
-
-  @override
-  String get ok => 'OK';
-
-  @override
-  String pluginSettings(String pluginName) {
-    return 'Impostazioni $pluginName';
-  }
-
-  @override
-  String get movies => 'Film';
-
-  @override
-  String get series => 'Serie TV';
-
-  @override
-  String get anime => 'Anime';
-
-  @override
-  String get liveStreams => 'Dirette live';
-
-  @override
-  String get debug => 'DEBUG';
-
-  @override
-  String extensionsUpdated(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count estensioni aggiornate',
-      one: '1 estensione aggiornata',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get invalidNavigation => 'Navigazione non valida. Torna indietro.';
-
-  @override
-  String get startOver => 'Ricomincia';
-
-  @override
-  String get goBack => 'Torna indietro';
-
-  @override
-  String get resolving => 'Risoluzione...';
-
-  @override
-  String get downloaded => 'Scaricato';
+  String get dub => 'Dub';
 
   @override
   String get download => 'Scarica';
 
   @override
-  String get debugOnlyFeature =>
-      'Questa funzione è disponibile solo nelle build di Debug';
+  String get downloading => 'Scaricamento';
 
   @override
-  String get streamUrl => 'URL Streaming';
+  String get downloaded => 'Scaricato';
 
   @override
-  String get play => 'Riproduci';
+  String get downloadNow => 'Scarica ora';
+
+  @override
+  String get confirmDownload => 'Conferma download';
+
+  @override
+  String get downloadUnavailable => 'Download non disponibile';
+
+  @override
+  String get downloadPaused => 'Download in pausa';
+
+  @override
+  String get downloadingUpdate => 'Scaricamento aggiornamento...';
+
+  @override
+  String get manageExtensions => 'Gestisci estensioni';
+
+  @override
+  String get deleteDownload => 'Elimina download';
+
+  @override
+  String get deleteDownloadPrompt => 'Elimina download?';
+
+  @override
+  String get deleteDownloadConfirmation =>
+      'Sei sicuro di voler eliminare questo file? L\'azione è irreversibile.';
+
+  @override
+  String get deleteAllEpisodes => 'Elimina tutti gli episodi';
+
+  @override
+  String confirmDeleteAllEpisodes(int count, String title) {
+    return 'Sei sicuro di voler eliminare tutti i $count episodi di \"$title\" e i relativi file?';
+  }
+
+  @override
+  String get noDownloadsYet => 'Nessun download presente';
+
+  @override
+  String get goToDownloads => 'Vai ai download';
+
+  @override
+  String get speed => 'Velocità';
+
+  @override
+  String get remaining => 'Rimanente';
+
+  @override
+  String get statusQueued => 'In coda...';
+
+  @override
+  String get statusDownloading => 'Scaricamento...';
+
+  @override
+  String get statusFinished => 'Finito';
+
+  @override
+  String get statusFailed => 'Fallito';
+
+  @override
+  String get statusCanceled => 'Annullato';
+
+  @override
+  String get statusPaused => 'In pausa';
+
+  @override
+  String get statusWaiting => 'In attesa...';
+
+  @override
+  String get fileNotFoundRemoving =>
+      'File non trovato sul disco. Rimozione record.';
+
+  @override
+  String get fileNotFound => 'File non trovato';
 
   @override
   String get verifyingSourceSize => 'Verifica fonte e dimensioni...';
@@ -740,91 +817,35 @@ class AppLocalizationsIt extends AppLocalizations {
       'Il file verrà salvato nella cartella Download.';
 
   @override
-  String get resumingPlayback => 'Ripresa riproduzione';
+  String get videoAlreadyDownloadedPrompt =>
+      'Questo video è già stato scaricato. Cosa vuoi fare?';
 
   @override
-  String pausedAt(String time) {
-    return 'In pausa a $time';
+  String size(int size) {
+    return 'Dimensione: $size';
   }
 
   @override
-  String resumesAutomatically(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Ripresa automatica tra $count secondi',
-      one: 'Ripresa automatica tra 1 secondo',
-    );
-    return '$_temp0';
-  }
+  String get deleteAll => 'Elimina tutto';
 
   @override
-  String get resumeNow => 'Riprendi ora';
+  String get completed => 'Completato';
 
   @override
-  String get playbackError => 'Errore riproduzione';
+  String get confirmDeleteDownload =>
+      'Sei sicuro di voler eliminare questo download e il relativo file?';
 
   @override
-  String get confirmClearHistory =>
-      'Sei sicuro di voler rimuovere tutti gli elementi dalla cronologia?';
+  String get libraryEmpty => 'La tua libreria è vuota';
 
   @override
-  String seasonWithNumber(Object number) {
-    return 'Stagione $number';
-  }
+  String get addedToLibrary => 'Added to library';
 
   @override
-  String get starting => 'Avvio...';
+  String get removedFromLibrary => 'Removed from library';
 
   @override
-  String percentWatched(int percent) {
-    return '$percent% guardato';
-  }
-
-  @override
-  String get sub => 'Sub';
-
-  @override
-  String get dub => 'Dub';
-
-  @override
-  String playEpisode(String label, Object season, Object episode) {
-    return '$label S$season E$episode';
-  }
-
-  @override
-  String playEpisodeOnly(String label, int episode) {
-    return '$label E$episode';
-  }
-
-  @override
-  String get debugTools => 'Strumenti debug';
-
-  @override
-  String get playLocalVideo => 'Riproduci file video locale';
-
-  @override
-  String get playLocalVideoSubtitle =>
-      'Riproduci qualsiasi video dal dispositivo';
-
-  @override
-  String get streamUrlSubtitle => 'Riproduci da URL di rete';
-
-  @override
-  String get streamTorrent => 'Streaming torrent';
-
-  @override
-  String get streamTorrentSubtitle =>
-      'Seleziona un file torrent locale per la riproduzione';
-
-  @override
-  String get loadPluginFromAssets => 'Carica plugin dagli asset';
-
-  @override
-  String get enterVideoUrlHint => 'Inserisci URL video (http, magnet, ecc.)';
-
-  @override
-  String get networkStream => 'Streaming di rete';
+  String get removeFromHistory => 'Rimuovi dalla cronologia';
 
   @override
   String removedFromHistory(String title) {
@@ -832,61 +853,199 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get custom => 'Personalizzato';
+  String get clearAllHistory => 'Cancella cronologia';
 
   @override
-  String get refreshingLiveStream => 'Aggiornamento diretta live...';
+  String get watchHistoryCleared => 'Cronologia cancellata';
 
   @override
-  String get removeFromHistory => 'Rimuovi dalla cronologia';
+  String get confirmClearHistory =>
+      'Sei sicuro di voler rimuovere tutti gli elementi dalla cronologia?';
 
   @override
-  String get live => 'LIVE';
-
-  @override
-  String get volume => 'Volume';
-
-  @override
-  String get brightness => 'Luminosità';
-
-  @override
-  String get fit => 'Adatta';
-
-  @override
-  String get zoom => 'Zoom';
-
-  @override
-  String get stretch => 'Allunga';
-
-  @override
-  String titleWithParam(String title) {
-    return 'Titolo: $title';
+  String syncedProgress(String percentage) {
+    return 'Synced progress: $percentage%';
   }
 
   @override
-  String sourceWithParam(String source) {
-    return 'Fonte: $source';
+  String get general => 'Generale';
+
+  @override
+  String get player => 'Lettore';
+
+  @override
+  String get network => 'Rete';
+
+  @override
+  String get appData => 'Dati applicazione';
+
+  @override
+  String get developer => 'Sviluppatore';
+
+  @override
+  String get about => 'Informazioni';
+
+  @override
+  String get system => 'Sistema';
+
+  @override
+  String get saveSettings => 'Save settings';
+
+  @override
+  String get applySettings => 'Apply Settings';
+
+  @override
+  String get resetToDefault => 'Ripristina predefiniti';
+
+  @override
+  String get appTheme => 'Tema applicazione';
+
+  @override
+  String get dark => 'Scuro';
+
+  @override
+  String get light => 'Chiaro';
+
+  @override
+  String get chooseTheme => 'Scegli tema';
+
+  @override
+  String get recordWatchHistory => 'Registra cronologia';
+
+  @override
+  String get defaultHomeScreen => 'Schermata home predefinita';
+
+  @override
+  String get titlePosition => 'Posizione del titolo';
+
+  @override
+  String get titlePositionBelowPoster => 'Sotto il poster';
+
+  @override
+  String get titlePositionInsidePoster => 'Nel poster';
+
+  @override
+  String get bigPictureMode => 'Experimental: Big Picture Mode';
+
+  @override
+  String get bigPictureModeSubtitle => 'Optimized for Gamepads and TV screens';
+
+  @override
+  String get targetDisplay => 'Preferred Display';
+
+  @override
+  String get whichMonitorShouldBigPictureUse =>
+      'Which monitor should Big Picture use?';
+
+  @override
+  String get language => 'Lingua';
+
+  @override
+  String get selectLanguage => 'Seleziona lingua';
+
+  @override
+  String get english => 'Inglese';
+
+  @override
+  String get hindi => 'Hindi';
+
+  @override
+  String get kannada => 'Kannada';
+
+  @override
+  String get unknown => 'Sconosciuto';
+
+  @override
+  String get defaultPlayer => 'Lettore predefinito';
+
+  @override
+  String get internalPlayer => 'Interno (media_kit)';
+
+  @override
+  String get builtInPlayer => 'Lettore integrato';
+
+  @override
+  String get customNotSet => 'Personalizzato (non impostato)';
+
+  @override
+  String get leftGesture => 'Gesto sinistro';
+
+  @override
+  String get rightGesture => 'Gesto destro';
+
+  @override
+  String selectGesture(String side) {
+    return 'Seleziona gesto $side';
   }
 
   @override
-  String sizeWithParam(String size) {
-    return 'Dimensione: $size';
-  }
+  String get left => 'Sinistra';
 
   @override
-  String usingInternalPlayerError(String error) {
-    return 'Errore: $error. Utilizzo del lettore interno.';
-  }
+  String get right => 'Destra';
 
   @override
-  String playerNotDetected(String playerName) {
-    return '$playerName non rilevato. Avvio lettore interno.';
-  }
+  String get doubleTapToSeek => 'Doppio tocco per cercare';
 
   @override
-  String seasonWithEpisodes(Object number, int count) {
-    return 'Stagione $number ($count Episodi)';
-  }
+  String get swipeToSeek => 'Scorri per cercare';
+
+  @override
+  String get seekDuration => 'Durata salto';
+
+  @override
+  String get selectSeekDuration => 'Durata salto';
+
+  @override
+  String get min => 'min';
+
+  @override
+  String get sec => 'sec';
+
+  @override
+  String get bufferDepth => 'Profondità buffer';
+
+  @override
+  String get selectBufferDepth => 'Profondità buffer';
+
+  @override
+  String get defaultResizeMode => 'Ridimensionamento predefinito';
+
+  @override
+  String get hardwareDecoding => 'Decodifica hardware';
+
+  @override
+  String get playerControls => 'Player Controls';
+
+  @override
+  String get playerControlsSubtitle => 'Show or hide player control buttons';
+
+  @override
+  String get showPip => 'Picture-in-Picture button';
+
+  @override
+  String get showResize => 'Resize button';
+
+  @override
+  String get showRotate => 'Rotate button';
+
+  @override
+  String get showPlaybackSpeed => 'Playback speed button';
+
+  @override
+  String get showEpisodes => 'Episodes button';
+
+  @override
+  String get dnsOverHttps => 'DNS su HTTPS';
+
+  @override
+  String get dohProvider => 'Provider DoH';
+
+  @override
+  String get customDohUrlLabel => 'URL DoH personalizzato';
+
+  @override
+  String get enterCustomDohUrl => 'Inserisci il tuo URL DoH';
 
   @override
   String get cloudflare => 'Cloudflare';
@@ -910,243 +1069,11 @@ class AppLocalizationsIt extends AppLocalizations {
   String get canadianShield => 'Canadian Shield';
 
   @override
-  String get tmdb => 'TMDB';
+  String get githubProxy => 'Proxy GitHub';
 
   @override
-  String selectSourceForPlayer(String playerName) {
-    return 'Seleziona fonte per $playerName';
-  }
-
-  @override
-  String get noPluginsInstalled => 'Nessun plugin installato';
-
-  @override
-  String get noPluginsMessage =>
-      'Installa le estensioni per sfogliare e trasmettere contenuti.';
-
-  @override
-  String get goToExtensions => 'Vai alle estensioni';
-
-  @override
-  String get availableSources => 'Fonti disponibili';
-
-  @override
-  String get seasons => 'Stagioni';
-
-  @override
-  String get episodes => 'Episodi';
-
-  @override
-  String get selectSourceToPlay => 'Seleziona una fonte sopra per riprodurre.';
-
-  @override
-  String episodeCountOnly(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Episodi',
-      one: '1 Episodio',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noEpisodesFound => 'Nessun episodio trovato';
-
-  @override
-  String get local => 'Locale';
-
-  @override
-  String get remote => 'Remoto';
-
-  @override
-  String get torrent => 'Torrent';
-
-  @override
-  String get unlock => 'Sblocca';
-
-  @override
-  String get lock => 'Blocca';
-
-  @override
-  String get sources => 'Fonti';
-
-  @override
-  String get tracks => 'Tracce';
-
-  @override
-  String get content => 'Contenuto';
-
-  @override
-  String get stats => 'Statistiche';
-
-  @override
-  String get resize => 'Ridimensiona';
-
-  @override
-  String get next => 'Successivo';
-
-  @override
-  String get pip => 'PiP';
-
-  @override
-  String get rotate => 'Ruota';
-
-  @override
-  String get windowed => 'Finestra';
-
-  @override
-  String get fullscreen => 'Schermo intero';
-
-  @override
-  String get movieDetails => 'Dettagli Film';
-
-  @override
-  String get showDetails => 'Mostra Dettagli';
-
-  @override
-  String get tagline => 'Tagline';
-
-  @override
-  String get status => 'Stato';
-
-  @override
-  String get releaseDate => 'Data d\'uscita';
-
-  @override
-  String get firstAirDate => 'Data prima messa in onda';
-
-  @override
-  String get originalLanguage => 'Lingua originale';
-
-  @override
-  String get originCountry => 'Paese d\'origine';
-
-  @override
-  String get budgetLabel => 'Budget';
-
-  @override
-  String get revenueLabel => 'Incasso';
-
-  @override
-  String get paused => 'In pausa';
-
-  @override
-  String get watched => 'Visto';
-
-  @override
-  String get watching => 'In visione';
-
-  @override
-  String get lastWatched => 'Ultima visione';
-
-  @override
-  String get movie => 'Film';
-
-  @override
-  String get tvShow => 'Serie TV';
-
-  @override
-  String get failedToLoadContent => 'Caricamento contenuti fallito';
-
-  @override
-  String get director => 'Regista';
-
-  @override
-  String get creator => 'Creatore';
-
-  @override
-  String get showMore => 'Mostra di più';
-
-  @override
-  String get showLess => 'Mostra meno';
-
-  @override
-  String get viewAll => 'Vedi tutto';
-
-  @override
-  String seasonsCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count Stagioni',
-      one: '1 Stagione',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get noInternetError => 'Nessuna connessione Internet';
-
-  @override
-  String get timeoutError => 'Richiesta scaduta. Riprova.';
-
-  @override
-  String get serverError => 'Errore del server. Riprova più tardi.';
-
-  @override
-  String get contentNotFoundError => 'Contenuto non trovato.';
-
-  @override
-  String get accessDeniedError =>
-      'Accesso negato. Controlla le tue credenziali.';
-
-  @override
-  String get serviceUnavailableError =>
-      'Server non disponibile. Riprova più tardi.';
-
-  @override
-  String get generalError => 'Si è verificato un errore. Per favore riprova.';
-
-  @override
-  String get skip => 'Salta';
-
-  @override
-  String get skipIntro => 'Skip Intro';
-
-  @override
-  String get skipOutro => 'Skip Outro';
-
-  @override
-  String get skipRecap => 'Skip Recap';
-
-  @override
-  String get goLive => 'Vai in diretta';
-
-  @override
-  String get dismiss => 'Chiudi';
-
-  @override
-  String get nextUp => 'Prossimo';
-
-  @override
-  String sourceAttempt(int index, int total) {
-    return 'Fonte $index di $total';
-  }
-
-  @override
-  String get trying => 'Tentativo';
-
-  @override
-  String get failed => 'Fallito';
-
-  @override
-  String get selected => 'Selezionato';
-
-  @override
-  String get playing => 'In riproduzione';
-
-  @override
-  String get pending => 'In attesa';
-
-  @override
-  String get openSubtitles => 'OpenSubtitles';
-
-  @override
-  String get subDl => 'SubDL';
-
-  @override
-  String get subSource => 'SubSource';
+  String get githubProxySubtitle =>
+      'Instrada i download delle estensioni tramite jsDelivr per aggirare i blocchi dell\'operatore.';
 
   @override
   String get wifiQualityPreference => 'Preferenza qualità Wi-Fi';
@@ -1158,10 +1085,169 @@ class AppLocalizationsIt extends AppLocalizations {
   String get anyNoPreference => 'Qualsiasi (nessuna preferenza)';
 
   @override
+  String get custom => 'Personalizzato';
+
+  @override
+  String get subtitleSettings => 'Impostazioni sottotitoli';
+
+  @override
+  String get subtitleAppearance => 'Subtitle Appearance';
+
+  @override
+  String get background => 'Sfondo';
+
+  @override
+  String get fontSettings => 'Font Settings';
+
+  @override
+  String get fontSize => 'Dimensione carattere';
+
+  @override
+  String get fontSizeSubtitle =>
+      'Overriding text size from subtitle files (6sp-60sp)';
+
+  @override
+  String get selectFontSize => 'Select Font Size';
+
+  @override
+  String get fileDefault => 'File Default';
+
+  @override
+  String get fontTypeface => 'Font Typeface';
+
+  @override
+  String get fontTypefaceSubtitle =>
+      'Choose from built-in fonts or load custom OTF/TTF';
+
+  @override
+  String get selectFontTypeface => 'Select Font Typeface';
+
+  @override
+  String get customFontFile => 'Custom Font File...';
+
+  @override
+  String get boldTextStyle => 'Bold Text Style';
+
+  @override
+  String get boldTextStyleSubtitle => 'Make subtitle text bold';
+
+  @override
+  String get italicTextStyle => 'Italic Text Style';
+
+  @override
+  String get italicTextStyleSubtitle => 'Make subtitle text slanted';
+
+  @override
+  String get textColor => 'Colore testo';
+
+  @override
+  String get navigateAndSelectColor => 'Navigate and select color';
+
+  @override
+  String get edgeSettings => 'Edge Settings';
+
+  @override
+  String get edgeType => 'Edge Type';
+
+  @override
+  String get edgeTypeSubtitle => 'Text borders/shadows (outline default)';
+
+  @override
+  String get selectEdgeType => 'Select Edge Type';
+
+  @override
+  String get edgeOutline => 'Outline';
+
+  @override
+  String get edgeDepressed => 'Depressed';
+
+  @override
+  String get edgeDropShadow => 'Drop Shadow';
+
+  @override
+  String get edgeRaised => 'Raised';
+
+  @override
+  String get edgeStrokeSize => 'Edge Stroke Size';
+
+  @override
+  String get edgeStrokeSizeSubtitle => 'Thicker outline borders (1px-60px)';
+
+  @override
+  String get outlineColor => 'Outline Color';
+
+  @override
+  String get backgroundAndLayout => 'Background & Layout';
+
+  @override
+  String get backgroundPillColor => 'Background Pill Color';
+
+  @override
+  String get backgroundOpacity => 'Opacità sfondo';
+
+  @override
+  String get backgroundOpacitySubtitle => 'Pill opacity level (0% to 100%)';
+
+  @override
+  String get selectCornerRadius => 'Select Corner Radius';
+
+  @override
+  String get noneSharp => 'None (Sharp)';
+
+  @override
+  String get backgroundCornerRadius => 'Background Corner Radius';
+
+  @override
+  String get backgroundCornerRadiusSubtitle =>
+      'Round background corners (5px-50px)';
+
+  @override
+  String get elevationBottomPadding => 'Elevation (Bottom padding)';
+
+  @override
+  String get elevationSubtitle => 'Push subtitles higher (0dp-400dp)';
+
+  @override
+  String get selectAlignment => 'Select Alignment';
+
+  @override
+  String get autoExoAssDefault => 'Auto (Exo/Ass default)';
+
+  @override
+  String get alignment => 'Alignment';
+
+  @override
+  String get alignmentSubtitle => 'Screen alignment (SSA 1-9 coordinates)';
+
+  @override
+  String get contentCleaningAndFiltering => 'Content Cleaning & Filtering';
+
+  @override
+  String get removeBloat => 'Remove Bloat';
+
+  @override
+  String get removeBloatSubtitle =>
+      'Strip OpenSubtitles ads/promos (re-parses stream)';
+
+  @override
+  String get removeCaptions => 'Remove Captions';
+
+  @override
+  String get removeCaptionsSubtitle =>
+      'Strips bracketed text like [Music] or (cough)';
+
+  @override
+  String get forceUppercase => 'Force Uppercase';
+
+  @override
+  String get forceUppercaseSubtitle =>
+      'Display all subtitle cues in capital letters';
+
+  @override
   String get subtitleAccounts => 'Account sottotitoli';
 
   @override
-  String get accounts => 'Accounts';
+  String get accounts => 'Account';
 
   @override
   String get notLoggedIn => 'Accesso non effettuato';
@@ -1211,6 +1297,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get invalidApiKey => 'Chiave API non valida';
 
   @override
+  String get openSubtitles => 'OpenSubtitles';
+
+  @override
+  String get subDl => 'SubDL';
+
+  @override
+  String get subSource => 'SubSource';
+
+  @override
+  String get tmdb => 'TMDB';
+
+  @override
   String get openSubtitlesAuthSubtitle =>
       'Inserisci le tue credenziali per limiti più elevati e sottotitoli senza pubblicità.';
 
@@ -1237,15 +1335,175 @@ class AppLocalizationsIt extends AppLocalizations {
       'Ottieni la tua chiave API dal profilo SubSource';
 
   @override
-  String get qualityNotGuaranteed =>
-      'La qualità non è garantita. Le fonti sono ordinate per preferenza, ma dipendono dall\'offerta effettiva del fornitore.';
-
-  @override
-  String get keepSourcesOriginalOrder =>
-      'Mantieni l\'ordine originale delle fonti';
-
-  @override
   String get openLink => 'Apri link';
+
+  @override
+  String pluginSettings(String pluginName) {
+    return 'Impostazioni $pluginName';
+  }
+
+  @override
+  String get noConfigurableSettings =>
+      'This extension does not define configurable settings.';
+
+  @override
+  String get installRemoveProviders => 'Installa o rimuovi provider';
+
+  @override
+  String get selectProvider => 'Seleziona provider';
+
+  @override
+  String get noPluginsInstalled => 'Nessun plugin installato';
+
+  @override
+  String get noPluginsMessage =>
+      'Installa le estensioni per sfogliare e trasmettere contenuti.';
+
+  @override
+  String get goToExtensions => 'Vai alle estensioni';
+
+  @override
+  String get noReposFound => 'Nessun repository o plugin trovato';
+
+  @override
+  String get downloadAllProviders => 'Scarica tutto';
+
+  @override
+  String get removeRepository => 'Rimuovi repository';
+
+  @override
+  String get addRepo => 'Aggiungi repository';
+
+  @override
+  String get extensionsNotInRepos => 'Estensioni non nei repository';
+
+  @override
+  String get noLongerInRepo => 'Non più presente in alcun repository';
+
+  @override
+  String get addRepoToBrowse =>
+      'Aggiungi un repository per sfogliare e aggiornare i plugin';
+
+  @override
+  String removeRepoConfirm(String repoName) {
+    return 'Rimuovere $repoName?';
+  }
+
+  @override
+  String get removeRepoWarning =>
+      'Questo rimuoverà il repository e disinstallerà TUTTI i suoi plugin.';
+
+  @override
+  String get addRepository => 'Aggiungi repository';
+
+  @override
+  String get repoUrlOrShortcode => 'URL o Shortcode repository';
+
+  @override
+  String get assetPlugin => 'Plugin asset';
+
+  @override
+  String get installed => 'Installato';
+
+  @override
+  String get repositories => 'Repository';
+
+  @override
+  String get noExtensionsInstalled => 'Nessuna estensione installata';
+
+  @override
+  String get browseRepositoriesToInstall =>
+      'Apri la scheda Repository per scoprire e installare estensioni.';
+
+  @override
+  String get browseRepositories => 'Sfoglia i repository';
+
+  @override
+  String get addRepoDescription =>
+      'Aggiungi l\'URL di un repository o un codice breve per scoprire e installare plugin di estensione.';
+
+  @override
+  String updateTo(String version) {
+    return 'Aggiorna a $version';
+  }
+
+  @override
+  String extensionsUpdated(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count estensioni aggiornate',
+      one: '1 estensione aggiornata',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadPluginFromAssets => 'Carica plugin dagli asset';
+
+  @override
+  String get resetDataKeepExtensions => 'Ripristina dati (mantieni estensioni)';
+
+  @override
+  String get resetDataSubtitle =>
+      'Cancella impostazioni e database, mantieni plugin';
+
+  @override
+  String get resetDataDialogTitle => 'Ripristina dati?';
+
+  @override
+  String get resetDataDialogContent =>
+      'Questo cancellerà Impostazioni, Preferiti e Cronologia. Le estensioni installate NON verranno eliminate.';
+
+  @override
+  String get factoryReset => 'Ripristino di fabbrica';
+
+  @override
+  String get factoryResetSubtitle =>
+      'Elimina tutti i dati, impostazioni ed estensioni';
+
+  @override
+  String get factoryResetDialogTitle => 'Ripristino di fabbrica?';
+
+  @override
+  String get factoryResetDialogContent =>
+      'Questo eliminerà TUTTO: Preferiti, Cronologia, Impostazioni e TUTTE le estensioni. L\'azione è irreversibile.';
+
+  @override
+  String get clearCache => 'Clear image and video cache';
+
+  @override
+  String get clearCacheSubtitle =>
+      'Frees up storage used by cached images and videos';
+
+  @override
+  String get clearCacheDialogTitle => 'Clear cache?';
+
+  @override
+  String get clearCacheDialogContent =>
+      'This will delete cached images and video files. Your settings, history, and extensions will not be affected.';
+
+  @override
+  String get clearCacheNow => 'Clear Cache';
+
+  @override
+  String get cacheCleared => 'Cache cleared';
+
+  @override
+  String get calculating => 'Calculating…';
+
+  @override
+  String get developerOptions => 'Opzioni sviluppatore';
+
+  @override
+  String get developerOptionsSubtitle =>
+      'Strumenti di debug e riproduzione locale';
+
+  @override
+  String get debugExtensions => 'Debug estensioni';
+
+  @override
+  String get debugTools => 'Strumenti debug';
 
   @override
   String get diagnostics => 'Diagnostica';
@@ -1258,5 +1516,118 @@ class AppLocalizationsIt extends AppLocalizations {
       'Visualizza attività ed errori dell\'applicazione';
 
   @override
-  String get bookmarked => 'Bookmarked';
+  String get debug => 'DEBUG';
+
+  @override
+  String get debugOnlyFeature =>
+      'Questa funzione è disponibile solo nelle build di Debug';
+
+  @override
+  String get version => 'Versione';
+
+  @override
+  String get discord => 'Discord';
+
+  @override
+  String get discordSubtitle => 'Unisciti al nostro server';
+
+  @override
+  String get telegram => 'Telegram';
+
+  @override
+  String get telegramSubtitle => 'Unisciti al nostro canale';
+
+  @override
+  String developedBy(String name) {
+    return 'Sviluppato da $name';
+  }
+
+  @override
+  String get updateAvailable => 'Aggiornamento disponibile';
+
+  @override
+  String updateAvailableTag(String tag) {
+    return 'Aggiornamento disponibile: $tag';
+  }
+
+  @override
+  String get error => 'Errore';
+
+  @override
+  String errorPrefix(String message) {
+    return 'Errore: $message';
+  }
+
+  @override
+  String errorDetails(String error) {
+    return 'Dettagli errore: $error';
+  }
+
+  @override
+  String get startupError => 'Errore di avvio';
+
+  @override
+  String get noInternetConnection => 'Nessuna connessione Internet';
+
+  @override
+  String get siteNotReachable => 'Sito non raggiungibile';
+
+  @override
+  String get checkConnectionOrDownloads =>
+      'Controlla la connessione o guarda i contenuti scaricati.';
+
+  @override
+  String get tryVpnOrConnection =>
+      'Prova ad accedere con una VPN o controlla la connessione.';
+
+  @override
+  String get noInternetError => 'Nessuna connessione Internet';
+
+  @override
+  String get timeoutError => 'Richiesta scaduta. Riprova.';
+
+  @override
+  String get serverError => 'Errore del server. Riprova più tardi.';
+
+  @override
+  String get contentNotFoundError => 'Contenuto non trovato.';
+
+  @override
+  String get accessDeniedError =>
+      'Accesso negato. Controlla le tue credenziali.';
+
+  @override
+  String get serviceUnavailableError =>
+      'Server non disponibile. Riprova più tardi.';
+
+  @override
+  String get generalError => 'Si è verificato un errore. Per favore riprova.';
+
+  @override
+  String usingInternalPlayerError(String error) {
+    return 'Errore: $error. Utilizzo del lettore interno.';
+  }
+
+  @override
+  String playerNotDetected(String playerName) {
+    return '$playerName non rilevato. Avvio lettore interno.';
+  }
+
+  @override
+  String get failedToLoadContent => 'Caricamento contenuti fallito';
+
+  @override
+  String get invalidNavigation => 'Navigazione non valida. Torna indietro.';
+
+  @override
+  String get playbackError => 'Errore riproduzione';
+
+  @override
+  String get exitApp => 'Exit SkyStream';
+
+  @override
+  String get confirmExitTitle => 'Exit SkyStream?';
+
+  @override
+  String get confirmExitMessage => 'Are you sure you want to exit the app?';
 }
