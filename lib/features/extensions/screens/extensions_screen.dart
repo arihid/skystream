@@ -1,34 +1,101 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/layout_constants.dart';
+import '../../../core/providers/device_info_provider.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
 import '../../../core/extensions/models/extension_repository.dart';
+import '../../../core/extensions/extension_manager.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../providers/extensions_controller.dart';
-import '../widgets/plugin_settings_dialog.dart';
+import '../../nuvio/presentation/nuvio_plugins_view.dart';
+import 'plugin_settings_screen.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
+// TV/Gamepad Feature Imports
+import '../../../shared/widgets/gamepad_hints_overlay.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 class ExtensionsScreen extends ConsumerStatefulWidget {
-  const ExtensionsScreen({super.key});
+  final bool isEmbedded;
+
+  const ExtensionsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<ExtensionsScreen> createState() => _ExtensionsScreenState();
 }
 
-class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
+class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
+    with TickerProviderStateMixin {
   bool _didEnsureInit = false;
+  late TabController _tabController;
+
+  final FocusNode _installedFocusNode = FocusNode(
+    debugLabel: 'installed_tab_anchor',
+  );
+  final FocusNode _reposFocusNode = FocusNode(debugLabel: 'repos_tab_anchor');
+  final FocusNode _nuvioFocusNode = FocusNode(debugLabel: 'nuvio_tab_anchor');
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        if (_tabController.index == 0) {
+          _installedFocusNode.requestFocus();
+        } else if (_tabController.index == 1) {
+          _reposFocusNode.requestFocus();
+        } else if (_tabController.index == 2) {
+          _nuvioFocusNode.requestFocus();
+        }
+      }
+    });
+  }
+
+  void _switchTab(int index) {
+    if (_tabController.index == index) return;
+    _tabController.animateTo(index);
+
+    // Give TabBarView time to animate before requesting focus
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      if (index == 0 && _installedFocusNode.canRequestFocus) {
+        _installedFocusNode.requestFocus();
+      } else if (index == 1 && _reposFocusNode.canRequestFocus) {
+        _reposFocusNode.requestFocus();
+      } else if (index == 2 && _nuvioFocusNode.canRequestFocus) {
+        _nuvioFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _installedFocusNode.dispose();
+    _reposFocusNode.dispose();
+    _nuvioFocusNode.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     if (!_didEnsureInit) {
       _didEnsureInit = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(extensionsControllerProvider.notifier).ensureInitialized();
       });
     }
-    // Listen for errors
+
     ref.listen(extensionsControllerProvider, (previous, next) {
       if (next is ExtensionsError &&
           (previous is! ExtensionsError || previous.message != next.message)) {
@@ -39,6 +106,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
             content: Text(next.message),
             actions: [
               TextButton(
+                autofocus: true,
                 onPressed: () => Navigator.pop(context),
                 child: Text(l10n.ok),
               ),
@@ -50,148 +118,438 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
 
     final state = ref.watch(extensionsControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.extensions)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: switch (state) {
-            ExtensionsLoading(repositories: []) => const Center(
-              child: AppLoadingIndicator(),
+    if (widget.isEmbedded) {
+      return switch (state) {
+        ExtensionsLoading(repositories: []) => const Center(
+          child: AppLoadingIndicator(),
+        ),
+        _ => Actions(
+          actions: <Type, Action<Intent>>{
+            AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+              onInvoke: (_) {
+                _switchTab((_tabController.index - 1 + 3) % 3);
+                return null;
+              },
             ),
-            _ => ListView.builder(
-              padding: const EdgeInsets.only(bottom: 24),
-              addAutomaticKeepAlives:
-                  false, // Fixes D-pad focus traversal crash when ExpansionTiles are cached off-screen
-              itemCount: _calculateItemCount(state),
-              itemBuilder: (context, index) {
-                final debugPlugins = state.installedPlugins
-                    .where((p) => p.isDebug)
-                    .toList();
-                final hasDebug = debugPlugins.isNotEmpty;
-
-                final installedPlugins = state.installedPlugins
-                    .where((p) => !p.isDebug)
-                    .toList();
-
-                final allAvailablePackageNames = state.availablePlugins.values
-                    .expand((list) => list)
-                    .map((p) => p.packageName)
-                    .toSet();
-                final installedOnlyPlugins = state.installedPlugins
-                    .where(
-                      (p) =>
-                          !p.isDebug &&
-                          !allAvailablePackageNames.contains(p.packageName),
-                    )
-                    .toList();
-                final hasInstalledOnly = installedOnlyPlugins.isNotEmpty;
-                final isEmpty =
-                    state.repositories.isEmpty &&
-                    state.installedPlugins.isEmpty;
-
-                int currentIndex = 0;
-
-                // 1. Debug Section
-                if (hasDebug) {
-                  if (index == currentIndex) {
-                    return _buildDebugSection(context, debugPlugins);
-                  }
-                  currentIndex++;
-                }
-
-                // 1.5. Installed Section (Always present)
-                if (index == currentIndex) {
-                  return _buildInstalledSection(context, ref, installedPlugins);
-                }
-                currentIndex++;
-
-                // 2. Installed Only Section
-                if (hasInstalledOnly) {
-                  if (index == currentIndex) {
-                    return _buildInstalledOnlySection(
-                      context,
-                      ref,
-                      installedOnlyPlugins,
-                      hasRepos: state.repositories.isNotEmpty,
-                    );
-                  }
-                  currentIndex++;
-                }
-
-                // 3. Empty State Text
-                if (isEmpty) {
-                  if (index == currentIndex) {
-                    return Padding(
-                      padding: const EdgeInsets.all(LayoutConstants.spacingLg),
-                      child: Center(child: Text(l10n.noReposFound)),
-                    );
-                  }
-                  currentIndex++;
-                }
-
-                // 4. Repositories
-                if (index >= currentIndex &&
-                    index < currentIndex + state.repositories.length) {
-                  final repoIndex = index - currentIndex;
-                  final repo = state.repositories[repoIndex];
-                  final plugins = state.availablePlugins[repo.url] ?? [];
-                  return _buildRepositoryCard(
-                    context,
-                    ref,
-                    state,
-                    repo,
-                    plugins,
-                    l10n,
-                  );
-                }
-                currentIndex += state.repositories.length;
-
-                // 5. Add Repository Button (Always at the end)
-                if (index == currentIndex) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: LayoutConstants.spacingMd,
-                      vertical: LayoutConstants.spacingSm,
-                    ),
-                    child: Card(
-                      margin: EdgeInsets.zero,
-                      elevation: 0,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.05),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: ListTile(
-                        leading: Icon(
-                          Icons.add_circle_outline,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        title: Text(
-                          l10n.addRepo,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        onTap: () => _showAddRepoDialog(context, ref),
-                      ),
-                    ),
-                  );
-                }
-
-                return const SizedBox.shrink();
+            AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+              onInvoke: (_) {
+                _switchTab((_tabController.index + 1) % 3);
+                return null;
               },
             ),
           },
+          child: Column(
+            children: [
+              ExcludeFocus(
+                excluding: isBigPicture, // Trap D-Pad inside content
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: LayoutConstants.dashboardContentPadding,
+                  ),
+                  alignment: Alignment.center,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.center,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 3,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
+                      ),
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      dividerColor: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.2),
+                      tabs: [
+                        Tab(text: l10n.installed),
+                        Tab(text: l10n.repositories),
+                        const Tab(text: 'Nuvio'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _KeepAliveTab(
+                          child: _buildInstalledTab(context, ref, state),
+                        ),
+                        _KeepAliveTab(
+                          child: _buildRepositoriesTab(context, ref, state),
+                        ),
+                        _KeepAliveTab(
+                          child: Focus(
+                            focusNode: _nuvioFocusNode,
+                            // When the wrapper gets focus, instantly pass it down to Nuvio's internal list
+                            onFocusChange: (focused) {
+                              if (focused) _nuvioFocusNode.nextFocus();
+                            },
+                            child: const NuvioPluginsView(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      };
+    }
+
+    return switch (state) {
+      ExtensionsLoading(repositories: []) => Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: !isBigPicture,
+          title: Text(l10n.extensions),
+        ),
+        body: const Center(child: AppLoadingIndicator()),
+      ),
+      _ => Actions(
+        actions: <Type, Action<Intent>>{
+          AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
+            onInvoke: (_) {
+              _switchTab((_tabController.index - 1 + 3) % 3);
+              return null;
+            },
+          ),
+          AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
+            onInvoke: (_) {
+              _switchTab((_tabController.index + 1) % 3);
+              return null;
+            },
+          ),
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: !isBigPicture,
+            title: Text(l10n.extensions),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(48),
+              child: ExcludeFocus(
+                excluding: isBigPicture, // Trap D-Pad inside content
+                child: Container(
+                  alignment: Alignment.center,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.center,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    dividerColor: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.2),
+                    tabs: [
+                      Tab(text: l10n.installed),
+                      Tab(text: l10n.repositories),
+                      const Tab(text: 'Nuvio'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: TabBarView(
+                controller: _tabController,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _KeepAliveTab(child: _buildInstalledTab(context, ref, state)),
+                  _KeepAliveTab(
+                    child: _buildRepositoriesTab(context, ref, state),
+                  ),
+                  _KeepAliveTab(
+                    child: Focus(
+                      focusNode: _nuvioFocusNode,
+                      // When the wrapper gets focus, instantly pass it down to Nuvio's internal list
+                      onFocusChange: (focused) {
+                        if (focused) _nuvioFocusNode.nextFocus();
+                      },
+                      child: const NuvioPluginsView(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    };
+  }
+
+  Widget _buildInstalledTab(
+    BuildContext context,
+    WidgetRef ref,
+    ExtensionsState state,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final debugPlugins = state.installedPlugins
+        .where((p) => p.isDebug)
+        .toList();
+    final hasDebug = debugPlugins.isNotEmpty;
+
+    final allAvailablePackageNames = state.availablePlugins.values
+        .expand((list) => list)
+        .map((p) => p.packageName)
+        .toSet();
+
+    final installedPlugins = state.installedPlugins
+        .where(
+          (p) =>
+              !p.isDebug &&
+              (state.availablePlugins.isEmpty ||
+                  allAvailablePackageNames.contains(p.packageName)),
+        )
+        .toList();
+
+    final installedOnlyPlugins = state.installedPlugins
+        .where(
+          (p) =>
+              !p.isDebug &&
+              state.availablePlugins.isNotEmpty &&
+              !allAvailablePackageNames.contains(p.packageName),
+        )
+        .toList();
+    final hasInstalledOnly = installedOnlyPlugins.isNotEmpty;
+
+    if (state.installedPlugins.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(LayoutConstants.spacingLg),
+        children: [
+          const SizedBox(height: LayoutConstants.spacingLg),
+          _SectionCard(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(LayoutConstants.spacingLg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.extension_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingMd),
+                  Text(
+                    l10n.noExtensionsInstalled,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingSm),
+                  Text(
+                    l10n.browseRepositoriesToInstall,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingLg),
+                  FilledButton.icon(
+                    focusNode: _installedFocusNode,
+                    onFocusChange: (f) {
+                      if (f && mounted) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state = [
+                          GamepadHint(
+                            buttonLabel: 'LB',
+                            actionLabel: l10n.hintPrevTab,
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'RB',
+                            actionLabel: l10n.hintNextTab,
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: l10n.hintBrowse,
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                        ];
+                      }
+                    },
+                    icon: const Icon(Icons.explore_outlined),
+                    label: Text(l10n.browseRepositories),
+                    onPressed: () => _switchTab(1),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    ExtensionPlugin? firstPlugin;
+    if (hasDebug) {
+      firstPlugin = debugPlugins.first;
+    } else if (installedPlugins.isNotEmpty) {
+      firstPlugin = installedPlugins.first;
+    } else if (installedOnlyPlugins.isNotEmpty) {
+      firstPlugin = installedOnlyPlugins.first;
+    }
+
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: ListView(
+        padding: const EdgeInsets.only(
+          bottom: 100, // Upstream spacing
+          top: LayoutConstants.spacingMd,
+        ),
+        children: [
+          if (hasDebug) _buildDebugSection(context, debugPlugins, firstPlugin),
+          _buildInstalledSection(context, ref, installedPlugins, firstPlugin),
+          if (hasInstalledOnly)
+            _buildInstalledOnlySection(
+              context,
+              ref,
+              installedOnlyPlugins,
+              state.repositories.isNotEmpty,
+              firstPlugin,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRepositoriesTab(
+    BuildContext context,
+    WidgetRef ref,
+    ExtensionsState state,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final isEmpty = state.repositories.isEmpty;
+
+    if (isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(LayoutConstants.spacingLg),
+        children: [
+          const SizedBox(height: LayoutConstants.spacingLg),
+          _SectionCard(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(LayoutConstants.spacingLg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.snippet_folder_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingMd),
+                  Text(
+                    l10n.noReposFound,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingSm),
+                  Text(
+                    l10n.addRepoDescription,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: LayoutConstants.spacingLg),
+                  FilledButton.icon(
+                    focusNode: _reposFocusNode,
+                    onFocusChange: (f) {
+                      if (f && mounted) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state = [
+                          GamepadHint(
+                            buttonLabel: 'LB',
+                            actionLabel: l10n.hintPrevTab,
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'RB',
+                            actionLabel: l10n.hintNextTab,
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: l10n.hintAddRepo,
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                        ];
+                      }
+                    },
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: Text(l10n.addRepository),
+                    onPressed: () => _showAddRepoDialog(context, ref),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: ListView.builder(
+        padding: const EdgeInsets.only(
+          bottom: 100, // Upstream spacing
+          top: LayoutConstants.spacingMd,
+        ),
+        itemCount: state.repositories.length + 1,
+        itemBuilder: (context, index) {
+          if (index < state.repositories.length) {
+            final repo = state.repositories[index];
+            final plugins = state.availablePlugins[repo.url] ?? [];
+            return _RepoExpansionCard(
+              repo: repo,
+              plugins: plugins,
+              state: state,
+              focusNode: index == 0 ? _reposFocusNode : null,
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LayoutConstants.spacingMd,
+              vertical: LayoutConstants.spacingSm,
+            ),
+            child: _AddRepoTile(onTap: () => _showAddRepoDialog(context, ref)),
+          );
+        },
       ),
     );
   }
@@ -200,86 +558,59 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
     BuildContext context,
     WidgetRef ref,
     List<ExtensionPlugin> plugins,
+    ExtensionPlugin? firstPlugin,
   ) {
-    return Card(
-      margin: const EdgeInsets.all(LayoutConstants.spacingMd),
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor),
+    if (plugins.isEmpty) return const SizedBox.shrink();
+
+    return _SectionCard(
+      margin: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.spacingMd,
+        vertical: LayoutConstants.spacingXs,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        key: const PageStorageKey('installed_extensions'),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        initiallyExpanded: plugins.isNotEmpty,
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: LayoutConstants.spacingMd,
-          vertical: LayoutConstants.spacingXs,
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LayoutConstants.spacingMd,
+              vertical: LayoutConstants.spacingSm + 4,
             ),
-            const SizedBox(width: LayoutConstants.spacingSm),
-            Text(
-              'Installed Extensions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        children: plugins.isEmpty
-            ? [
-                Divider(
-                  height: 1,
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 22,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(LayoutConstants.spacingMd),
-                  child: Center(
-                    child: Text(
-                      'No extensions installed',
-                      style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withValues(alpha: 0.7),
-                        fontSize: 14,
-                      ),
-                    ),
+                const SizedBox(width: LayoutConstants.spacingSm),
+                Text(
+                  'Installed Extensions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ]
-            : plugins.asMap().entries.map((entry) {
-                final isLast = entry.key == plugins.length - 1;
-                return Column(
-                  children: [
-                    if (entry.key == 0)
-                      Divider(
-                        height: 1,
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                      ),
-                    _PluginTile(plugin: entry.value),
-                    if (!isLast)
-                      Divider(
-                        height: 1,
-                        indent: 56,
-                        endIndent: 16,
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                      ),
-                  ],
-                );
-              }).toList(),
+              ],
+            ),
+          ),
+          Divider(
+            height: 1,
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
+          for (int i = 0; i < plugins.length; i++) ...[
+            _PluginTile(
+              plugin: plugins[i],
+              focusNode: plugins[i] == firstPlugin ? _installedFocusNode : null,
+            ),
+            if (i < plugins.length - 1)
+              Divider(
+                height: 1,
+                indent: 56,
+                endIndent: 16,
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+              ),
+          ],
+        ],
       ),
     );
   }
@@ -287,73 +618,73 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
   Widget _buildInstalledOnlySection(
     BuildContext context,
     WidgetRef ref,
-    List<ExtensionPlugin> plugins, {
-    required bool hasRepos,
-  }) {
+    List<ExtensionPlugin> plugins,
+    bool hasRepos,
+    ExtensionPlugin? firstPlugin,
+  ) {
+    if (plugins.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      margin: const EdgeInsets.all(LayoutConstants.spacingMd),
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor),
+    return _SectionCard(
+      margin: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.spacingMd,
+        vertical: LayoutConstants.spacingXs,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        key: const PageStorageKey('installed_only_extensions'),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        initiallyExpanded: true,
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: LayoutConstants.spacingMd,
-          vertical: LayoutConstants.spacingXs,
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.extension,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LayoutConstants.spacingMd,
+              vertical: LayoutConstants.spacingSm + 4,
             ),
-            const SizedBox(width: LayoutConstants.spacingSm),
-            Text(
-              l10n.extensionsNotInRepos,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.extension_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: LayoutConstants.spacingSm),
+                    Text(
+                      l10n.extensionsNotInRepos,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasRepos ? l10n.noLongerInRepo : l10n.addRepoToBrowse,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        subtitle: Text(
-          hasRepos ? l10n.noLongerInRepo : l10n.addRepoToBrowse,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-        ),
-        children: plugins.asMap().entries.map((entry) {
-          final isLast = entry.key == plugins.length - 1;
-          return Column(
-            children: [
-              if (entry.key == 0)
-                Divider(
-                  height: 1,
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                ),
-              _PluginTile(plugin: entry.value),
-              if (!isLast)
-                Divider(
-                  height: 1,
-                  indent: 56,
-                  endIndent: 16,
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                ),
-            ],
-          );
-        }).toList(),
+          Divider(
+            height: 1,
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
+          for (int i = 0; i < plugins.length; i++) ...[
+            _PluginTile(
+              plugin: plugins[i],
+              focusNode: plugins[i] == firstPlugin ? _installedFocusNode : null,
+            ),
+            if (i < plugins.length - 1)
+              Divider(
+                height: 1,
+                indent: 56,
+                endIndent: 16,
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+              ),
+          ],
+        ],
       ),
     );
   }
@@ -361,280 +692,57 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
   Widget _buildDebugSection(
     BuildContext context,
     List<ExtensionPlugin> debugPlugins,
+    ExtensionPlugin? firstPlugin,
   ) {
+    if (debugPlugins.isEmpty) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      margin: const EdgeInsets.all(LayoutConstants.spacingMd),
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.5),
-        ),
+    return _SectionCard(
+      margin: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.spacingMd,
+        vertical: LayoutConstants.spacingXs,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        key: const PageStorageKey('debug_extensions'),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        initiallyExpanded: true,
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: LayoutConstants.spacingMd,
-          vertical: LayoutConstants.spacingXs,
-        ),
-        title: Text(
-          l10n.debugExtensions,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Theme.of(context).colorScheme.tertiary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        children: debugPlugins.asMap().entries.map((entry) {
-          final isLast = entry.key == debugPlugins.length - 1;
-          return Column(
-            children: [
-              _PluginTile(plugin: entry.value, isDebugSection: true),
-              if (!isLast)
-                Divider(
-                  height: 1,
-                  indent: 16,
-                  endIndent: 16,
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
-                ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  int _calculateItemCount(ExtensionsState state) {
-    final hasDebug = state.installedPlugins.any((p) => p.isDebug);
-    final allAvailablePackageNames = state.availablePlugins.values
-        .expand((list) => list)
-        .map((p) => p.packageName)
-        .toSet();
-    final hasInstalledOnly = state.installedPlugins.any(
-      (p) => !p.isDebug && !allAvailablePackageNames.contains(p.packageName),
-    );
-    final isEmpty =
-        state.repositories.isEmpty && state.installedPlugins.isEmpty;
-
-    return (hasDebug ? 1 : 0) +
-        1 + // Always show Installed Extensions tile
-        (hasInstalledOnly ? 1 : 0) +
-        (isEmpty ? 1 : 0) + // Empty state text
-        1 + // Add Repository tile
-        state.repositories.length;
-  }
-
-  Widget _buildRepositoryCard(
-    BuildContext context,
-    WidgetRef ref,
-    ExtensionsState state,
-    ExtensionRepository repo,
-    List<ExtensionPlugin> plugins,
-    AppLocalizations l10n,
-  ) {
-    // True when every plugin in this repo is already installed (non-debug).
-    final allInstalled =
-        plugins.isNotEmpty &&
-        plugins.every(
-          (p) => state.installedPlugins.any(
-            (i) => !i.isDebug && i.packageName == p.packageName,
-          ),
-        );
-
-    final isRepoInstalling = plugins.any(
-      (p) => state.installingPlugins.contains(p.packageName),
-    );
-
-    return Card(
-      margin: const EdgeInsets.only(
-        bottom: LayoutConstants.spacingMd,
-        left: LayoutConstants.spacingMd,
-        right: LayoutConstants.spacingMd,
-      ),
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        key: PageStorageKey('repo_${repo.url}'),
-        shape: const Border(),
-        collapsedShape: const Border(),
-        // Start collapsed — repos can be individually expanded.
-        initiallyExpanded: false,
-        backgroundColor: Colors.transparent,
-        collapsedBackgroundColor: Colors.transparent,
-        tilePadding: const EdgeInsets.symmetric(
-          horizontal: LayoutConstants.spacingMd,
-          vertical: LayoutConstants.spacingXs,
-        ),
-        // Embed description directly in the title so the buttons stay
-        // vertically centred with the whole block and there is no extra
-        // gap that the ExpansionTile subtitle property introduces.
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              repo.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (repo.description?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 2),
-              Text(
-                repo.description!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ),
+      borderColor: Theme.of(
+        context,
+      ).colorScheme.tertiary.withValues(alpha: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Repository Actions (Download All / Delete) moved inside children
-          // to prevent D-pad focus conflicts with the ExpansionTile header.
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: LayoutConstants.spacingMd,
-              vertical: LayoutConstants.spacingXs,
+              vertical: LayoutConstants.spacingSm + 4,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (isRepoInstalling)
-                  const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: AppLoadingIndicator(
-                      constraints: BoxConstraints(
-                        minWidth: 24,
-                        minHeight: 24,
-                        maxWidth: 24,
-                        maxHeight: 24,
-                      ),
-                    ),
-                  )
-                else ...[
-                  // Download-all / all-installed indicator.
-                  TextButton.icon(
-                    icon: Icon(
-                      allInstalled
-                          ? Icons.check_circle_outline
-                          : Icons.download,
-                      color: allInstalled
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
-                    label: Text(
-                      allInstalled
-                          ? 'All installed'
-                          : l10n.downloadAllProviders,
-                    ),
-                    onPressed: allInstalled || plugins.isEmpty
-                        ? null
-                        : () {
-                            final pluginsToInstall = plugins.where((p) {
-                              final installed = state.installedPlugins
-                                  .cast<ExtensionPlugin?>()
-                                  .firstWhere(
-                                    (inst) =>
-                                        inst?.packageName == p.packageName,
-                                    orElse: () => null,
-                                  );
-                              // Only install if it's missing or if we have a newer version
-                              return installed == null ||
-                                  p.version > installed.version;
-                            }).toList();
-
-                            if (pluginsToInstall.isNotEmpty) {
-                              ref
-                                  .read(extensionsControllerProvider.notifier)
-                                  .installPlugins(pluginsToInstall);
-                            }
-                          },
-                  ),
-                  const SizedBox(width: LayoutConstants.spacingSm),
-                  TextButton.icon(
-                    icon: const Icon(Icons.delete_outline),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    label: Text(l10n.delete),
-                    onPressed: () => _confirmDeleteRepo(context, ref, repo),
-                  ),
-                ],
-              ],
+            child: Text(
+              l10n.debugExtensions,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.tertiary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const Divider(height: 1),
-          ...plugins.asMap().entries.map((entry) {
-            final isLast = entry.key == plugins.length - 1;
-            return Column(
-              children: [
-                _PluginTile(plugin: entry.value),
-                if (!isLast)
-                  Divider(
-                    height: 1,
-                    indent: 56,
-                    endIndent: 16,
-                    color: Theme.of(
-                      context,
-                    ).dividerColor.withValues(alpha: 0.5),
-                  ),
-              ],
-            );
-          }),
+          Divider(
+            height: 1,
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
+          for (int i = 0; i < debugPlugins.length; i++) ...[
+            _PluginTile(
+              plugin: debugPlugins[i],
+              isDebugSection: true,
+              focusNode: debugPlugins[i] == firstPlugin
+                  ? _installedFocusNode
+                  : null,
+            ),
+            if (i < debugPlugins.length - 1)
+              Divider(
+                height: 1,
+                indent: 16,
+                endIndent: 16,
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+              ),
+          ],
         ],
       ),
     );
-  }
-
-  void _confirmDeleteRepo(
-    BuildContext context,
-    WidgetRef ref,
-    ExtensionRepository repo,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.removeRepoConfirm(repo.name)),
-        content: Text(l10n.removeRepoWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(extensionsControllerProvider.notifier)
-                  .removeRepository(repo.url);
-              Navigator.of(context).pop();
-            },
-            child: Text(
-              l10n.delete,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        ],
-      ),
-    ).then((_) {
-      if (context.mounted) {
-        // Automatically handled by framework
-      }
-    });
   }
 
   void _showAddRepoDialog(BuildContext context, WidgetRef ref) {
@@ -649,7 +757,6 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
         content: CustomTextField(
           controller: controller,
           hintText: l10n.repoUrlOrShortcode,
-          autofocus: true,
           textInputAction: TextInputAction.done,
           onSubmitted: (value) {
             if (value.isNotEmpty) {
@@ -662,6 +769,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
         ),
         actions: [
           CustomButton(
+            autofocus: true,
             onPressed: () => Navigator.pop(context),
             child: Text(
               l10n.cancel,
@@ -685,54 +793,684 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen> {
           ),
         ],
       ),
-    ).then((_) {
-      if (context.mounted) {
-        // Automatically handled by framework
-      }
-    });
+    );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Plugin tile
+// Keep Alive Wrapper (Prevents tabs from being destroyed during sliding)
 // ---------------------------------------------------------------------------
-
-class _PluginTile extends ConsumerStatefulWidget {
-  final ExtensionPlugin plugin;
-  final bool isDebugSection;
-
-  const _PluginTile({required this.plugin, this.isDebugSection = false});
+class _KeepAliveTab extends StatefulWidget {
+  final Widget child;
+  const _KeepAliveTab({required this.child});
 
   @override
-  ConsumerState<_PluginTile> createState() => _PluginTileState();
+  State<_KeepAliveTab> createState() => _KeepAliveTabState();
 }
 
-class _PluginTileState extends ConsumerState<_PluginTile> {
-  final FocusNode _settingsFocusNode = FocusNode();
+class _KeepAliveTabState extends State<_KeepAliveTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dedicated Add Repo Tile Widget
+// ---------------------------------------------------------------------------
+class _AddRepoTile extends ConsumerStatefulWidget {
+  final VoidCallback onTap;
+  const _AddRepoTile({required this.onTap});
+
+  @override
+  ConsumerState<_AddRepoTile> createState() => _AddRepoTileState();
+}
+
+class _AddRepoTileState extends ConsumerState<_AddRepoTile> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    return _SectionCard(
+      margin: EdgeInsets.zero,
+      borderColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: _isFocused
+              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: ListTile(
+            onFocusChange: (f) {
+              setState(() => _isFocused = f);
+              if (f && mounted) {
+                ref.read(focusedGamepadHintsProvider.notifier).state = [
+                  GamepadHint(
+                    buttonLabel: 'LB',
+                    actionLabel: l10n.hintPrevTab,
+                    buttonColor: Colors.grey.shade400,
+                  ),
+                  GamepadHint(
+                    buttonLabel: 'RB',
+                    actionLabel: l10n.hintNextTab,
+                    buttonColor: Colors.grey.shade400,
+                  ),
+                  GamepadHint(
+                    buttonLabel: 'A',
+                    actionLabel: l10n.hintAddRepo,
+                    buttonColor: Colors.greenAccent.shade400,
+                  ),
+                ];
+              }
+            },
+            leading: Icon(
+              Icons.add_circle_outline,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(
+              l10n.addRepo,
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onTap: widget.onTap,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Repo Expansion Tile (Upstream ExpansionTile + Gamepad Focus)
+// ---------------------------------------------------------------------------
+class _RepoExpansionCard extends ConsumerStatefulWidget {
+  final ExtensionRepository repo;
+  final List<ExtensionPlugin> plugins;
+  final ExtensionsState state;
+  final FocusNode? focusNode;
+
+  const _RepoExpansionCard({
+    required this.repo,
+    required this.plugins,
+    required this.state,
+    this.focusNode,
+  });
+
+  @override
+  ConsumerState<_RepoExpansionCard> createState() => _RepoExpansionCardState();
+}
+
+class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
+  late FocusNode _repoFocusNode;
+  bool _ownsFocusNode = false;
+
+  bool _isFocused = false;
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusNode != null) {
+      _repoFocusNode = widget.focusNode!;
+    } else {
+      _repoFocusNode = FocusNode();
+      _ownsFocusNode = true;
+    }
+  }
+
+  void _updateHints(bool hasFocus, AppLocalizations l10n) {
+    if (!mounted) return;
+    if (hasFocus) {
+      final allInstalled =
+          widget.plugins.isNotEmpty &&
+          widget.plugins.every(
+            (p) => widget.state.installedPlugins.any(
+              (i) => !i.isDebug && i.packageName == p.packageName,
+            ),
+          );
+      ref.read(focusedGamepadHintsProvider.notifier).state = [
+        GamepadHint(
+          buttonLabel: 'LB',
+          actionLabel: l10n.hintPrevTab,
+          buttonColor: Colors.grey.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: 'RB',
+          actionLabel: l10n.hintNextTab,
+          buttonColor: Colors.grey.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: 'A',
+          actionLabel: _isExpanded ? 'Collapse' : 'Expand',
+          buttonColor: Colors.greenAccent.shade400,
+        ),
+        if (!allInstalled && widget.plugins.isNotEmpty)
+          GamepadHint(
+            buttonLabel: 'X',
+            actionLabel: l10n.hintDownloadAll,
+            buttonColor: Colors.blueAccent.shade400,
+          ),
+        GamepadHint(
+          buttonLabel: 'Y',
+          actionLabel: l10n.hintDeleteRepo,
+          buttonColor: Colors.redAccent.shade400,
+        ),
+      ];
+    } else {
+      final currentHints = ref.read(focusedGamepadHintsProvider);
+      if (currentHints?.any((h) => h.actionLabel == l10n.hintDeleteRepo) ==
+          true) {
+        ref.read(focusedGamepadHintsProvider.notifier).state = null;
+      }
+    }
+  }
+
+  void _confirmDeleteRepo(
+    BuildContext context,
+    WidgetRef ref,
+    ExtensionRepository repo,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.removeRepoConfirm(repo.name)),
+        content: Text(l10n.removeRepoWarning),
+        actions: [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              ref
+                  .read(extensionsControllerProvider.notifier)
+                  .removeRepository(repo.url);
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
-    _settingsFocusNode.dispose();
+    if (_ownsFocusNode) _repoFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
+    final allInstalled =
+        widget.plugins.isNotEmpty &&
+        widget.plugins.every(
+          (p) => widget.state.installedPlugins.any(
+            (i) => !i.isDebug && i.packageName == p.packageName,
+          ),
+        );
+    final isRepoInstalling = widget.plugins.any(
+      (p) => widget.state.installingPlugins.contains(p.packageName),
+    );
+
+    return _SectionCard(
+      margin: const EdgeInsets.only(
+        bottom: LayoutConstants.spacingMd,
+        left: LayoutConstants.spacingMd,
+        right: LayoutConstants.spacingMd,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Actions(
+            actions: <Type, Action<Intent>>{
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  setState(() => _isExpanded = !_isExpanded);
+                  if (_isFocused) _updateHints(true, l10n);
+                  return null;
+                },
+              ),
+              AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+                onInvoke: (_) {
+                  if (!allInstalled && widget.plugins.isNotEmpty) {
+                    final pluginsToInstall = widget.plugins.where((p) {
+                      final installed = widget.state.installedPlugins
+                          .cast<ExtensionPlugin?>()
+                          .firstWhere(
+                            (inst) => inst?.packageName == p.packageName,
+                            orElse: () => null,
+                          );
+                      return installed == null || p.version > installed.version;
+                    }).toList();
+                    if (pluginsToInstall.isNotEmpty) {
+                      ref
+                          .read(extensionsControllerProvider.notifier)
+                          .installPlugins(pluginsToInstall);
+                    }
+                  }
+                  return null;
+                },
+              ),
+              AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+                onInvoke: (_) {
+                  _confirmDeleteRepo(context, ref, widget.repo);
+                  return null;
+                },
+              ),
+            },
+            child: Focus(
+              focusNode: _repoFocusNode,
+              onFocusChange: (f) {
+                setState(() => _isFocused = f);
+                _updateHints(f, l10n);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: _isFocused
+                      ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: _isFocused
+                        ? theme.colorScheme.primary
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      setState(() => _isExpanded = !_isExpanded);
+                      if (_isFocused) _updateHints(true, l10n);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: LayoutConstants.spacingMd,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.repo.name,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (widget.repo.description?.isNotEmpty ??
+                                    false) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.repo.description!,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          AnimatedRotation(
+                            turns: _isExpanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: _isFocused
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: !_isExpanded
+                ? const SizedBox.shrink()
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!isBigPicture)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: LayoutConstants.spacingMd,
+                            vertical: LayoutConstants.spacingXs,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (isRepoInstalling)
+                                const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: AppLoadingIndicator(
+                                    constraints: BoxConstraints(
+                                      minWidth: 24,
+                                      minHeight: 24,
+                                      maxWidth: 24,
+                                      maxHeight: 24,
+                                    ),
+                                  ),
+                                )
+                              else ...[
+                                TextButton.icon(
+                                  icon: Icon(
+                                    allInstalled
+                                        ? Icons.check_circle_outline
+                                        : Icons.download,
+                                    color: allInstalled
+                                        ? theme.colorScheme.primary
+                                        : null,
+                                  ),
+                                  label: Text(
+                                    allInstalled
+                                        ? 'All installed'
+                                        : l10n.downloadAllProviders,
+                                  ),
+                                  onPressed:
+                                      allInstalled || widget.plugins.isEmpty
+                                      ? null
+                                      : () {
+                                          final pluginsToInstall = widget
+                                              .plugins
+                                              .where((p) {
+                                                final installed = widget
+                                                    .state
+                                                    .installedPlugins
+                                                    .cast<ExtensionPlugin?>()
+                                                    .firstWhere(
+                                                      (inst) =>
+                                                          inst?.packageName ==
+                                                          p.packageName,
+                                                      orElse: () => null,
+                                                    );
+                                                return installed == null ||
+                                                    p.version >
+                                                        installed.version;
+                                              })
+                                              .toList();
+                                          if (pluginsToInstall.isNotEmpty) {
+                                            ref
+                                                .read(
+                                                  extensionsControllerProvider
+                                                      .notifier,
+                                                )
+                                                .installPlugins(
+                                                  pluginsToInstall,
+                                                );
+                                          }
+                                        },
+                                ),
+                                const SizedBox(
+                                  width: LayoutConstants.spacingSm,
+                                ),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.delete_outline),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  label: Text(l10n.delete),
+                                  onPressed: () => _confirmDeleteRepo(
+                                    context,
+                                    ref,
+                                    widget.repo,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      if (!isBigPicture) const Divider(height: 1),
+                      ...widget.plugins.asMap().entries.map((entry) {
+                        final isLast = entry.key == widget.plugins.length - 1;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _PluginTile(plugin: entry.value),
+                            if (!isLast)
+                              Divider(
+                                height: 1,
+                                indent: 56,
+                                endIndent: 16,
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                          ],
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Plugin Tile Widget
+// ---------------------------------------------------------------------------
+class _PluginTile extends ConsumerStatefulWidget {
+  final ExtensionPlugin plugin;
+  final bool isDebugSection;
+  final FocusNode? focusNode;
+
+  const _PluginTile({
+    required this.plugin,
+    this.isDebugSection = false,
+    this.focusNode,
+  });
+
+  @override
+  ConsumerState<_PluginTile> createState() => _PluginTileState();
+}
+
+class _PluginTileState extends ConsumerState<_PluginTile> {
+  late FocusNode _tileFocusNode;
+  bool _ownsFocusNode = false;
+  bool _isFocused = false;
+
+  Future<List<PluginSettingDefinition>>? _settingsFuture;
+  String? _settingsFutureIdentity;
+
+  String _settingsIdentity(ExtensionPlugin plugin) =>
+      '${plugin.packageName}:${plugin.version}:${plugin.sourceUrl}';
+
+  Future<List<PluginSettingDefinition>> _settingsFor(ExtensionPlugin plugin) {
+    final identity = _settingsIdentity(plugin);
+    if (_settingsFuture == null || _settingsFutureIdentity != identity) {
+      _settingsFutureIdentity = identity;
+      _settingsFuture = ref
+          .read(extensionManagerProvider.notifier)
+          .getSettingsForPlugin(plugin);
+    }
+    return _settingsFuture!;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusNode != null) {
+      _tileFocusNode = widget.focusNode!;
+    } else {
+      _tileFocusNode = FocusNode();
+      _ownsFocusNode = true;
+    }
+  }
+
+  void _updateHints(
+    bool hasFocus,
+    bool isInstalled,
+    bool hasSettings,
+    dynamic updateAvailable,
+    AppLocalizations l10n,
+  ) {
+    if (!mounted) return;
+
+    if (hasFocus) {
+      final bool showA = !isInstalled || (isInstalled && hasSettings);
+
+      ref.read(focusedGamepadHintsProvider.notifier).state = [
+        GamepadHint(
+          buttonLabel: 'LB',
+          actionLabel: l10n.hintPrevTab,
+          buttonColor: Colors.grey.shade400,
+        ),
+        GamepadHint(
+          buttonLabel: 'RB',
+          actionLabel: l10n.hintNextTab,
+          buttonColor: Colors.grey.shade400,
+        ),
+        if (showA)
+          GamepadHint(
+            buttonLabel: 'A',
+            actionLabel:
+                (isInstalled ? l10n.hintSettings : l10n.hintInstall),
+            buttonColor: Colors.greenAccent.shade400,
+          ),
+        if (isInstalled && updateAvailable != null)
+          GamepadHint(
+            buttonLabel: 'X',
+            actionLabel: l10n.hintUpdate,
+            buttonColor: Colors.blueAccent.shade400,
+          ),
+        if (isInstalled)
+          GamepadHint(
+            buttonLabel: 'Y',
+            actionLabel: l10n.delete,
+            buttonColor: Colors.redAccent.shade400,
+          ),
+      ];
+    } else {
+      final currentHints = ref.read(focusedGamepadHintsProvider);
+      if (currentHints?.any(
+            (h) =>
+                h.actionLabel == l10n.delete ||
+                h.actionLabel == l10n.hintSettings ||
+                h.actionLabel == l10n.hintInstall,
+          ) ==
+          true) {
+        ref.read(focusedGamepadHintsProvider.notifier).state = null;
+      }
+    }
+  }
+
+  void _confirmDeletePlugin(
+    BuildContext context,
+    WidgetRef ref,
+    ExtensionPlugin plugin,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete ${plugin.name}'),
+        content: const Text('Are you sure you want to delete this extension?'),
+        actions: [
+          TextButton(
+            autofocus: true,
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              ref
+                  .read(extensionsControllerProvider.notifier)
+                  .uninstallPlugin(plugin);
+              Navigator.of(context).pop();
+            },
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _PluginTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_settingsIdentity(oldWidget.plugin) !=
+        _settingsIdentity(widget.plugin)) {
+      _settingsFuture = null;
+      _settingsFutureIdentity = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsFocusNode) _tileFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
     if (widget.isDebugSection) {
       return ListTile(
         leading: Container(
           padding: const EdgeInsets.all(LayoutConstants.spacingXs),
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.tertiary.withValues(alpha: 0.1),
+            color: theme.colorScheme.tertiary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             Icons.bug_report,
-            color: Theme.of(context).colorScheme.tertiary,
+            color: theme.colorScheme.tertiary,
             size: 20,
           ),
         ),
@@ -765,7 +1503,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
         ),
         subtitle: Text(
           "v${widget.plugin.version} • ${l10n.assetPlugin}",
-          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color),
+          style: TextStyle(color: theme.textTheme.bodySmall?.color),
         ),
       );
     }
@@ -782,108 +1520,264 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
 
     final isInstalled = installedPlugin != null;
     final updateAvailable = state.availableUpdates[widget.plugin.packageName];
-
     final isInstalling = state.installingPlugins.contains(
       widget.plugin.packageName,
     );
 
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(LayoutConstants.spacingXs),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          Icons.extension_outlined,
-          color: Theme.of(context).colorScheme.primary,
-          size: 20,
-        ),
-      ),
-      title: Text(
-        widget.plugin.name,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: _buildSubtitle(context, isInstalled, installedPlugin),
-      trailing: isInstalling
-          ? const Padding(
-              padding: EdgeInsets.all(12),
-              child: AppLoadingIndicator(
-                constraints: BoxConstraints(
-                  minWidth: 24,
-                  minHeight: 24,
-                  maxWidth: 24,
-                  maxHeight: 24,
-                ),
-              ),
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Update button
-                if (isInstalled && updateAvailable != null)
-                  IconButton(
-                    icon: const Icon(Icons.download, color: Colors.green),
-                    tooltip: l10n.updateTo(updateAvailable.version.toString()),
-                    onPressed: () {
-                      ref
-                          .read(extensionsControllerProvider.notifier)
-                          .updatePlugin(updateAvailable);
-                    },
-                  ),
-
-                // Settings button (shown when plugin declares domains or providers)
-                if (isInstalled &&
-                    ((installedPlugin.domains?.isNotEmpty ?? false) ||
-                        (installedPlugin.providers?.isNotEmpty ?? false)))
-                  IconButton(
-                    focusNode: _settingsFocusNode,
-                    icon: const Icon(Icons.settings),
-                    tooltip: l10n.settings,
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) =>
-                            PluginSettingsDialog(plugin: installedPlugin),
-                      ).then((_) {
-                        if (context.mounted) {
-                          _settingsFocusNode.requestFocus();
-                        }
-                      });
-                    },
-                  ),
-
-                // Install / delete button
-                if (isInstalled)
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    tooltip: l10n.delete,
-                    onPressed: () {
-                      ref
-                          .read(extensionsControllerProvider.notifier)
-                          .uninstallPlugin(installedPlugin);
-                    },
-                  )
-                else
-                  IconButton(
-                    icon: const Icon(Icons.download),
-                    tooltip: l10n.install,
-                    onPressed: () {
-                      ref
-                          .read(extensionsControllerProvider.notifier)
-                          .installPlugin(widget.plugin);
-                    },
-                  ),
-              ],
+    return FutureBuilder<List<PluginSettingDefinition>>(
+      future: isInstalled ? _settingsFor(installedPlugin) : Future.value([]),
+      builder: (context, snapshot) {
+        bool hasSettings = false;
+        if (isInstalled) {
+          final manifestSettings = installedPlugin.manifest['settings'];
+          final hasManifestSettings =
+              manifestSettings is List && manifestSettings.isNotEmpty;
+          final hasScriptSettings = snapshot.data?.isNotEmpty ?? false;
+          final declaresScriptSettings =
+              installedPlugin.manifest['hasSettings'] == true;
+          final hasDomains = installedPlugin.domains?.isNotEmpty ?? false;
+          final hasStaticProviders =
+              installedPlugin.providers?.isNotEmpty ?? false;
+          final loadedProviders = ref.watch(extensionManagerProvider);
+          final hasLoadedSubProviders = loadedProviders.any(
+            (provider) => provider.packageName.startsWith(
+              '${installedPlugin.packageName}::',
             ),
+          );
+          final hasDynamicProviders = ref
+              .read(extensionManagerProvider.notifier)
+              .getProvidersForPlugin(installedPlugin)
+              .isNotEmpty;
+
+          hasSettings =
+              hasManifestSettings ||
+              hasScriptSettings ||
+              declaresScriptSettings ||
+              hasDomains ||
+              hasStaticProviders ||
+              hasDynamicProviders ||
+              hasLoadedSubProviders;
+        }
+
+        if (_tileFocusNode.hasFocus) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _updateHints(
+                true,
+                isInstalled,
+                hasSettings,
+                updateAvailable,
+                l10n,
+              );
+            }
+          });
+        }
+
+        return Actions(
+          actions: <Type, Action<Intent>>{
+            AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+              onInvoke: (_) {
+                if (isInstalled && updateAvailable != null) {
+                  ref
+                      .read(extensionsControllerProvider.notifier)
+                      .updatePlugin(updateAvailable);
+                }
+                return null;
+              },
+            ),
+            AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+              onInvoke: (_) {
+                if (isInstalled) {
+                  _confirmDeletePlugin(context, ref, installedPlugin);
+                }
+                return null;
+              },
+            ),
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: _isFocused
+                  ? theme.colorScheme.primary.withValues(alpha: 0.22)
+                  : Colors.transparent,
+              border: Border.all(
+                color: _isFocused
+                    ? theme.colorScheme.primary
+                    : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                focusNode: _tileFocusNode,
+                onFocusChange: (f) {
+                  setState(() => _isFocused = f);
+                  _updateHints(
+                    f,
+                    isInstalled,
+                    hasSettings,
+                    updateAvailable,
+                    l10n,
+                  );
+                },
+                onTap: () async {
+                  if (isInstalled) {
+                    if (hasSettings) {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (context) =>
+                              PluginSettingsScreen(plugin: installedPlugin),
+                        ),
+                      );
+                    }
+                  } else if (!isInstalling) {
+                    await ref
+                        .read(extensionsControllerProvider.notifier)
+                        .installPlugin(widget.plugin);
+                  }
+                },
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isInstalled
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : theme.colorScheme.primaryContainer.withValues(
+                            alpha: 0.5,
+                          ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isInstalled
+                        ? Icons.check_circle_rounded
+                        : Icons.extension_outlined,
+                    color: isInstalled
+                        ? Colors.green
+                        : theme.colorScheme.primary,
+                    size: 22,
+                  ),
+                ),
+                title: Text(
+                  widget.plugin.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: _buildSubtitle(context, isInstalled, installedPlugin),
+
+                trailing: isInstalling
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: AppLoadingIndicator(
+                          constraints: BoxConstraints(
+                            minWidth: 24,
+                            minHeight: 24,
+                            maxWidth: 24,
+                            maxHeight: 24,
+                          ),
+                        ),
+                      )
+                    : isBigPicture
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Visual hints for Gamepad users (not individually focusable)
+                          if (isInstalled && updateAvailable != null)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(
+                                Icons.download,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          if (isInstalled && hasSettings)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(
+                                Icons.settings_outlined,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          if (isInstalled)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(
+                                Icons.delete_outline,
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Interactive buttons for Desktop/Mobile users
+                          if (isInstalled && updateAvailable != null)
+                            IconButton(
+                              icon: const Icon(
+                                Icons.download,
+                                color: Colors.green,
+                              ),
+                              tooltip: l10n.updateTo(
+                                updateAvailable.version.toString(),
+                              ),
+                              onPressed: () {
+                                ref
+                                    .read(extensionsControllerProvider.notifier)
+                                    .updatePlugin(updateAvailable);
+                              },
+                            ),
+                          if (isInstalled && hasSettings)
+                            IconButton(
+                              icon: const Icon(Icons.settings_outlined),
+                              tooltip: l10n.settings,
+                              onPressed: () async {
+                                await Navigator.of(context).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (context) => PluginSettingsScreen(
+                                      plugin: installedPlugin,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          if (isInstalled)
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: theme.colorScheme.error,
+                              ),
+                              tooltip: l10n.delete,
+                              onPressed: () => _confirmDeletePlugin(
+                                context,
+                                ref,
+                                installedPlugin,
+                              ),
+                            )
+                          else
+                            IconButton(
+                              icon: const Icon(Icons.download),
+                              tooltip: l10n.install,
+                              onPressed: () {
+                                ref
+                                    .read(extensionsControllerProvider.notifier)
+                                    .installPlugin(widget.plugin);
+                              },
+                            ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  /// Subtitle widget: description · version/authors line · language chips.
   Widget _buildSubtitle(
     BuildContext context,
     bool isInstalled,
@@ -891,26 +1785,17 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    // Description uses bodyMedium so it's comfortably readable.
     final descStyle = textTheme.bodyMedium?.copyWith(
       color: colorScheme.onSurfaceVariant,
     );
-    // Version + authors line uses bodySmall.
     final metaStyle = textTheme.bodySmall?.copyWith(
       color: colorScheme.onSurfaceVariant,
     );
-
-    // Version from installed copy if present, otherwise from the catalog.
     final version =
         'v${isInstalled ? installedPlugin!.version : widget.plugin.version}';
-
-    // Authors: up to 2, prefixed with "By".
     final authors = widget.plugin.authors.take(2).join(', ');
-
     final metaParts = [version, if (authors.isNotEmpty) 'By $authors'];
     final metaLine = metaParts.join(' • ');
-
     final desc = widget.plugin.description;
     final hasDesc = desc != null && desc.isNotEmpty;
     final hasLanguages = widget.plugin.languages.isNotEmpty;
@@ -959,6 +1844,32 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+  final Color? borderColor;
+
+  const _SectionCard({required this.child, this.margin, this.borderColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: margin ?? const EdgeInsets.all(LayoutConstants.spacingMd),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: borderColor ?? theme.dividerColor.withValues(alpha: 0.5),
+          width: 1.0,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(color: Colors.transparent, child: child),
     );
   }
 }

@@ -50,6 +50,7 @@ class SettingsTile extends StatefulWidget {
   final bool isLast;
   final bool isBeta;
   final FocusNode? focusNode;
+  final bool autofocus;
 
   const SettingsTile({
     super.key,
@@ -61,6 +62,7 @@ class SettingsTile extends StatefulWidget {
     this.isLast = false,
     this.isBeta = false,
     this.focusNode,
+    this.autofocus = false,
   });
 
   @override
@@ -116,6 +118,8 @@ class _SettingsTileState extends State<SettingsTile> {
             child: Material(
               type: MaterialType.transparency,
               child: ListTile(
+                autofocus: widget
+                    .autofocus, // Passes focus request to the actual interactable
                 focusColor: Colors.transparent,
                 hoverColor: primary.withValues(alpha: 0.10),
                 leading: Container(
@@ -168,9 +172,33 @@ class _SettingsTileState extends State<SettingsTile> {
                         ),
                       )
                     : null,
-                trailing:
-                    widget.trailing ??
-                    const Icon(Icons.chevron_right_rounded, size: 20),
+                trailing: widget.trailing != null
+                    ? (_isFocused
+                          ? SwitchTheme(
+                              data: SwitchThemeData(
+                                thumbIcon:
+                                    WidgetStateProperty.resolveWith<Icon?>((
+                                      states,
+                                    ) {
+                                      if (states.contains(
+                                        WidgetState.selected,
+                                      )) {
+                                        return const Icon(
+                                          Icons.check_rounded,
+                                          size: 14,
+                                        );
+                                      } else {
+                                        return const Icon(
+                                          Icons.close_rounded,
+                                          size: 14,
+                                        );
+                                      }
+                                    }),
+                              ),
+                              child: widget.trailing!,
+                            )
+                          : widget.trailing)
+                    : const Icon(Icons.chevron_right_rounded, size: 20),
                 onTap: widget.onTap,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

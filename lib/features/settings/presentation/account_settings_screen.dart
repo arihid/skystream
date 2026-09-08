@@ -18,9 +18,13 @@ import '../../tracking/data/trakt_service.dart';
 import '../../tracking/data/mal_service.dart';
 import '../../tracking/data/anilist_service.dart';
 import '../../../core/storage/settings_repository.dart';
+import '../../../core/services/notification_service.dart';
+import 'package:dpad/dpad.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
-  const AccountSettingsScreen({super.key});
+  final bool isEmbedded;
+
+  const AccountSettingsScreen({super.key, this.isEmbedded = false});
 
   @override
   ConsumerState<AccountSettingsScreen> createState() =>
@@ -55,6 +59,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         ),
         actions: [
           TextButton(
+            autofocus: true,
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
@@ -71,6 +76,33 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
     return result == true;
   }
 
+  Widget _buildFocusableTile({
+    required FocusNode focusNode,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isLast = false,
+  }) {
+    return DpadFocusable(
+      focusNode: focusNode,
+      onSelect: onTap,
+      child: const SizedBox.shrink(),
+      builder: (context, state, _) {
+        return SettingsTile(
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          isLast: isLast,
+          onTap: onTap,
+          trailing: state.focused
+              ? const Icon(Icons.arrow_forward_ios_rounded, size: 16)
+              : null,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -79,11 +111,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         const PlayerSettings();
     final settingsRepo = ref.watch(settingsRepositoryProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.accounts)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+    final content = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: FocusTraversalGroup(
+          policy: WidgetOrderTraversalPolicy(),
           child: ListView(
             padding: const EdgeInsets.only(bottom: LayoutConstants.spacingLg),
             children: [
@@ -91,7 +123,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
               SettingsGroup(
                 title: l10n.accounts,
                 children: [
-                  SettingsTile(
+                  _buildFocusableTile(
+                    focusNode: FocusNode(),
                     icon: Icons.subtitles_rounded,
                     title: l10n.openSubtitles,
                     subtitle: playerSettings.osUsername.isNotEmpty
@@ -103,7 +136,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       playerSettings,
                     ),
                   ),
-                  SettingsTile(
+                  _buildFocusableTile(
+                    focusNode: FocusNode(),
                     icon: Icons.vpn_key_rounded,
                     title: l10n.subDl,
                     subtitle: playerSettings.subdlApiKey.isNotEmpty
@@ -112,7 +146,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     onTap: () =>
                         showSubDlAuthDialog(context, ref, playerSettings),
                   ),
-                  SettingsTile(
+                  _buildFocusableTile(
+                    focusNode: FocusNode(),
                     icon: Icons.vpn_key_rounded,
                     title: l10n.subSource,
                     subtitle: playerSettings.subsourceApiKey.isNotEmpty
@@ -127,7 +162,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          SettingsTile(
+                          _buildFocusableTile(
                             focusNode: _simklFocusNode,
                             icon: Icons.sync_rounded,
                             title: 'Simkl',
@@ -149,65 +184,81 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                   await ref.read(simklServiceProvider).logout();
                                   ref.invalidate(trackingAuthProvider);
                                   if (context.mounted) {
-                                    FocusScope.of(context).requestFocus();
+                                    _simklFocusNode.requestFocus();
                                   }
                                 }
                               } else {
                                 bool isCancelled = false;
                                 bool isDialogShowing = false;
                                 BuildContext? dialogContext;
-                                final success = await ref
-                                    .read(simklServiceProvider)
-                                    .login(
-                                      isCancelled: () => isCancelled,
-                                      onDeviceCodeGenerated: (url, code) async {
-                                        if (context.mounted) {
-                                          isDialogShowing = true;
-                                          unawaited(
-                                            showDialog<void>(
-                                              context: context,
-                                              barrierDismissible: true,
-                                              builder: (ctx) {
-                                                dialogContext = ctx;
-                                                return TrackingAuthDialog(
-                                                  providerName: 'Simkl',
-                                                  verificationUrl: url,
-                                                  userCode: code,
-                                                );
-                                              },
-                                            ).then((_) {
-                                              isCancelled = true;
-                                              isDialogShowing = false;
+                                try {
+                                  final success = await ref
+                                      .read(simklServiceProvider)
+                                      .login(
+                                        isCancelled: () => isCancelled,
+                                        onDeviceCodeGenerated:
+                                            (url, code) async {
                                               if (context.mounted) {
-                                                FocusScope.of(
-                                                  context,
-                                                ).requestFocus();
+                                                isDialogShowing = true;
+                                                unawaited(
+                                                  showDialog<void>(
+                                                    context: context,
+                                                    barrierDismissible: true,
+                                                    builder: (ctx) {
+                                                      dialogContext = ctx;
+                                                      return TrackingAuthDialog(
+                                                        providerName: 'Simkl',
+                                                        verificationUrl: url,
+                                                        userCode: code,
+                                                      );
+                                                    },
+                                                  ).then((_) {
+                                                    isCancelled = true;
+                                                    isDialogShowing = false;
+                                                    if (context.mounted) {
+                                                      _simklFocusNode
+                                                          .requestFocus();
+                                                    }
+                                                  }),
+                                                );
                                               }
-                                            }),
-                                          );
-                                        }
-                                      },
-                                    );
-                                if (success && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Successfully connected to Simkl!',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
+                                            },
+                                      );
+                                  if (success && context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showSuccess(
+                                          'Successfully connected to Simkl!',
+                                          title: 'Simkl',
+                                        );
+                                  } else if (!success && context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showError(
+                                          'Failed to connect to Simkl. Verify API Keys.',
+                                          title: 'Simkl',
+                                        );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showError(
+                                          'Simkl Error: $e',
+                                          title: 'Simkl',
+                                        );
+                                  }
                                 }
                                 if (isDialogShowing &&
                                     dialogContext != null &&
                                     dialogContext!.mounted) {
                                   Navigator.of(dialogContext!).pop();
                                 }
+                                ref.invalidate(trackingAuthProvider);
                               }
-                              ref.invalidate(trackingAuthProvider);
                             },
                           ),
-                          SettingsTile(
+                          _buildFocusableTile(
                             focusNode: _traktFocusNode,
                             icon: Icons.sync_rounded,
                             title: 'Trakt',
@@ -236,56 +287,74 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 bool isCancelled = false;
                                 bool isDialogShowing = false;
                                 BuildContext? dialogContext;
-                                final success = await ref
-                                    .read(traktServiceProvider)
-                                    .login(
-                                      isCancelled: () => isCancelled,
-                                      onDeviceCodeGenerated: (url, code) async {
-                                        if (context.mounted) {
-                                          isDialogShowing = true;
-                                          unawaited(
-                                            showDialog<void>(
-                                              context: context,
-                                              barrierDismissible: true,
-                                              builder: (ctx) {
-                                                dialogContext = ctx;
-                                                return TrackingAuthDialog(
-                                                  providerName: 'Trakt',
-                                                  verificationUrl: url,
-                                                  userCode: code,
-                                                );
-                                              },
-                                            ).then((_) {
-                                              isCancelled = true;
-                                              isDialogShowing = false;
+                                try {
+                                  final success = await ref
+                                      .read(traktServiceProvider)
+                                      .login(
+                                        isCancelled: () => isCancelled,
+                                        onDeviceCodeGenerated:
+                                            (url, code) async {
                                               if (context.mounted) {
-                                                _traktFocusNode.requestFocus();
+                                                isDialogShowing = true;
+                                                unawaited(
+                                                  showDialog<void>(
+                                                    context: context,
+                                                    barrierDismissible: true,
+                                                    builder: (ctx) {
+                                                      dialogContext = ctx;
+                                                      return TrackingAuthDialog(
+                                                        providerName: 'Trakt',
+                                                        verificationUrl: url,
+                                                        userCode: code,
+                                                      );
+                                                    },
+                                                  ).then((_) {
+                                                    isCancelled = true;
+                                                    isDialogShowing = false;
+                                                    if (context.mounted) {
+                                                      _traktFocusNode
+                                                          .requestFocus();
+                                                    }
+                                                  }),
+                                                );
                                               }
-                                            }),
-                                          );
-                                        }
-                                      },
-                                    );
-                                if (success && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Successfully connected to Trakt!',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
+                                            },
+                                      );
+                                  if (success && context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showSuccess(
+                                          'Successfully connected to Trakt!',
+                                          title: 'Trakt',
+                                        );
+                                  } else if (!success && context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showError(
+                                          'Failed to connect to Trakt. Verify API Keys.',
+                                          title: 'Trakt',
+                                        );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ref
+                                        .read(notificationServiceProvider)
+                                        .showError(
+                                          'Trakt Error: $e',
+                                          title: 'Trakt',
+                                        );
+                                  }
                                 }
                                 if (isDialogShowing &&
                                     dialogContext != null &&
                                     dialogContext!.mounted) {
                                   Navigator.of(dialogContext!).pop();
                                 }
+                                ref.invalidate(trackingAuthProvider);
                               }
-                              ref.invalidate(trackingAuthProvider);
                             },
                           ),
-                          SettingsTile(
+                          _buildFocusableTile(
                             focusNode: _malFocusNode,
                             icon: Icons.sync_rounded,
                             title: 'MyAnimeList',
@@ -312,17 +381,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 }
                               } else {
                                 final malService = ref.read(malServiceProvider);
-                                // Generate PKCE verifier before opening webview
                                 final codeVerifier = malService
                                     .generateCodeVerifier();
-
                                 final authUrl =
-                                    'https://myanimelist.net/v1/oauth2/authorize'
-                                    '?response_type=code'
-                                    '&client_id=${SyncConfig.malClientId}'
-                                    '&code_challenge=$codeVerifier'
-                                    '&code_challenge_method=plain'
-                                    '&redirect_uri=${Uri.encodeComponent('http://localhost')}';
+                                    'https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id=${SyncConfig.malClientId}&code_challenge=$codeVerifier&code_challenge_method=plain&redirect_uri=${Uri.encodeComponent('http://localhost')}';
 
                                 if (context.mounted) {
                                   final redirectUrl = await showDialog<String>(
@@ -341,27 +403,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                           codeVerifier,
                                         );
                                     if (success && context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      ref
+                                          .read(notificationServiceProvider)
+                                          .showSuccess(
                                             'Successfully connected to MyAnimeList!',
-                                          ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
+                                            title: 'MyAnimeList',
+                                          );
                                     } else if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      ref
+                                          .read(notificationServiceProvider)
+                                          .showError(
                                             'Failed to connect to MyAnimeList',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
+                                            title: 'MyAnimeList',
+                                          );
                                     }
                                   }
                                   if (context.mounted) {
@@ -372,7 +426,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                               ref.invalidate(trackingAuthProvider);
                             },
                           ),
-                          SettingsTile(
+                          _buildFocusableTile(
                             focusNode: _anilistFocusNode,
                             icon: Icons.sync_rounded,
                             title: 'AniList',
@@ -404,11 +458,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                 final anilistService = ref.read(
                                   aniListServiceProvider,
                                 );
-
                                 const authUrl =
-                                    'https://anilist.co/api/v2/oauth/authorize'
-                                    '?client_id=${SyncConfig.anilistClientId}'
-                                    '&response_type=token';
+                                    'https://anilist.co/api/v2/oauth/authorize?client_id=${SyncConfig.anilistClientId}&response_type=token';
 
                                 if (context.mounted) {
                                   final redirectUrl = await showDialog<String>(
@@ -425,27 +476,19 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                                     final success = await anilistService
                                         .saveTokenFromRedirect(redirectUrl);
                                     if (success && context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      ref
+                                          .read(notificationServiceProvider)
+                                          .showSuccess(
                                             'Successfully connected to AniList!',
-                                          ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
+                                            title: 'AniList',
+                                          );
                                     } else if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
+                                      ref
+                                          .read(notificationServiceProvider)
+                                          .showError(
                                             'Failed to connect to AniList',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
+                                            title: 'AniList',
+                                          );
                                     }
                                   }
                                   if (context.mounted) {
@@ -476,7 +519,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                       value: settingsRepo.isAnimeSkipIntegrationEnabled(),
                       onChanged: (val) {
                         settingsRepo.setAnimeSkipIntegrationEnabled(val);
-                        // Trigger a rebuild
                         ref.invalidate(settingsRepositoryProvider);
                       },
                     ),
@@ -513,6 +555,18 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
           ),
         ),
       ),
+    );
+
+    if (widget.isEmbedded) {
+      return content;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(l10n.accounts),
+      ),
+      body: content,
     );
   }
 }

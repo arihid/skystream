@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../core/config/tmdb_config.dart';
 import '../../../core/storage/settings_repository.dart';
 
 part 'general_settings_provider.g.dart';
@@ -8,12 +9,33 @@ class GeneralSettings {
   final String defaultHomeScreen;
   final bool githubProxyEnabled;
   final bool alwaysOnTop;
+  final String titlePosition;
+
+  // TV/Big Picture State (In-Memory Only)
+  final bool isFullscreenEnabled;
+  final String? targetDisplayId;
+
+  // Downloads & Advanced Configurations
+  final String? downloadDirectory;
+  final int downloadConcurrency;
+  final int downloadChunks;
+
+  /// User-supplied TMDB API key. Empty means "fall back to the build-time
+  /// `--dart-define=TMDB_API_KEY` value" (which may itself be empty).
+  final String tmdbApiKey;
 
   const GeneralSettings({
     this.watchHistoryEnabled = true,
     this.defaultHomeScreen = '/home',
     this.githubProxyEnabled = false,
     this.alwaysOnTop = false,
+    this.titlePosition = 'below',
+    this.isFullscreenEnabled = false,
+    this.targetDisplayId,
+    this.downloadDirectory,
+    this.downloadConcurrency = 3,
+    this.downloadChunks = 1,
+    this.tmdbApiKey = '',
   });
 
   GeneralSettings copyWith({
@@ -21,12 +43,26 @@ class GeneralSettings {
     String? defaultHomeScreen,
     bool? githubProxyEnabled,
     bool? alwaysOnTop,
+    String? titlePosition,
+    bool? isFullscreenEnabled,
+    String? targetDisplayId,
+    String? downloadDirectory,
+    int? downloadConcurrency,
+    int? downloadChunks,
+    String? tmdbApiKey,
   }) {
     return GeneralSettings(
       watchHistoryEnabled: watchHistoryEnabled ?? this.watchHistoryEnabled,
       defaultHomeScreen: defaultHomeScreen ?? this.defaultHomeScreen,
       githubProxyEnabled: githubProxyEnabled ?? this.githubProxyEnabled,
       alwaysOnTop: alwaysOnTop ?? this.alwaysOnTop,
+      titlePosition: titlePosition ?? this.titlePosition,
+      isFullscreenEnabled: isFullscreenEnabled ?? this.isFullscreenEnabled,
+      targetDisplayId: targetDisplayId ?? this.targetDisplayId,
+      downloadDirectory: downloadDirectory ?? this.downloadDirectory,
+      downloadConcurrency: downloadConcurrency ?? this.downloadConcurrency,
+      downloadChunks: downloadChunks ?? this.downloadChunks,
+      tmdbApiKey: tmdbApiKey ?? this.tmdbApiKey,
     );
   }
 }
@@ -41,6 +77,13 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
       defaultHomeScreen: repository.getDefaultHomeScreen(),
       githubProxyEnabled: repository.isGithubProxyEnabled(),
       alwaysOnTop: repository.isAlwaysOnTop(),
+      titlePosition: repository.getTitlePosition(),
+      isFullscreenEnabled: false,
+      targetDisplayId: null,
+      downloadDirectory: repository.getDownloadDirectory(),
+      downloadConcurrency: repository.getDownloadConcurrency(),
+      downloadChunks: repository.getDownloadChunks(),
+      tmdbApiKey: repository.getTmdbApiKey(),
     );
   }
 
@@ -66,5 +109,48 @@ class GeneralSettingsNotifier extends _$GeneralSettingsNotifier {
     final repository = ref.read(settingsRepositoryProvider);
     await repository.setAlwaysOnTop(enabled);
     state = state.copyWith(alwaysOnTop: enabled);
+  }
+
+  Future<void> setTitlePosition(String position) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setTitlePosition(position);
+    state = state.copyWith(titlePosition: position);
+  }
+
+  Future<void> setFullscreenEnabled(bool enabled) async {
+    state = state.copyWith(isFullscreenEnabled: enabled);
+  }
+
+  Future<void> setTargetDisplayId(String? displayId) async {
+    state = state.copyWith(targetDisplayId: displayId);
+  }
+
+  Future<void> setDownloadDirectory(String? path) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setDownloadDirectory(path);
+    state = state.copyWith(downloadDirectory: path);
+  }
+
+  Future<void> setDownloadConcurrency(int value) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setDownloadConcurrency(value);
+    state = state.copyWith(downloadConcurrency: value);
+  }
+
+  /// Persists a user-supplied TMDB key and mirrors it into [TmdbConfig] so
+  /// in-flight screens pick it up without an app restart. Passing an empty
+  /// string clears the override and reverts to the build-time key.
+  Future<void> setTmdbApiKey(String value) async {
+    final trimmed = value.trim();
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setTmdbApiKey(trimmed);
+    TmdbConfig.setUserApiKey(trimmed);
+    state = state.copyWith(tmdbApiKey: trimmed);
+  }
+
+  Future<void> setDownloadChunks(int value) async {
+    final repository = ref.read(settingsRepositoryProvider);
+    await repository.setDownloadChunks(value);
+    state = state.copyWith(downloadChunks: value);
   }
 }

@@ -20,9 +20,52 @@ enum QualityPreference {
 
 /// Controls how the quality preference threshold is applied when streams are loaded.
 enum QualityFilterMode {
-  any,        // Sort only — show everything (current behaviour)
-  atOrAbove,  // Hide sources strictly below the preferred quality tier
-  atOrBelow,  // Hide sources strictly above the preferred tier (data-saver mode)
+  any, // Sort only — show everything (current behaviour)
+  atOrAbove, // Hide sources strictly below the preferred quality tier
+  atOrBelow, // Hide sources strictly above the preferred tier (data-saver mode)
+}
+
+/// How HDR (HDR10 / HDR10+ / HLG / Dolby Vision) content is rendered.
+///
+/// Only applies to the internal mpv/libmpv engine — the video_view engines
+/// (ExoPlayer / AVPlayer) manage HDR themselves and ignore these.
+enum HdrMode {
+  /// Let mpv decide (current behaviour, no explicit properties set).
+  auto,
+
+  /// Forward HDR metadata to the display so a real HDR panel switches into
+  /// HDR mode. Best on TVs/phones with genuine HDR support.
+  passthrough,
+
+  /// Tone-map HDR down to SDR. Fixes the washed-out / grey look HDR files
+  /// get on SDR panels.
+  toneMapSdr,
+}
+
+/// Tone-mapping curve used when [HdrMode.toneMapSdr] is active.
+enum ToneMapCurve { auto, spline, bt2390, bt2446a, hable, mobius, reinhard }
+
+extension ToneMapCurveX on ToneMapCurve {
+  /// mpv's `tone-mapping` property value.
+  String get mpvValue => switch (this) {
+    ToneMapCurve.auto => 'auto',
+    ToneMapCurve.spline => 'spline',
+    ToneMapCurve.bt2390 => 'bt.2390',
+    ToneMapCurve.bt2446a => 'bt.2446a',
+    ToneMapCurve.hable => 'hable',
+    ToneMapCurve.mobius => 'mobius',
+    ToneMapCurve.reinhard => 'reinhard',
+  };
+
+  String get label => switch (this) {
+    ToneMapCurve.auto => 'Auto (recommended)',
+    ToneMapCurve.spline => 'Spline — balanced',
+    ToneMapCurve.bt2390 => 'BT.2390 — reference',
+    ToneMapCurve.bt2446a => 'BT.2446a — bright scenes',
+    ToneMapCurve.hable => 'Hable — filmic',
+    ToneMapCurve.mobius => 'Mobius — preserves mid-tones',
+    ToneMapCurve.reinhard => 'Reinhard — soft highlights',
+  };
 }
 
 class PlayerSettings {
@@ -71,6 +114,28 @@ class PlayerSettings {
   /// Default: [QualityFilterMode.any] (sort only, no filtering).
   final QualityFilterMode qualityFilterMode;
 
+  /// How HDR content is rendered. Default [HdrMode.auto] preserves the
+  /// previous behaviour exactly (no HDR properties are written to mpv).
+  final HdrMode hdrMode;
+
+  /// Curve used when tone-mapping HDR to SDR.
+  final ToneMapCurve toneMapCurve;
+
+  /// Per-scene peak detection. Improves highlight detail on HDR sources but
+  /// costs GPU time, so it's opt-out on weaker devices.
+  final bool hdrComputePeak;
+
+  /// Display peak luminance in nits. 0 = auto-detect from the display.
+  final int hdrTargetPeak;
+
+  /// Boosts SDR content into the HDR range. Off by default: it's an effect,
+  /// not a correction, and it looks wrong on plenty of content.
+  final bool inverseToneMapping;
+
+  /// Maximum volume the player allows, as a percentage (100–200).
+  /// mpv can amplify beyond the source level; 100 disables the boost.
+  final int maxVolumePercent;
+
   /// When true, the progress-bar time header shows the remaining time
   /// (e.g. "-1:23:45 / 2:00:00") instead of the elapsed time. Sticky
   /// across sessions because users who prefer one view almost always
@@ -82,6 +147,15 @@ class PlayerSettings {
   /// (1.25, 1.5, 1.75, 2.0). Capped at the engine's supported range
   /// at playback time (`maxPlaybackSpeed`).
   final double defaultPlaybackSpeed;
+
+  /// Toggles for individual player control-bar buttons. All default to
+  /// visible. Sources, Audio Tracks and Subtitles are intentionally not
+  /// toggleable because they are essential.
+  final bool showPip;
+  final bool showResize;
+  final bool showRotate;
+  final bool showPlaybackSpeed;
+  final bool showEpisodes;
 
   // Subtitle Accounts
   final String osUsername;
@@ -127,8 +201,19 @@ class PlayerSettings {
     this.wifiQuality = QualityPreference.q4k,
     this.mobileQuality = QualityPreference.q1080,
     this.qualityFilterMode = QualityFilterMode.any,
+    this.hdrMode = HdrMode.auto,
+    this.toneMapCurve = ToneMapCurve.auto,
+    this.hdrComputePeak = true,
+    this.hdrTargetPeak = 0,
+    this.inverseToneMapping = false,
+    this.maxVolumePercent = 200,
     this.showRemainingTime = false,
     this.defaultPlaybackSpeed = 1.0,
+    this.showPip = true,
+    this.showResize = true,
+    this.showRotate = true,
+    this.showPlaybackSpeed = true,
+    this.showEpisodes = true,
     this.osUsername = '',
     this.osPassword = '',
     this.osApiKey = '',
@@ -174,8 +259,19 @@ class PlayerSettings {
     QualityPreference? wifiQuality,
     QualityPreference? mobileQuality,
     QualityFilterMode? qualityFilterMode,
+    HdrMode? hdrMode,
+    ToneMapCurve? toneMapCurve,
+    bool? hdrComputePeak,
+    int? hdrTargetPeak,
+    bool? inverseToneMapping,
+    int? maxVolumePercent,
     bool? showRemainingTime,
     double? defaultPlaybackSpeed,
+    bool? showPip,
+    bool? showResize,
+    bool? showRotate,
+    bool? showPlaybackSpeed,
+    bool? showEpisodes,
     String? osUsername,
     String? osPassword,
     String? osApiKey,
@@ -229,8 +325,19 @@ class PlayerSettings {
       wifiQuality: wifiQuality ?? this.wifiQuality,
       mobileQuality: mobileQuality ?? this.mobileQuality,
       qualityFilterMode: qualityFilterMode ?? this.qualityFilterMode,
+      hdrMode: hdrMode ?? this.hdrMode,
+      toneMapCurve: toneMapCurve ?? this.toneMapCurve,
+      hdrComputePeak: hdrComputePeak ?? this.hdrComputePeak,
+      hdrTargetPeak: hdrTargetPeak ?? this.hdrTargetPeak,
+      inverseToneMapping: inverseToneMapping ?? this.inverseToneMapping,
+      maxVolumePercent: maxVolumePercent ?? this.maxVolumePercent,
       showRemainingTime: showRemainingTime ?? this.showRemainingTime,
       defaultPlaybackSpeed: defaultPlaybackSpeed ?? this.defaultPlaybackSpeed,
+      showPip: showPip ?? this.showPip,
+      showResize: showResize ?? this.showResize,
+      showRotate: showRotate ?? this.showRotate,
+      showPlaybackSpeed: showPlaybackSpeed ?? this.showPlaybackSpeed,
+      showEpisodes: showEpisodes ?? this.showEpisodes,
       osUsername: osUsername ?? this.osUsername,
       osPassword: osPassword ?? this.osPassword,
       osApiKey: osApiKey ?? this.osApiKey,
@@ -422,6 +529,64 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
         0.5;
     final subAlignment = storage.getPlayerSetting<int>('player_sub_alignment');
 
+    final showPip =
+        storage.getPlayerSetting<bool>('player_show_pip', defaultValue: true) ??
+        true;
+    final showResize =
+        storage.getPlayerSetting<bool>(
+          'player_show_resize',
+          defaultValue: true,
+        ) ??
+        true;
+    final showRotate =
+        storage.getPlayerSetting<bool>(
+          'player_show_rotate',
+          defaultValue: true,
+        ) ??
+        true;
+    final showPlaybackSpeed =
+        storage.getPlayerSetting<bool>(
+          'player_show_playback_speed',
+          defaultValue: true,
+        ) ??
+        true;
+    final showEpisodes =
+        storage.getPlayerSetting<bool>(
+          'player_show_episodes',
+          defaultValue: true,
+        ) ??
+        true;
+
+    final hdrMode = HdrMode.values.firstWhere(
+      (e) => e.name == storage.getPlayerSetting<String>('player_hdr_mode'),
+      orElse: () => HdrMode.auto,
+    );
+    final toneMapCurve = ToneMapCurve.values.firstWhere(
+      (e) => e.name == storage.getPlayerSetting<String>('player_tone_map'),
+      orElse: () => ToneMapCurve.auto,
+    );
+    final hdrComputePeak =
+        storage.getPlayerSetting<bool>(
+          'player_hdr_compute_peak',
+          defaultValue: true,
+        ) ??
+        true;
+    final hdrTargetPeak =
+        storage.getPlayerSetting<int>(
+          'player_hdr_target_peak',
+          defaultValue: 0,
+        ) ??
+        0;
+    final inverseToneMapping =
+        storage.getPlayerSetting<bool>(
+          'player_inverse_tone_map',
+          defaultValue: false,
+        ) ??
+        false;
+    final maxVolumePercent =
+        storage.getPlayerSetting<int>('player_max_volume', defaultValue: 200) ??
+        200;
+
     return PlayerSettings(
       leftGesture: _parse(l),
       rightGesture: _parse(r),
@@ -457,8 +622,19 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
       wifiQuality: wifiQ,
       mobileQuality: mobileQ,
       qualityFilterMode: filterMode,
+      hdrMode: hdrMode,
+      toneMapCurve: toneMapCurve,
+      hdrComputePeak: hdrComputePeak,
+      hdrTargetPeak: hdrTargetPeak,
+      inverseToneMapping: inverseToneMapping,
+      maxVolumePercent: maxVolumePercent,
       showRemainingTime: showRemaining,
       defaultPlaybackSpeed: defaultSpeed,
+      showPip: showPip,
+      showResize: showResize,
+      showRotate: showRotate,
+      showPlaybackSpeed: showPlaybackSpeed,
+      showEpisodes: showEpisodes,
       osUsername: osUser,
       osPassword: osPass,
       osApiKey: osKey,
@@ -657,6 +833,64 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
     state = AsyncData(state.requireValue.copyWith(hardwareDecoding: val));
   }
 
+  Future<void> setHdrMode(HdrMode mode) async {
+    await _repository.setPlayerSetting('player_hdr_mode', mode.name);
+    state = AsyncData(state.requireValue.copyWith(hdrMode: mode));
+  }
+
+  Future<void> setToneMapCurve(ToneMapCurve curve) async {
+    await _repository.setPlayerSetting('player_tone_map', curve.name);
+    state = AsyncData(state.requireValue.copyWith(toneMapCurve: curve));
+  }
+
+  Future<void> setHdrComputePeak(bool val) async {
+    await _repository.setPlayerSetting('player_hdr_compute_peak', val);
+    state = AsyncData(state.requireValue.copyWith(hdrComputePeak: val));
+  }
+
+  /// [nits] of 0 means auto-detect from the display.
+  Future<void> setHdrTargetPeak(int nits) async {
+    final clamped = nits <= 0 ? 0 : nits.clamp(100, 10000);
+    await _repository.setPlayerSetting('player_hdr_target_peak', clamped);
+    state = AsyncData(state.requireValue.copyWith(hdrTargetPeak: clamped));
+  }
+
+  Future<void> setInverseToneMapping(bool val) async {
+    await _repository.setPlayerSetting('player_inverse_tone_map', val);
+    state = AsyncData(state.requireValue.copyWith(inverseToneMapping: val));
+  }
+
+  Future<void> setMaxVolumePercent(int percent) async {
+    final clamped = percent.clamp(100, 200);
+    await _repository.setPlayerSetting('player_max_volume', clamped);
+    state = AsyncData(state.requireValue.copyWith(maxVolumePercent: clamped));
+  }
+
+  Future<void> setShowPip(bool val) async {
+    await _repository.setPlayerSetting('player_show_pip', val);
+    state = AsyncData(state.requireValue.copyWith(showPip: val));
+  }
+
+  Future<void> setShowResize(bool val) async {
+    await _repository.setPlayerSetting('player_show_resize', val);
+    state = AsyncData(state.requireValue.copyWith(showResize: val));
+  }
+
+  Future<void> setShowRotate(bool val) async {
+    await _repository.setPlayerSetting('player_show_rotate', val);
+    state = AsyncData(state.requireValue.copyWith(showRotate: val));
+  }
+
+  Future<void> setShowPlaybackSpeed(bool val) async {
+    await _repository.setPlayerSetting('player_show_playback_speed', val);
+    state = AsyncData(state.requireValue.copyWith(showPlaybackSpeed: val));
+  }
+
+  Future<void> setShowEpisodes(bool val) async {
+    await _repository.setPlayerSetting('player_show_episodes', val);
+    state = AsyncData(state.requireValue.copyWith(showEpisodes: val));
+  }
+
   Future<void> setSubtitleSettings(
     double size,
     int color,
@@ -739,10 +973,7 @@ class PlayerSettingsNotifier extends _$PlayerSettingsNotifier {
   }
 
   Future<void> setQualityFilterMode(QualityFilterMode mode) async {
-    await _repository.setPlayerSetting(
-      'player_quality_filter_mode',
-      mode.name,
-    );
+    await _repository.setPlayerSetting('player_quality_filter_mode', mode.name);
     state = AsyncData(state.requireValue.copyWith(qualityFilterMode: mode));
   }
 
