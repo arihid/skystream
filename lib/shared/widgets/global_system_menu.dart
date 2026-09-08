@@ -2,18 +2,27 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/focusable_wrapper.dart';
 
+import '../../core/input/gamepad_intents.dart';
+
 class GlobalSystemMenu extends StatelessWidget {
-  const GlobalSystemMenu({super.key});
+  final String currentLocation;
+
+  const GlobalSystemMenu({super.key, this.currentLocation = '/'});
 
   static bool _isOpen = false;
 
-  // 🎮 Summon the Steam Big Picture style menu from ANYWHERE!
   static Future<void> show(BuildContext context) async {
     if (_isOpen) return;
     _isOpen = true;
+
+    String location = '/';
+    try {
+      location = GoRouterState.of(context).uri.path;
+    } catch (_) {}
 
     await showGeneralDialog(
       context: context,
@@ -23,30 +32,26 @@ class GlobalSystemMenu extends StatelessWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, animation, secondaryAnimation) {
         return SlideTransition(
-          // Slide in from the left edge (Offset(-1, 0)) to the center
-          position: Tween<Offset>(
-            begin: const Offset(-1.0, 0.0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          )),
+          position:
+              Tween<Offset>(
+                begin: const Offset(-1.0, 0.0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              ),
           child: FadeTransition(
             opacity: animation,
-            child: const GlobalSystemMenu(),
+            child: GlobalSystemMenu(currentLocation: location),
           ),
         );
       },
     );
 
-    // 🎯 Wait for the dialog to be dismissed (via 'B' button, tap, or pop), then reset state
     _isOpen = false;
   }
 
-  // 🎯 Safely toggle the menu open/closed
   static void toggle(BuildContext context) {
     if (_isOpen) {
-      // Cleanly dismiss the top-most dialog (our menu)
       Navigator.of(context, rootNavigator: true).pop();
     } else {
       show(context);
@@ -56,139 +61,214 @@ class GlobalSystemMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    return Align(
-      alignment: Alignment.centerLeft, // Lock to the left edge
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 320,
-          height: double.infinity, // Full screen height
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLowest.withValues(alpha: 0.95),
-            border: Border(
-              right: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
+
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppBackIntent: CallbackAction<AppBackIntent>(
+          onInvoke: (_) {
+            Navigator.of(context, rootNavigator: true).pop();
+            return null;
+          },
+        ),
+      },
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 320,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLowest.withValues(
+                alpha: 0.95,
+              ),
+              border: Border(
+                right: BorderSide(
+                  color: theme.dividerColor.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 40,
+                  spreadRadius: 10,
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 40, spreadRadius: 10),
-            ],
-          ),
-          child: ClipRRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 24.0),
-                  child: FocusTraversalGroup(
-                    policy: WidgetOrderTraversalPolicy(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // --- Logo Header ---
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12.0, bottom: 48.0),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.asset(
-                                  'assets/images/ic_launcher_foreground.png',
-                                  width: 36,
-                                  height: 36,
-                                  errorBuilder: (context, error, stack) => Icon(
-                                    Icons.videogame_asset_rounded, 
-                                    color: theme.colorScheme.primary, 
-                                    size: 36,
-                                  ),
-                                ),
+            child: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 32.0,
+                      horizontal: 24.0,
+                    ),
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                          Navigator.of(context, rootNavigator: true).pop();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: FocusTraversalGroup(
+                        policy: WidgetOrderTraversalPolicy(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 12.0,
+                                bottom: 48.0,
                               ),
-                              const SizedBox(width: 16),
-                              Text('SkyStream', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        
-                        // --- Navigation Items ---
-                        _MenuButton(
-                          icon: Icons.home_rounded,
-                          label: 'Home',
-                          autofocus: true, // Focus starts here!
-                          onTap: () {
-                            Navigator.pop(context);
-                            const HomeRoute().go(context);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        _MenuButton(
-                          icon: Icons.search_rounded,
-                          label: 'Search',
-                          onTap: () {
-                            Navigator.pop(context);
-                            const SearchRoute().go(context);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        _MenuButton(
-                          icon: Icons.explore_rounded,
-                          label: 'Explore',
-                          onTap: () {
-                            Navigator.pop(context);
-                            const ExploreRoute().go(context);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        _MenuButton(
-                          icon: Icons.video_library_rounded,
-                          label: 'Library',
-                          onTap: () {
-                            Navigator.pop(context);
-                            const LibraryRoute().go(context);
-                          },
-                        ),
-                        
-                        const Spacer(),
-                        const Divider(height: 32),
-                        
-                        // --- System Actions ---
-                        _MenuButton(
-                          icon: Icons.settings_rounded,
-                          label: 'Settings',
-                          onTap: () {
-                            Navigator.pop(context);
-                            const SettingsRoute().push<void>(context);
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        _MenuButton(
-                          icon: Icons.power_settings_new_rounded,
-                          label: 'Exit SkyStream',
-                          isDestructive: true,
-                          onTap: () {
-                            showDialog<void>(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: const Text('Exit SkyStream?'),
-                                  content: const Text('Are you sure you want to exit the app?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context), // Cancel
-                                      child: const Text('Cancel'),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      'assets/images/ic_launcher_foreground.png',
+                                      width: 36,
+                                      height: 36,
+                                      errorBuilder: (context, error, stack) =>
+                                          Icon(
+                                            Icons.videogame_asset_rounded,
+                                            color: theme.colorScheme.primary,
+                                            size: 36,
+                                          ),
                                     ),
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context); // Close dialog
-                                        exit(0); // Exit app
-                                      },
-                                      child: const Text('Exit'),
-                                    ),
-                                  ],
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    'SkyStream',
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            _MenuButton(
+                              icon: Icons.home_rounded,
+                              label: 'Home',
+                              autofocus:
+                                  currentLocation == '/' ||
+                                  currentLocation.startsWith('/home'),
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                const HomeRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.search_rounded,
+                              label: 'Search',
+                              autofocus: currentLocation.startsWith('/search'),
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                const SearchRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.explore_rounded,
+                              label: 'Explore',
+                              autofocus: currentLocation.startsWith('/explore'),
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                const ExploreRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            _MenuButton(
+                              icon: Icons.video_library_rounded,
+                              label: 'Library',
+                              autofocus: currentLocation.startsWith('/library'),
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                const LibraryRoute().go(context);
+                              },
+                            ),
+
+                            const Spacer(),
+                            const Divider(height: 32),
+
+                            _MenuButton(
+                              icon: Icons.settings_rounded,
+                              label: 'Settings',
+                              autofocus: currentLocation.startsWith(
+                                '/settings',
+                              ),
+                              onTap: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                const SettingsRoute().go(context);
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _MenuButton(
+                              icon: Icons.power_settings_new_rounded,
+                              label: 'Exit SkyStream',
+                              isDestructive: true,
+                              onTap: () {
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (dialogContext) {
+                                    return AlertDialog(
+                                      title: const Text('Exit SkyStream?'),
+                                      content: const Text(
+                                        'Are you sure you want to exit the app?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          autofocus: true,
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(dialogContext);
+                                            if (Platform.isAndroid ||
+                                                Platform.isIOS) {
+                                              SystemNavigator.pop();
+                                            } else {
+                                              exit(0);
+                                            }
+                                          },
+                                          child: const Text(
+                                            'Exit',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -225,6 +305,18 @@ class _MenuButtonState extends State<_MenuButton> {
   bool _isHovered = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _focusNode.canRequestFocus) {
+          _focusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
@@ -233,49 +325,54 @@ class _MenuButtonState extends State<_MenuButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = widget.isDestructive ? theme.colorScheme.error : theme.colorScheme.primary;
-    final onColor = widget.isDestructive ? theme.colorScheme.onError : theme.colorScheme.onPrimary;
+    final color = widget.isDestructive
+        ? theme.colorScheme.error
+        : theme.colorScheme.primary;
+    final onColor = widget.isDestructive
+        ? theme.colorScheme.onError
+        : theme.colorScheme.onPrimary;
 
     return FocusableWrapper(
+      focusNode: _focusNode,
       autofocus: widget.autofocus,
       onTap: widget.onTap,
-      child: Focus(
-        focusNode: _focusNode,
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: AnimatedBuilder(
-            animation: _focusNode,
-            builder: (context, child) {
-              final isActive = _focusNode.hasFocus || _isHovered;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: isActive ? color : Colors.transparent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      widget.icon,
-                      color: isActive ? onColor : theme.colorScheme.onSurfaceVariant,
-                      size: 26,
+      useScaleEffect: false,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: AnimatedBuilder(
+          animation: _focusNode,
+          builder: (context, child) {
+            final isActive = _focusNode.hasFocus || _isHovered;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: isActive ? color : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.icon,
+                    color: isActive
+                        ? onColor
+                        : theme.colorScheme.onSurfaceVariant,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 20),
+                  Text(
+                    widget.label,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: isActive ? onColor : theme.colorScheme.onSurface,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                     ),
-                    const SizedBox(width: 20),
-                    Text(
-                      widget.label,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: isActive ? onColor : theme.colorScheme.onSurface,
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
