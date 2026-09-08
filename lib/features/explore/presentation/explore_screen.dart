@@ -1,25 +1,37 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+
+import '../../../core/config/tmdb_config.dart';
+import '../../settings/presentation/widgets/settings_dialogs.dart';
+import 'package:skystream/features/explore/presentation/widgets/hover_border_gradient.dart';
 import '../../../shared/widgets/cards_wrapper.dart';
 import '../data/explore_tmdb_provider.dart';
 import '../data/explore_mode_provider.dart';
 import 'anilist_explore_screen.dart';
 import 'view_all_screen.dart';
 import 'widgets/explore_carousel.dart';
+import 'widgets/explore_header_bar.dart';
 import 'widgets/media_horizontal_list.dart';
 import 'widgets/unified_filter_dialog.dart';
 import '../data/explore_filter_provider.dart';
 import 'delegates/explore_search_delegate.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
-import '../../../../core/providers/device_info_provider.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../addons/presentation/addons_screen.dart';
+import 'widgets/explore_mode_selector_dialog.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/router/app_router.dart';
+
+// TV/Gamepad Feature Imports
 import '../../../../core/widgets/focusable_wrapper.dart';
-import 'dart:async';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
@@ -48,8 +60,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   final ValueNotifier<bool> _isScrolledNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<double> _appBarOpacityNotifier = ValueNotifier<double>(0);
   final ValueNotifier<bool> _showBottomFade = ValueNotifier(false);
-  final ValueNotifier<bool> _isFabExtended = ValueNotifier<bool>(true);
-  final FocusNode _firstActionFocusNode = FocusNode();
+  final FocusNode _firstActionFocusNode = FocusNode(
+    debugLabel: 'explore_header_search',
+  );
 
   /// Carousel controller exposed by ExploreCarousel via [onControllerReady].
   HeroCarouselController? _carouselController;
@@ -67,7 +80,12 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    return isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -93,16 +111,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     if (isScrolled != _isScrolledNotifier.value) {
       _isScrolledNotifier.value = isScrolled;
     }
-
-    if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.reverse &&
-        _isFabExtended.value) {
-      _isFabExtended.value = false;
-    } else if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.forward &&
-        !_isFabExtended.value) {
-      _isFabExtended.value = true;
-    }
   }
 
   @override
@@ -112,30 +120,49 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     _isScrolledNotifier.dispose();
     _appBarOpacityNotifier.dispose();
     _showBottomFade.dispose();
-    _isFabExtended.dispose();
+    _firstActionFocusNode.dispose();
     super.dispose();
+  }
+
+  void _refreshAll() {
+    ref.invalidate(exploreHeroMovieProvider);
+    ref.invalidate(trendingTVProvider);
+    ref.invalidate(popularMoviesProvider);
+    ref.invalidate(popularTVProvider);
+    ref.invalidate(nowPlayingMoviesProvider);
+    ref.invalidate(onTheAirTVProvider);
+    ref.invalidate(topRatedMoviesProvider);
+    ref.invalidate(topRatedTVProvider);
+    ref.invalidate(airingTodayTVProvider);
+    ref.invalidate(genresProvider);
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); 
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
 
+    // Master Switch Evaluation
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     // Use profile?.isLargeScreen so this matches AppScaffold's sidebar
     // decision even when the ExploreScreen's context width is narrowed
-    // by the sidebar (e.g. iPad portrait).
+    // by the sidebar (e.g. iPad portrait). BigPicture explicitly forces widescreen.
     final isWidescreen =
-        isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     if (isWidescreen) {
       return Scaffold(
         extendBodyBehindAppBar: false,
         backgroundColor: Colors.transparent,
-        body: _buildWidescreenBody(context),
+        body: _buildWidescreenBody(context, isBigPicture),
       );
     }
 
+    // Mobile layout: existing AppBar
     return ValueListenableBuilder<bool>(
       valueListenable: _isScrolledNotifier,
       builder: (context, isScrolled, child) {
@@ -145,7 +172,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             : SystemUiOverlayStyle.dark;
 
         return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
+          backgroundColor: Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Base background
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             systemOverlayStyle: overlayStyle,
@@ -154,9 +183,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             elevation: 0,
             flexibleSpace: ValueListenableBuilder<double>(
               valueListenable: _appBarOpacityNotifier,
+              // See home_screen.dart for why we fade via color alpha rather
+              // than Opacity — same saveLayer-per-frame issue.
               builder: (context, opacity, child) {
                 return Container(
-                  color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: opacity),
+                  color: Theme.of(
+                    context,
+                  ).scaffoldBackgroundColor.withValues(alpha: opacity),
                 );
               },
             ),
@@ -170,44 +203,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
             centerTitle: false,
             actions: [
+              // 1. Search Action Button
               Padding(
-                padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
-                child: CardsWrapper(
-                  onTap: () {
-                    unawaited(
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) => const UnifiedFilterDialog(),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(50),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final filters = ref.watch(exploreFilterProvider); 
-                      final hasActiveFilter =
-                          filters.selectedGenre != null ||
-                          filters.selectedYear != null ||
-                          filters.minRating != null;
-
-                      return CircleAvatar(
-                        backgroundColor: hasActiveFilter
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                        radius: 18,
-                        child: Icon(
-                          Icons.tune,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 18,
-                        ),
-                      );
-                    },
-                  ),
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingSm,
                 ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
                 child: CardsWrapper(
                   onTap: () {
                     unawaited(
@@ -221,7 +221,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   },
                   borderRadius: BorderRadius.circular(50),
                   child: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.1),
                     radius: 18,
                     child: Icon(
                       Icons.search,
@@ -231,93 +233,223 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   ),
                 ),
               ),
+
+              // 2. Explore Mode Selector (Movies / Anime / Stremio Add-ons)
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: CardsWrapper(
+                  onTap: () => showExploreModeSelectorDialog(context, ref),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final mode = ref.watch(exploreModeProvider);
+                      final l10n = AppLocalizations.of(context)!;
+                      final onSurfaceColor = Theme.of(
+                        context,
+                      ).colorScheme.onSurface;
+
+                      Widget iconWidget;
+                      String tooltipMsg;
+
+                      switch (mode) {
+                        case ExploreModeType.movies:
+                          iconWidget = Icon(
+                            Icons.movie_outlined,
+                            color: onSurfaceColor,
+                            size: 18,
+                          );
+                          tooltipMsg = l10n.exploreMovies;
+                          break;
+                        case ExploreModeType.anime:
+                          iconWidget = SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CustomPaint(
+                              painter: AnimeLogoPainter(color: onSurfaceColor),
+                            ),
+                          );
+                          tooltipMsg = l10n.exploreAnime;
+                          break;
+                        case ExploreModeType.stremio:
+                          iconWidget = Icon(
+                            Icons.extension_outlined,
+                            color: onSurfaceColor,
+                            size: 18,
+                          );
+                          tooltipMsg = 'Stremio Add-ons';
+                          break;
+                      }
+
+                      return Tooltip(
+                        message: tooltipMsg,
+                        child: CircleAvatar(
+                          backgroundColor: onSurfaceColor.withValues(
+                            alpha: 0.1,
+                          ),
+                          radius: 18,
+                          child: iconWidget,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // 3. Filter / Settings Dialog Button
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final mode = ref.watch(exploreModeProvider);
+                    final isStremio = mode == ExploreModeType.stremio;
+                    final filters = ref.watch(exploreFilterProvider);
+                    final hasActiveFilter =
+                        filters.selectedGenre != null ||
+                        filters.selectedYear != null ||
+                        filters.minRating != null;
+
+                    return CardsWrapper(
+                      onTap: () {
+                        if (isStremio) {
+                          const SettingsRoute(category: 'addons').go(context);
+                        } else {
+                          unawaited(
+                            showDialog<void>(
+                              context: context,
+                              builder: (context) => const UnifiedFilterDialog(),
+                            ),
+                          );
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(50),
+                      child: Tooltip(
+                        message: isStremio ? 'Stremio Settings' : 'Filter',
+                        child: CircleAvatar(
+                          backgroundColor: (!isStremio && hasActiveFilter)
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.1),
+                          radius: 18,
+                          child: Icon(
+                            isStremio
+                                ? Icons.dashboard_customize_rounded
+                                : Icons.tune,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
           body: _withGradientEdgeHint(
-            ref.watch(exploreModeProvider)
-                ? AnilistExploreScreen(
-                    scrollController: _scrollController,
-                    firstActionFocusNode: _firstActionFocusNode,
-                    onControllerReady: (c) =>
-                        setState(() => _carouselController = c),
-                  )
-                : _buildScrollView(context),
-          ),
-          floatingActionButton: ValueListenableBuilder<bool>(
-            valueListenable: _isFabExtended,
-            builder: (context, isFabExtended, _) {
-              final isAnime = ref.watch(exploreModeProvider);
-              return Material(
-                elevation: 4,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context).colorScheme.surfaceDim
-                    : Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    ref
-                        .read(exploreModeProvider.notifier)
-                        .setAnimeMode(!isAnime);
-                  },
-                  child: Container(
-                    height: 56,
-                    constraints: const BoxConstraints(minWidth: 56),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isFabExtended ? 16 : 0,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isAnime ? Icons.arrow_back : Icons.explore,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          child: SizedBox(
-                            width: isFabExtended ? null : 0,
-                            child: isFabExtended
-                                ? Padding(
-                                    padding: const EdgeInsets.only(left: 12),
-                                    child: Text(
-                                      isAnime ? 'Go Back' : 'Explore Anime',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+            _buildActiveExploreBody(context, isBigPicture),
           ),
         );
       },
     );
   }
 
+  Widget _buildActiveExploreBody(BuildContext context, bool isBigPicture) {
+    final mode = ref.watch(exploreModeProvider);
+    switch (mode) {
+      case ExploreModeType.movies:
+        return _buildScrollView(context, isBigPicture);
+      case ExploreModeType.anime:
+        return AnilistExploreScreen(
+          autofocus: isBigPicture, // TV Conditional Autofocus
+          scrollController: _scrollController,
+          firstActionFocusNode: _firstActionFocusNode,
+          onControllerReady: (c) => setState(() => _carouselController = c),
+        );
+      case ExploreModeType.stremio:
+        return AddonCatalogsTabView(
+          // Assumes AddonCatalogsTabView respects similar TV focus paradigms
+          scrollController: _scrollController,
+          firstActionFocusNode: _firstActionFocusNode,
+          onControllerReady: (c) => setState(() => _carouselController = c),
+        );
+    }
+  }
+
+  Widget _buildWidescreenBody(BuildContext context, bool isBigPicture) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          // Conditionally use TV header or Desktop header based on Master Switch
+          child: isBigPicture
+              ? _buildWidescreenHeader(context)
+              : ExploreHeaderBar(
+                  searchFocusNode: _firstActionFocusNode,
+                  onPrevious: _carouselController != null
+                      ? () => _carouselController!.previousPage()
+                      : null,
+                  onNext: _carouselController != null
+                      ? () => _carouselController!.nextPage()
+                      : null,
+                ),
+        ),
+        Expanded(
+          child: _withGradientEdgeHint(
+            _buildActiveExploreBody(context, isBigPicture),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Custom TV-Optimized Widescreen Header
   Widget _buildWidescreenHeader(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final mode = ref.watch(exploreModeProvider);
+    final isStremio = mode == ExploreModeType.stremio;
+
+    String modeLabel;
+    IconData modeIcon;
+
+    switch (mode) {
+      case ExploreModeType.movies:
+        modeLabel = l10n.exploreMovies;
+        modeIcon = Icons.movie_outlined;
+        break;
+      case ExploreModeType.anime:
+        modeLabel = l10n.exploreAnime;
+        modeIcon = Icons.animation_rounded;
+        break;
+      case ExploreModeType.stremio:
+        modeLabel = 'Add-ons';
+        modeIcon = Icons.extension_outlined;
+        break;
+    }
 
     return Container(
       height: LayoutConstants.dashboardHeaderHeight,
-      padding: const EdgeInsets.symmetric(horizontal: LayoutConstants.dashboardContentPadding),
+      padding: const EdgeInsets.symmetric(
+        horizontal: LayoutConstants.dashboardContentPadding,
+      ),
       child: Row(
         children: [
           Expanded(
             child: FocusableWrapper(
+              focusNode: _firstActionFocusNode,
+              useScaleEffect: false,
+              gamepadHints: [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: l10n.hintSearch,
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+              ],
               onTap: () {
                 unawaited(
                   showSearch<void>(
@@ -333,17 +465,28 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 constraints: const BoxConstraints(maxWidth: 500),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.5,
+                  ),
+                  borderRadius: BorderRadius.circular(
+                    LayoutConstants.radiusPill,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.search,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${l10n.search}...',
-                        style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],
@@ -352,14 +495,65 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             ),
           ),
           const SizedBox(width: 16),
+
           FocusableWrapper(
+            borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+            useScaleEffect: true,
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: 'Change Mode',
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
+            onTap: () => showExploreModeSelectorDialog(context, ref),
+            child: Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(LayoutConstants.radiusPill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(modeIcon, size: 18, color: theme.colorScheme.onPrimary),
+                  const SizedBox(width: 8),
+                  Text(
+                    modeLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          FocusableWrapper(
+            borderRadius: BorderRadius.circular(18),
+            useScaleEffect: true,
+            gamepadHints: [
+              GamepadHint(
+                buttonLabel: 'A',
+                actionLabel: isStremio ? 'Settings' : l10n.hintFilters,
+                buttonColor: Colors.greenAccent.shade400,
+              ),
+            ],
             onTap: () {
-              unawaited(
-                showDialog<void>(
-                  context: context,
-                  builder: (context) => const UnifiedFilterDialog(),
-                ),
-              );
+              if (isStremio) {
+                const SettingsRoute(category: 'addons').go(context);
+              } else {
+                unawaited(
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => const UnifiedFilterDialog(),
+                  ),
+                );
+              }
             },
             child: Container(
               width: 36,
@@ -367,18 +561,21 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.3,
+                ),
               ),
               child: Consumer(
                 builder: (context, ref, _) {
                   final filters = ref.watch(exploreFilterProvider);
-                  final hasActiveFilter = filters.selectedGenre != null ||
+                  final hasActiveFilter =
+                      filters.selectedGenre != null ||
                       filters.selectedYear != null ||
                       filters.minRating != null;
 
                   return Icon(
-                    Icons.tune,
-                    color: hasActiveFilter
+                    isStremio ? Icons.dashboard_customize_rounded : Icons.tune,
+                    color: (!isStremio && hasActiveFilter)
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
                     size: 18,
@@ -389,30 +586,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildWidescreenBody(BuildContext context) {
-    final isAnime = ref.watch(exploreModeProvider);
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: _buildWidescreenHeader(context),
-        ),
-        Expanded(
-          child: _withGradientEdgeHint(
-            isAnime
-                ? AnilistExploreScreen(
-                    scrollController: _scrollController,
-                    firstActionFocusNode: _firstActionFocusNode,
-                    onControllerReady: (c) =>
-                        setState(() => _carouselController = c),
-                  )
-                : _buildScrollView(context),
-          ),
-        ),
-      ],
     );
   }
 
@@ -458,43 +631,177 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     );
   }
 
-  Widget _buildScrollView(BuildContext context) {
+  Widget _buildScrollView(BuildContext context, bool isBigPicture) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (TmdbConfig.apiKey.isEmpty) {
+      return _buildNeedsKeyOrErrorState(
+        context,
+        icon: Icons.vpn_key_rounded,
+        title: 'TMDB API key needed',
+        subtitle:
+            'TMDB is used to discover movies and series on Explore. '
+            'Please configure a free TMDB API key in Settings or Nuvio plugins.',
+        showApiKeyButton: true,
+      );
+    }
+
     final heroMoviesAsync = ref.watch(exploreHeroMovieProvider);
+    final trendingTVAsync = ref.watch(trendingTVProvider);
+    final popularMoviesAsync = ref.watch(popularMoviesProvider);
+    final popularTVAsync = ref.watch(popularTVProvider);
+    final nowPlayingAsync = ref.watch(nowPlayingMoviesProvider);
+    final onTheAirAsync = ref.watch(onTheAirTVProvider);
+    final topRatedMoviesAsync = ref.watch(topRatedMoviesProvider);
+    final topRatedTVAsync = ref.watch(topRatedTVProvider);
+    final airingTodayAsync = ref.watch(airingTodayTVProvider);
+
+    final allSections = [
+      heroMoviesAsync,
+      trendingTVAsync,
+      popularMoviesAsync,
+      popularTVAsync,
+      nowPlayingAsync,
+      onTheAirAsync,
+      topRatedMoviesAsync,
+      topRatedTVAsync,
+      airingTodayAsync,
+    ];
+
+    final isAnyLoading = allSections.any((s) => s.isLoading);
+    final isAllFailedOrEmpty =
+        !isAnyLoading &&
+        allSections.every((s) {
+          if (s.hasError) return true;
+          if (s.hasValue && (s.value?.isEmpty ?? true)) return true;
+          return false;
+        });
+
+    if (isAllFailedOrEmpty) {
+      final firstError = allSections.firstWhereOrNull((s) => s.hasError)?.error;
+      return _buildNeedsKeyOrErrorState(
+        context,
+        icon: Icons.cloud_off_rounded,
+        title: l10n.siteNotReachable,
+        subtitle:
+            'Could not load Explore content. Check your internet connection or verify your TMDB API key.',
+        errorDetails: firstError?.toString(),
+        showApiKeyButton: true,
+      );
+    }
+
     final isNone = heroMoviesAsync.maybeWhen(
       data: (list) => list.isEmpty,
-      error: (_, __) => true,
+      error: (_, _) => true,
       orElse: () => false,
     );
-    final topPadding = isNone ? (MediaQuery.paddingOf(context).top + kToolbarHeight) : 0.0;
+    final topPadding = isNone
+        ? (MediaQuery.paddingOf(context).top + kToolbarHeight)
+        : 0.0;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      cacheExtent: 99999, // 🎯 THE FIX: Disables lazy rendering so TV focus engine can always "see" the next row!
-      slivers: [
-        if (topPadding > 0)
-          SliverToBoxAdapter(child: SizedBox(height: topPadding)),
-        ..._buildContentSlivers(context).map((sliver) {
-          return SliverSafeArea(
-            top: false,
-            bottom: false,
-            left: true,
-            right: true,
-            sliver: sliver,
-          );
-        }),
-        const SliverSafeArea(
-          top: false,
-          left: true,
-          right: true,
-          sliver: SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: () async => _refreshAll(),
+      child: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          if (topPadding > 0)
+            SliverToBoxAdapter(child: SizedBox(height: topPadding)),
+          ..._buildContentSlivers(context, isBigPicture).map((sliver) {
+            return SliverSafeArea(
+              top: false,
+              bottom: false,
+              left: true,
+              right: true,
+              sliver: sliver,
+            );
+          }),
+        ],
+      ),
     );
   }
 
+  Widget _buildNeedsKeyOrErrorState(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    String? errorDetails,
+    bool showApiKeyButton = false,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 80, color: theme.colorScheme.error),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (errorDetails != null && errorDetails.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: SelectableText(
+                  errorDetails,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 32),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                FilledButton.icon(
+                  onPressed: _refreshAll,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(l10n.retry),
+                ),
+                if (showApiKeyButton)
+                  ElevatedButton.icon(
+                    onPressed: () => showTmdbApiKeyDialog(context, ref),
+                    icon: const Icon(Icons.vpn_key_rounded),
+                    label: const Text('TMDB API Key'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.secondaryContainer,
+                      foregroundColor: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  List<Widget> _buildContentSlivers(BuildContext context) {
+  List<Widget> _buildContentSlivers(BuildContext context, bool isBigPicture) {
     final l10n = AppLocalizations.of(context)!;
 
     return [
@@ -507,8 +814,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 value.isEmpty
                     ? const SizedBox.shrink()
                     : ExploreCarousel(
+                        autofocus: isBigPicture, // TV Conditional Autofocus
                         movies: value,
                         scrollController: _scrollController,
+                        onNavigateUp: () =>
+                            _firstActionFocusNode.requestFocus(),
+                        onControllerReady: (c) =>
+                            setState(() => _carouselController = c),
                       ),
               AsyncLoading() => _buildCarouselShimmer(context),
               AsyncError() => Container(
@@ -517,7 +829,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                   bottom: LayoutConstants.spacingLg,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -554,32 +868,77 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(popularMoviesProvider), l10n.popularMovies, ViewAllCategory.popularMovies),
+        child: _buildSection(
+          context,
+          ref.watch(popularMoviesProvider),
+          l10n.popularMovies,
+          ViewAllCategory.popularMovies,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(popularTVProvider), l10n.popularTVShows, ViewAllCategory.popularTV),
+        child: _buildSection(
+          context,
+          ref.watch(trendingTVProvider),
+          'Trending TV Shows',
+          ViewAllCategory.trendingTV,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(nowPlayingMoviesProvider), l10n.newMovies, ViewAllCategory.nowPlayingMovies),
+        child: _buildSection(
+          context,
+          ref.watch(popularTVProvider),
+          l10n.popularTVShows,
+          ViewAllCategory.popularTV,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(onTheAirTVProvider), l10n.newTVShows, ViewAllCategory.onTheAirTV),
+        child: _buildSection(
+          context,
+          ref.watch(nowPlayingMoviesProvider),
+          l10n.newMovies,
+          ViewAllCategory.nowPlayingMovies,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(topRatedMoviesProvider), l10n.featuredMovies, ViewAllCategory.topRatedMovies),
+        child: _buildSection(
+          context,
+          ref.watch(onTheAirTVProvider),
+          l10n.newTVShows,
+          ViewAllCategory.onTheAirTV,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(topRatedTVProvider), l10n.featuredTVShows, ViewAllCategory.topRatedTV),
+        child: _buildSection(
+          context,
+          ref.watch(topRatedMoviesProvider),
+          l10n.featuredMovies,
+          ViewAllCategory.topRatedMovies,
+        ),
       ),
 
       SliverToBoxAdapter(
-        child: _buildSection(context, ref.watch(airingTodayTVProvider), l10n.lastVideosTVShows, ViewAllCategory.airingTodayTV),
+        child: _buildSection(
+          context,
+          ref.watch(topRatedTVProvider),
+          l10n.featuredTVShows,
+          ViewAllCategory.topRatedTV,
+        ),
       ),
+
+      SliverToBoxAdapter(
+        child: _buildSection(
+          context,
+          ref.watch(airingTodayTVProvider),
+          l10n.lastVideosTVShows,
+          ViewAllCategory.airingTodayTV,
+        ),
+      ),
+      const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
     ];
   }
 
@@ -644,46 +1003,56 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Title Placeholder
         Padding(
           padding: EdgeInsets.fromLTRB(
-            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
+            isDesktop
+                ? LayoutConstants.dashboardContentPadding
+                : LayoutConstants.spacingMd,
             LayoutConstants.spacingLg,
-            isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
+            isDesktop
+                ? LayoutConstants.dashboardContentPadding
+                : LayoutConstants.spacingMd,
             LayoutConstants.spacingSm,
           ),
-            child: ShimmerPlaceholder.rectangular(
-              width: 150,
-              height: 24,
-              borderRadius: 4,
-            ),
+          child: ShimmerPlaceholder.rectangular(
+            width: 150,
+            height: 24,
+            borderRadius: 4,
           ),
-          const SizedBox(height: LayoutConstants.spacingMd),
-          SizedBox(
-            height: listHeight,
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(
-                horizontal: isDesktop ? LayoutConstants.dashboardContentPadding : LayoutConstants.spacingMd,
-              ),
-              scrollDirection: Axis.horizontal,
-              itemCount: 10,
-              separatorBuilder: (_, _) => SizedBox(
-                width: isDesktop ? LayoutConstants.spacingLg : LayoutConstants.spacingSm,
-              ),
-              itemBuilder: (context, index) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ShimmerPlaceholder.rectangular(
-                      width: cardWidth,
-                      height: imageHeight,
-                      borderRadius: 12,
-                    ),
-                  ],
-                );
-              },
+        ),
+        const SizedBox(height: LayoutConstants.spacingMd),
+        // List Placeholder
+        SizedBox(
+          height: listHeight,
+          child: ListView.separated(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop
+                  ? LayoutConstants.dashboardContentPadding
+                  : LayoutConstants.spacingMd,
             ),
+            scrollDirection: Axis.horizontal,
+            itemCount: 10,
+            separatorBuilder: (_, _) => SizedBox(
+              width: isDesktop
+                  ? LayoutConstants.spacingLg
+                  : LayoutConstants.spacingSm,
+            ),
+            itemBuilder: (context, index) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerPlaceholder.rectangular(
+                    width: cardWidth,
+                    height: imageHeight,
+                    borderRadius: 12,
+                  ),
+                ],
+              );
+            },
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }

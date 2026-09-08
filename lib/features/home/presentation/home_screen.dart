@@ -18,7 +18,6 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../extensions/providers/extensions_controller.dart';
 import '../../../core/extensions/models/extension_plugin.dart';
 
-import 'package:flutter/rendering.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/extensions/base_provider.dart';
@@ -32,6 +31,9 @@ import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import 'dart:async';
 import 'widgets/dashboard_header_bar.dart';
+
+// Master Switch Import
+import '../../settings/presentation/big_picture_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -58,7 +60,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
   final ValueNotifier<double> _appBarOpacityNotifier = ValueNotifier<double>(0);
-  final ValueNotifier<bool> _isFabExtended = ValueNotifier<bool>(true);
   final ValueNotifier<bool> _showBottomFade = ValueNotifier(false);
   final FocusNode _firstActionFocusNode = FocusNode();
 
@@ -78,7 +79,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isWidescreenForScroll() {
     final profile = ref.read(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
-    return isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled || isTv;
+
+    return isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
   }
 
   void _onScroll() {
@@ -92,24 +99,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _showBottomFade.value = showFade;
     }
 
-    // On widescreen there is no mobile AppBar (opacity notifier) and no FAB
-    // (extended notifier). Skip all work to avoid per-frame overhead that
+    // On widescreen there is no mobile AppBar (opacity notifier).
+    // Skip all work to avoid per-frame overhead that
     // can stall the rendering pipeline during bounce / direction-change.
     if (_isWidescreenForScroll()) return;
 
     final opacity = (_scrollController.offset * 0.8 / 300).clamp(0.0, 1.0);
     if (opacity != _appBarOpacityNotifier.value) {
       _appBarOpacityNotifier.value = opacity;
-    }
-
-    if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.reverse &&
-        _isFabExtended.value) {
-      _isFabExtended.value = false;
-    } else if (_scrollController.position.userScrollDirection ==
-            ScrollDirection.forward &&
-        !_isFabExtended.value) {
-      _isFabExtended.value = true;
     }
   }
 
@@ -118,7 +115,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _appBarOpacityNotifier.dispose();
-    _isFabExtended.dispose();
     _showBottomFade.dispose();
     _firstActionFocusNode.dispose();
     super.dispose();
@@ -140,11 +136,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final profile = ref.watch(deviceProfileProvider).asData?.value;
     final isTv = profile?.isTv == true || context.isTv;
+
+    // Master Switch Evaluation
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     // Use profile?.isLargeScreen so this matches AppScaffold's sidebar
     // decision even when the HomeScreen's context width is narrowed
     // by the sidebar (e.g. iPad portrait).
     final isWidescreen =
-        isTv || profile?.isLargeScreen == true || context.isTabletOrLarger;
+        isBigPicture ||
+        profile?.isLargeScreen == true ||
+        context.isTabletOrLarger;
 
     // On widescreen: no AppBar, no FAB — we use the DashboardHeaderBar instead.
     // The header lives outside the scroll view in a plain Column so there is
@@ -162,6 +164,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 searchFocusNode: _firstActionFocusNode,
                 onShowProviderSelector: () =>
                     _showProviderSelector(context, ref),
+                onPrevious: _carouselController != null
+                    ? () => _carouselController!.previousPage()
+                    : null,
+                onNext: _carouselController != null
+                    ? () => _carouselController!.nextPage()
+                    : null,
               ),
             ),
             Expanded(
@@ -172,6 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 generalSettings.watchHistoryEnabled,
                 syncedProgressAsync,
                 isWidescreen: true,
+                isBigPicture: isBigPicture,
               ),
             ),
           ],
@@ -202,8 +211,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
         title: Text(l10n.appTitle),
         actions: [
+          // 1. Search Action Button
           Padding(
-            padding: const EdgeInsets.only(right: LayoutConstants.spacingMd),
+            padding: const EdgeInsets.only(right: LayoutConstants.spacingSm),
             child: CardsWrapper(
               focusNode: _firstActionFocusNode,
               onTap: () {
@@ -230,99 +240,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
           ),
+
+          // 2. Provider / Extension Pill Selector (after Search button, using matching search button design)
+          Consumer(
+            builder: (context, ref, _) {
+              final activeProvider = ref.watch(activeProviderProvider);
+              final isDebug = activeProvider?.isDebug ?? false;
+              return Padding(
+                padding: const EdgeInsets.only(
+                  right: LayoutConstants.spacingMd,
+                ),
+                child: CardsWrapper(
+                  onTap: () => _showProviderSelector(context, ref),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Container(
+                    height: 36,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.extension,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          activeProvider?.name ?? l10n.none,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (isDebug) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              l10n.debug,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
         ],
-      ),
-      floatingActionButton: ValueListenableBuilder<bool>(
-        valueListenable: _isFabExtended,
-        builder: (context, isFabExtended, _) {
-          return Material(
-            elevation: 4,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Theme.of(context).colorScheme.surfaceDim
-                : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => _showProviderSelector(context, ref),
-              child: Container(
-                height: 56,
-                constraints: const BoxConstraints(minWidth: 56),
-                padding: EdgeInsets.symmetric(
-                  horizontal: isFabExtended ? 16 : 0,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.extension,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      child: SizedBox(
-                        width: isFabExtended ? null : 0,
-                        child: isFabExtended
-                            ? Padding(
-                                padding: const EdgeInsets.only(left: 12),
-                                child: Builder(
-                                  builder: (context) {
-                                    final l10n = AppLocalizations.of(context)!;
-                                    final active = ref.watch(
-                                      activeProviderProvider,
-                                    );
-                                    final isDebug = active?.isDebug ?? false;
-                                    return Row(
-                                      children: [
-                                        Text(
-                                          active?.name ?? l10n.none,
-                                          style: TextStyle(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                        ),
-                                        if (isDebug) ...[
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              l10n.debug,
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    );
-                                  },
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
       ),
       body: _buildBody(
         context,
@@ -330,6 +315,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         history,
         generalSettings.watchHistoryEnabled,
         syncedProgressAsync,
+        isWidescreen: false,
+        isBigPicture: isBigPicture,
       ),
     );
   }
@@ -341,6 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     bool watchHistoryEnabled,
     AsyncValue<List<SyncProgressItem>> syncedProgressAsync, {
     bool isWidescreen = false,
+    bool isBigPicture = false, // Received from build method
   }) {
     final l10n = AppLocalizations.of(context)!;
     final isResolving = ref.watch(providerResolutionLoadingProvider);
@@ -385,9 +373,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               if (data.containsKey('Trending'))
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data['Trending']!.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {
@@ -400,9 +395,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               else if (data.isNotEmpty)
                 SliverToBoxAdapter(
                   child: ExploreCarousel(
+                    autofocus:
+                        isBigPicture, // Conditionally seed focus for D-Pad
                     movies: data.values.first.take(7).toList(),
                     scrollController: _scrollController,
-                    onNavigateUp: () => _firstActionFocusNode.requestFocus(),
+                    onNavigateUp: () {
+                      _firstActionFocusNode.requestFocus();
+                      FocusManager.instance.primaryFocus?.focusInDirection(
+                        TraversalDirection.up,
+                      );
+                    },
                     onControllerReady: (c) =>
                         setState(() => _carouselController = c),
                     onTap: (item) {
@@ -470,7 +472,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
 
-              const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+              const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
             ],
           ),
         ),

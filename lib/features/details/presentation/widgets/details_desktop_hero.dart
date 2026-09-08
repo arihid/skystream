@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../core/domain/entity/multimedia_item.dart';
@@ -8,6 +9,7 @@ import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 import '../../../../shared/widgets/expandable_text.dart';
 import 'premium_details_widgets.dart';
 import 'details_layout_widgets.dart';
+import '../../../../core/services/notification_service.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
 /// Immersive desktop/TV hero for non-TMDB details.
@@ -24,7 +26,6 @@ class DetailsDesktopHero extends ConsumerWidget {
     required this.detailsState,
     required this.isMovie,
     required this.itemUrl,
-    required this.actionButtons, 
     required this.child,
   });
 
@@ -42,9 +43,6 @@ class DetailsDesktopHero extends ConsumerWidget {
 
   final bool isMovie;
   final String itemUrl;
-
-  /// INJECTED buttons
-  final Widget actionButtons;
 
   /// Content rendered below the hero section (episodes, cast, etc.).
   final Widget child;
@@ -91,6 +89,9 @@ class DetailsDesktopHero extends ConsumerWidget {
               imageUrl: backdropUrl,
               fit: BoxFit.cover,
               alignment: Alignment.centerRight,
+              // Bound decoded bitmap; plugin-supplied backdrops are often
+              // already at source resolution (no size negotiation), so a 4K
+              // poster decoded at native size would burn ~33 MB.
               memCacheWidth:
                   (MediaQuery.sizeOf(context).width *
                           MediaQuery.devicePixelRatioOf(context))
@@ -158,16 +159,22 @@ class DetailsDesktopHero extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      displayItem.logoUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: displayItem.logoUrl!,
-                              height: 200,
-                              alignment: Alignment.centerLeft,
-                              fit: BoxFit.contain,
-                              placeholder: (_, _) => _buildTitle(textColor),
-                              errorWidget: (_, _, _) => _buildTitle(textColor),
-                            )
-                          : _buildTitle(textColor),
+                      // Logo or Title
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onLongPress: () => _copyAnimeTitle(context, ref),
+                        child: displayItem.logoUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: displayItem.logoUrl!,
+                                height: 200,
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.contain,
+                                placeholder: (_, _) => _buildTitle(textColor),
+                                errorWidget: (_, _, _) =>
+                                    _buildTitle(textColor),
+                              )
+                            : _buildTitle(textColor),
+                      ),
 
                       const SizedBox(height: 16),
 
@@ -198,10 +205,16 @@ class DetailsDesktopHero extends ConsumerWidget {
 
                       const SizedBox(height: 32),
 
-                      // Action buttons (Play / Download) + INJECTED Bookmark Split
+                      // Action buttons (Play / Download)
+                      // Constrained width so they don't stretch across
+                      // the full hero area — looks better on wide screens.
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 500),
-                        child: actionButtons,
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: DetailsActionButtons(
+                          item: baseItem,
+                          details: details,
+                          itemUrl: itemUrl,
+                        ),
                       ),
                     ],
                   ),
@@ -217,6 +230,24 @@ class DetailsDesktopHero extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _copyAnimeTitle(BuildContext context, WidgetRef ref) async {
+    await Clipboard.setData(ClipboardData(text: displayItem.title));
+    await HapticFeedback.selectionClick();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ref
+        .read(notificationServiceProvider)
+        .showSuccess(
+          'Copied to clipboard',
+          title: displayItem.title,
+          icon: Icons.content_copy_rounded,
+          duration: const Duration(milliseconds: 2200),
+        );
   }
 
   Widget _buildTitle(Color textColor) {

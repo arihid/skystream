@@ -19,6 +19,10 @@ import '../../../core/utils/app_utils.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 import '../../../core/services/notification_service.dart';
 
+// Master Switch Imports
+import '../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
+
 part 'playback_launcher.g.dart';
 
 @Riverpod(keepAlive: true)
@@ -36,17 +40,19 @@ class PlaybackLauncher {
     String url, {
     required MultimediaItem baseItem,
     MultimediaItem? detailedItem,
+    Episode? episode,
   }) async {
     final settings = await _ref.read(playerSettingsProvider.future);
     if (!context.mounted) return;
 
     // Smart Intercept: Check if this item/episode is downloaded
     final itemToCheck = detailedItem ?? baseItem;
-    final episode = itemToCheck.episodes?.firstWhereOrNull((e) => e.url == url);
+    final resolvedEpisode =
+        episode ?? itemToCheck.episodes?.firstWhereOrNull((e) => e.url == url);
     final downloadService = _ref.read(downloadServiceProvider);
     final localFile = await downloadService.getDownloadedFile(
       itemToCheck,
-      episode: episode,
+      episode: resolvedEpisode,
     );
     if (!context.mounted) return;
 
@@ -75,7 +81,7 @@ class PlaybackLauncher {
         $extra: PlayerRouteExtra(
           item: detailedItem ?? baseItem,
           videoUrl: finalUrl,
-          episode: episode,
+          episode: resolvedEpisode,
         ),
       ).push<void>(context);
     }
@@ -141,6 +147,8 @@ class PlaybackLauncher {
             .read(notificationServiceProvider)
             .showError(
               AppLocalizations.of(context)!.playerNotDetected(playerName),
+              title: playerName,
+              icon: Icons.play_circle_outline_rounded,
             );
         unawaited(
           PlayerRoute(
@@ -178,6 +186,8 @@ class PlaybackLauncher {
             AppLocalizations.of(
               context,
             )!.usingInternalPlayerError(e.toString()),
+            title: 'Playback Fallback',
+            icon: Icons.play_circle_outline_rounded,
           );
       unawaited(
         PlayerRoute(
@@ -221,6 +231,8 @@ class PlaybackLauncher {
           .read(notificationServiceProvider)
           .showError(
             AppLocalizations.of(context)!.playerNotDetected(playerName),
+            title: playerName,
+            icon: Icons.play_circle_outline_rounded,
           );
       unawaited(
         PlayerRoute(
@@ -240,6 +252,18 @@ class PlaybackLauncher {
     final playerName =
         ExternalPlayerService.instance.getPlayerById(playerId)?.displayName ??
         playerId;
+
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+    final firstItemFocusNode = FocusNode();
+    if (isBigPicture) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (firstItemFocusNode.canRequestFocus) {
+          firstItemFocusNode.requestFocus();
+        }
+      });
+    }
 
     showModalBottomSheet<void>(
       context: context,
@@ -275,20 +299,31 @@ class PlaybackLauncher {
                         : 'Source ${index + 1}';
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
-                    return ListTile(
-                      leading: const Icon(Icons.play_circle_outline),
-                      title: Text(label),
-                      subtitle: host.isNotEmpty ? Text(host) : null,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _launchStream(
-                          context,
-                          stream,
-                          item,
-                          episodeDataUrl,
-                          playerId,
-                        );
-                      },
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 2.0,
+                      ),
+                      child: ListTile(
+                        // Conditionally autofocus based on Master Switch
+                        autofocus: isBigPicture && index == 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        leading: const Icon(Icons.play_circle_outline),
+                        title: Text(label),
+                        subtitle: host.isNotEmpty ? Text(host) : null,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _launchStream(
+                            context,
+                            stream,
+                            item,
+                            episodeDataUrl,
+                            playerId,
+                          );
+                        },
+                      ),
                     );
                   },
                 ),

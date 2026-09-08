@@ -13,7 +13,12 @@ import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/loading_dialog.dart';
 import '../../../shared/widgets/custom_widgets.dart';
 import '../../../shared/widgets/loading_indicator.dart';
+import '../../../core/services/notification_service.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+
+// Master Switch Imports
+import '../../../core/providers/device_info_provider.dart';
+import '../../settings/presentation/big_picture_provider.dart';
 
 part 'download_launcher.g.dart';
 
@@ -76,9 +81,13 @@ class DownloadLauncher {
     } catch (e) {
       if (!context.mounted) return;
       if (!isCanceled) Navigator.of(context).pop(); // Dismiss if still there
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
+      _ref
+          .read(notificationServiceProvider)
+          .showError(
+            l10n.errorPrefix(e.toString()),
+            title: 'Download Error',
+            icon: Icons.error_outline_rounded,
+          );
     }
   }
 
@@ -89,6 +98,19 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+    final firstItemFocusNode = FocusNode();
+    if (isBigPicture) {
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (firstItemFocusNode.canRequestFocus) {
+          firstItemFocusNode.requestFocus();
+        }
+      });
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -122,6 +144,8 @@ class DownloadLauncher {
                     final host = Uri.tryParse(stream.url)?.host ?? '';
 
                     return ListTile(
+                      // Conditionally autofocus based on Master Switch
+                      autofocus: isBigPicture && index == 0,
                       leading: const Icon(Icons.file_download_outlined),
                       title: Text(label),
                       subtitle: host.isNotEmpty ? Text(host) : null,
@@ -150,6 +174,10 @@ class DownloadLauncher {
     final l10n = AppLocalizations.of(context)!;
     final downloadService = _ref.read(downloadServiceProvider);
 
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+
     // 1. Show verification dialog
     // Use root navigator context if current context is unmounted
     final navContext = rootNavigatorKey.currentContext ?? context;
@@ -174,6 +202,8 @@ class DownloadLauncher {
               actions: [
                 CustomButton(
                   isPrimary: false,
+                  // Conditionally autofocus based on Master Switch
+                  autofocus: isBigPicture,
                   onPressed: () {
                     isCanceled = true;
                     Navigator.of(ctx).pop();
@@ -245,6 +275,8 @@ class DownloadLauncher {
                 child: Text(l10n.cancel),
               ),
               ElevatedButton(
+                // Conditionally autofocus based on Master Switch
+                autofocus: isBigPicture,
                 onPressed: () async {
                   Navigator.pop(ctx);
 
@@ -292,14 +324,14 @@ class DownloadLauncher {
                     headers: stream.headers,
                   );
 
-                  if (!started && finalContext.mounted) {
-                    ScaffoldMessenger.of(finalContext).showSnackBar(
-                      const SnackBar(
-                        content: Text(
+                  if (!started) {
+                    _ref
+                        .read(notificationServiceProvider)
+                        .showError(
                           'Failed to start download. Check storage permissions.',
-                        ),
-                      ),
-                    );
+                          title: 'Download Error',
+                          icon: Icons.folder_off_rounded,
+                        );
                   }
                 },
                 child: Text(l10n.downloadNow),
@@ -319,6 +351,11 @@ class DownloadLauncher {
     String resolveUrl,
   ) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final isTv = _ref.read(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = _ref.read(bigPictureModeProvider).isEnabled || isTv;
+
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -330,6 +367,8 @@ class DownloadLauncher {
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
+            // Conditionally autofocus based on Master Switch
+            autofocus: isBigPicture,
             onPressed: () {
               Navigator.pop(ctx);
               launch(

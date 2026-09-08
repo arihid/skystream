@@ -1,31 +1,66 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:gamepads/gamepads.dart';
-import '../../../../core/router/app_router.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:async';
+import 'package:skystream/core/input/gamepad_actions.dart';
+import '../../../../core/router/app_router.dart';
 
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../shared/widgets/shimmer_placeholder.dart';
 import '../../../../shared/widgets/multimedia_card.dart';
 
-import '../../../../shared/widgets/virtual_keyboard.dart';
-import '../../../../core/utils/responsive_breakpoints.dart';
-import '../../../../core/input/gamepad_intents.dart'; 
-import '../../../../core/widgets/focusable_wrapper.dart'; 
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
-
 import '../controllers/explore_search_controller.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
+import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../../core/addons/models/addon_meta.dart' show kAddonItemSource;
+import '../../../../shared/widgets/cards_wrapper.dart';
+import '../../data/explore_mode_provider.dart';
+
+import '../../../../shared/widgets/virtual_keyboard.dart';
+import '../../../../core/input/gamepad_intents.dart';
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
 
 class ExploreSearchDelegate extends SearchDelegate<void> {
+  final FocusNode _firstSuggestionFocusNode = FocusNode();
+  final FocusNode _firstResultFocusNode = FocusNode();
+
   ExploreSearchDelegate()
     : super(
         searchFieldLabel: 'Search movies, tv shows...',
         searchFieldStyle: null,
-      );
+      ) {
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      final currentFocusWidget =
+          FocusManager.instance.primaryFocus?.context?.widget;
+      if (currentFocusWidget is EditableText) {
+        if (_firstSuggestionFocusNode.canRequestFocus) {
+          _firstSuggestionFocusNode.requestFocus();
+          return true;
+        } else if (_firstResultFocusNode.canRequestFocus) {
+          _firstResultFocusNode.requestFocus();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _firstSuggestionFocusNode.dispose();
+    _firstResultFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   ThemeData appBarTheme(BuildContext context) {
@@ -71,7 +106,12 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
   Widget _buildFakeHeader(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(LayoutConstants.dashboardContentPadding, 24, LayoutConstants.dashboardContentPadding, 8),
+      padding: const EdgeInsets.fromLTRB(
+        LayoutConstants.dashboardContentPadding,
+        24,
+        LayoutConstants.dashboardContentPadding,
+        8,
+      ),
       child: Row(
         children: [
           Icon(Icons.search, size: 28, color: theme.colorScheme.primary),
@@ -83,8 +123,8 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5,
-                color: query.isEmpty 
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5) 
+                color: query.isEmpty
+                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
                     : theme.colorScheme.onSurface,
               ),
               maxLines: 1,
@@ -98,23 +138,37 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
 
   @override
   List<Widget>? buildActions(BuildContext context) {
-    return const [ SizedBox(width: 8) ];
+    return [
+      if (query.isNotEmpty)
+        IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            query = '';
+            showSuggestions(context);
+          },
+        ),
+      const SizedBox(width: 8),
+    ];
   }
 
   @override
   Widget? buildLeading(BuildContext context) {
-    return const SizedBox.shrink();
+    return IconButton(
+      icon: const Icon(Icons.arrow_back_rounded),
+      onPressed: () => close(context, null),
+    );
   }
 
   @override
   Widget buildResults(BuildContext context) {
     if (query.isEmpty) return const SizedBox.shrink();
-    
+
     final isBigPicture = MediaQuery.sizeOf(context).width > 600;
-    
-    Widget content = _SearchResultsGrid(
+
+    final Widget content = _SearchResultsGrid(
       query: query,
       onJumpToSearch: () => showSuggestions(context),
+      firstItemFocusNode: _firstResultFocusNode,
     );
 
     if (isBigPicture) {
@@ -124,7 +178,7 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
             onInvoke: (_) {
               showSuggestions(context);
               return null;
-            }
+            },
           ),
         },
         child: Column(
@@ -159,24 +213,12 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
       );
     }
 
-    return query.isEmpty 
-        ? Center(
-            child: Text(
-              'Type to search...',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                fontSize: 18,
-              ),
-            ),
-          )
-        : _SearchSuggestionsList(
-            query: query,
-            onSelect: (val) {
-              query = val;
-              FocusManager.instance.primaryFocus?.unfocus();
-              showResults(context);
-            }
-          );
+    if (query.isEmpty) return const SizedBox.shrink();
+
+    return _SearchSuggestionsList(
+      query: query,
+      firstItemFocusNode: _firstSuggestionFocusNode,
+    );
   }
 }
 
@@ -198,10 +240,10 @@ class _ExploreSearchKeyboardAndList extends ConsumerStatefulWidget {
       _ExploreSearchKeyboardAndListState();
 }
 
-class _ExploreSearchKeyboardAndListState extends ConsumerState<_ExploreSearchKeyboardAndList> {
+class _ExploreSearchKeyboardAndListState
+    extends ConsumerState<_ExploreSearchKeyboardAndList> {
   final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
   final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
-  StreamSubscription<GamepadEvent>? _gamepadSubscription;
   DateTime _lastLTTime = DateTime.now();
   bool _isKeyboardActiveRegion = true;
 
@@ -209,33 +251,14 @@ class _ExploreSearchKeyboardAndListState extends ConsumerState<_ExploreSearchKey
   void initState() {
     super.initState();
     _isKeyboardActiveRegion = widget.initialQuery.isEmpty;
-
-    _gamepadSubscription = Gamepads.events.listen((event) {
-      if (!mounted) return;
-      if (!TickerMode.of(context)) return;
-
-      try {
-        final route = ModalRoute.of(context);
-        if (route != null && !route.isCurrent) return;
-      } catch (_) {}
-
-      final key = event.key.toLowerCase();
-      // 🎯 FIXED: Correctly constrained LT mapping
-      final isLT = key == 'l2' || key == 'button 6' || (key.contains('trigger') && key.contains('left'));
-      
-      if (isLT) {
-        if ((event.type == KeyType.button && event.value == 1.0) ||
-            (event.type == KeyType.analog && event.value > 0.5)) {
-          if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
-            _lastLTTime = DateTime.now();
-            _toggleKeyboardAndList();
-          }
-        }
-      }
-    });
   }
 
   void _toggleKeyboardAndList() {
+    // <--- FIXED: Safely skip if animations/tickers are disabled (e.g. backgrounded)
+    // Using explicit comparison to bypass static type issues.
+    // ignore: deprecated_member_use
+    if (TickerMode.of(context) == false) return;
+
     final nextRegionIsKeyboard = !_isKeyboardActiveRegion;
     setState(() {
       _isKeyboardActiveRegion = nextRegionIsKeyboard;
@@ -253,7 +276,6 @@ class _ExploreSearchKeyboardAndListState extends ConsumerState<_ExploreSearchKey
 
   @override
   void dispose() {
-    _gamepadSubscription?.cancel();
     _keyboardProxyNode.dispose();
     _listProxyNode.dispose();
     super.dispose();
@@ -267,73 +289,100 @@ class _ExploreSearchKeyboardAndListState extends ConsumerState<_ExploreSearchKey
           onInvoke: (_) {
             Navigator.maybePop(context);
             return null;
-          }
+          },
+        ),
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
+              _lastLTTime = DateTime.now();
+              _toggleKeyboardAndList();
+            }
+            return null;
+          },
         ),
       },
-      child: Column(
-        children: [
-          widget.fakeHeader,
-          Expanded(
-            child: ExcludeFocus(
-              excluding: _isKeyboardActiveRegion,
-              child: Focus(
-                focusNode: _listProxyNode,
-                skipTraversal: true,
-                child: widget.initialQuery.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Type to search...',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                            fontSize: 18,
+      child: Focus(
+        autofocus: true,
+        child: Column(
+          children: [
+            widget.fakeHeader,
+            Expanded(
+              child: ExcludeFocus(
+                excluding: _isKeyboardActiveRegion,
+                child: Focus(
+                  focusNode: _listProxyNode,
+                  skipTraversal: true,
+                  child: widget.initialQuery.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Type to search...',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.5),
+                              fontSize: 18,
+                            ),
                           ),
+                        )
+                      : _SearchSuggestionsList(
+                          query: widget.initialQuery,
+                          isKeyboardActiveRegion: _isKeyboardActiveRegion,
+                          onSelect: (val) {
+                            widget.onQueryChanged(val);
+                            widget.onSearch();
+                          },
                         ),
-                      )
-                    : _SearchSuggestionsList(
-                        query: widget.initialQuery,
-                        isKeyboardActiveRegion: _isKeyboardActiveRegion,
-                        onSelect: (val) {
-                          widget.onQueryChanged(val);
-                          widget.onSearch();
-                        },
-                      ),
+                ),
               ),
             ),
-          ),
-          ExcludeFocus(
-            excluding: !_isKeyboardActiveRegion,
-            child: Focus(
-              focusNode: _keyboardProxyNode,
-              skipTraversal: true,
-              onFocusChange: (hasFocus) {
-                if (hasFocus) {
-                  Future.microtask(() {
-                    if (mounted) {
-                      ref.read(focusedGamepadHintsProvider.notifier).state = [
-                        GamepadHint(buttonLabel: 'A', actionLabel: 'Type', buttonColor: Colors.greenAccent.shade400),
-                        GamepadHint(buttonLabel: 'LT', actionLabel: 'List', buttonColor: Colors.grey.shade400),
-                      ];
-                    }
-                  });
-                } else {
-                  Future.microtask(() {
-                    if (mounted) {
-                      final currentHints = ref.read(focusedGamepadHintsProvider);
-                      if (currentHints?.any((h) => h.actionLabel == 'Type') == true) {
-                        ref.read(focusedGamepadHintsProvider.notifier).state = null;
+            ExcludeFocus(
+              excluding: !_isKeyboardActiveRegion,
+              child: Focus(
+                focusNode: _keyboardProxyNode,
+                skipTraversal: true,
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) {
+                    Future.microtask(() {
+                      if (mounted) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state = [
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: 'Type',
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'LT',
+                            actionLabel: 'List',
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                        ];
                       }
-                    }
-                  });
-                }
-              },
-              child: VirtualKeyboard(
-                query: widget.initialQuery,
-                onQueryChanged: widget.onQueryChanged,
-                onSearch: widget.onSearch,
+                    });
+                  } else {
+                    Future.microtask(() {
+                      if (mounted) {
+                        final currentHints = ref.read(
+                          focusedGamepadHintsProvider,
+                        );
+                        if (currentHints?.any((h) => h.actionLabel == 'Type') ==
+                            true) {
+                          ref.read(focusedGamepadHintsProvider.notifier).state =
+                              null;
+                        }
+                      }
+                    });
+                  }
+                },
+                child: VirtualKeyboard(
+                  query: widget.initialQuery,
+                  onQueryChanged: widget.onQueryChanged,
+                  onSearch: widget.onSearch,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -343,11 +392,13 @@ class _SearchSuggestionsList extends ConsumerStatefulWidget {
   final String query;
   final void Function(String)? onSelect;
   final bool isKeyboardActiveRegion;
+  final FocusNode? firstItemFocusNode;
 
   const _SearchSuggestionsList({
     required this.query,
     this.onSelect,
     this.isKeyboardActiveRegion = false,
+    this.firstItemFocusNode,
   });
 
   @override
@@ -385,6 +436,7 @@ class _SearchSuggestionsListState
     final searchState = ref.watch(exploreSearchControllerProvider);
     final isLoading = searchState.isLoading;
     final suggestions = searchState.suggestions;
+
     if (isLoading) {
       return Center(
         child: AppLoadingIndicator(
@@ -409,49 +461,138 @@ class _SearchSuggestionsListState
     final isBigPicture = MediaQuery.sizeOf(context).width > 600;
 
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         final item = suggestions[index];
         final title = item.title;
-        final year = item.releaseDate.split('-').first;
         final mediaType = item.mediaType;
+        final year = item.releaseDate.split('-').first;
+        final posterUrl = item.thumbnailImageUrl.isNotEmpty
+            ? item.thumbnailImageUrl
+            : item.posterImageUrl;
 
-        final tile = ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CachedNetworkImage(
-              imageUrl: item.thumbnailImageUrl,
-              width: 40,
-              height: 60,
-              fit: BoxFit.cover,
-              placeholder: (_, _) => ShimmerPlaceholder(borderRadius: 4),
-            ),
-          ),
-          title: Text(
-            item.title ?? '', 
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-          ),
-          subtitle: Text(
-            '$mediaType ${year.isNotEmpty ? '($year)' : ''}',
-            style: TextStyle(
+        void tapHandler() {
+          if (widget.onSelect != null) {
+            widget.onSelect!(title);
+          } else {
+            _navigateToItem(
+              context,
+              item,
+              heroTag: 'search_${item.url}',
+              isStremioMode:
+                  ref.read(exploreModeProvider) == ExploreModeType.stremio,
+            );
+          }
+        }
+
+        final Widget cardContent = CardsWrapper(
+          focusNode: isBigPicture
+              ? null
+              : (index == 0 ? widget.firstItemFocusNode : null),
+          scaleFactor: 1.02,
+          borderRadius: BorderRadius.circular(12),
+          onTap: tapHandler,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 12,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: posterUrl,
+                    width: 52,
+                    height: 76,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => ShimmerPlaceholder(borderRadius: 8),
+                    errorWidget: (_, _, _) => Container(
+                      width: 52,
+                      height: 76,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.movie_outlined, size: 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          if (mediaType.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer
+                                    .withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                mediaType.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (year.isNotEmpty)
+                            Text(
+                              year,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                                fontSize: 13,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                const SizedBox(width: 6),
+              ],
             ),
           ),
-          onTap: () {
-            if (widget.onSelect != null) {
-              widget.onSelect!(item.title ?? '');
-            } else {
-              TmdbDetailsRoute(
-                movieId: item.id,
-                mediaType: item.tmdbMediaType,
-                heroTag: 'search_${item.id}',
-                source: item.source,
-              ).push<void>(context);
-            }
-          },
         );
 
         if (isBigPicture) {
@@ -460,34 +601,102 @@ class _SearchSuggestionsListState
             child: Material(
               type: MaterialType.transparency,
               child: FocusableWrapper(
+                focusNode: index == 0 ? widget.firstItemFocusNode : null,
+                autofocus: false, // Relies on proxy node logic
                 useScaleEffect: false,
                 gamepadHints: [
-                  GamepadHint(buttonLabel: 'A', actionLabel: 'Search', buttonColor: Colors.greenAccent.shade400),
-                  GamepadHint(buttonLabel: 'LT', actionLabel: widget.isKeyboardActiveRegion ? 'List' : 'Keyboard', buttonColor: Colors.grey.shade400),
+                  GamepadHint(
+                    buttonLabel: 'A',
+                    actionLabel: 'View',
+                    buttonColor: Colors.greenAccent.shade400,
+                  ),
+                  GamepadHint(
+                    buttonLabel: 'LT',
+                    actionLabel: widget.isKeyboardActiveRegion
+                        ? 'List'
+                        : 'Keyboard',
+                    buttonColor: Colors.grey.shade400,
+                  ),
                 ],
-                onTap: () {
-                  if (widget.onSelect != null) widget.onSelect!(item.title ?? '');
-                },
-                child: tile,
+                onTap: tapHandler,
+                child: ExcludeFocus(child: cardContent),
               ),
             ),
           );
         }
 
-        return Material(
-          type: MaterialType.transparency,
-          child: tile,
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Material(type: MaterialType.transparency, child: cardContent),
         );
       },
     );
   }
 }
 
+void _navigateToItem(
+  BuildContext context,
+  MultimediaItem item, {
+  String? heroTag,
+  String? placeholderPoster,
+  bool isStremioMode = false,
+}) {
+  final isAddon =
+      item.source == kAddonItemSource ||
+      item.url.startsWith('addon:') ||
+      isStremioMode ||
+      item.url.startsWith('tt') ||
+      item.url.startsWith('kitsu:');
+
+  if (isAddon) {
+    final String type;
+    final String id;
+    final String? addonUrl;
+
+    if (item.url.startsWith('addon:')) {
+      final parts = item.url.split(':');
+      type = parts.length >= 2
+          ? parts[1]
+          : (item.contentType == MultimediaContentType.series
+                ? 'series'
+                : 'movie');
+      id = parts.length >= 3 ? parts[2] : item.url;
+      addonUrl = parts.length > 3 ? parts.sublist(3).join(':') : null;
+    } else {
+      type = item.contentType == MultimediaContentType.series
+          ? 'series'
+          : 'movie';
+      id = item.url;
+      addonUrl = null;
+    }
+
+    AddonDetailRoute(
+      type: type,
+      id: id,
+      addonUrl: addonUrl,
+    ).push<void>(context);
+    return;
+  }
+
+  TmdbDetailsRoute(
+    movieId: item.id,
+    mediaType: item.tmdbMediaType,
+    heroTag: heroTag,
+    placeholderPoster: placeholderPoster,
+    source: item.source,
+  ).push<void>(context);
+}
+
 class _SearchResultsGrid extends ConsumerStatefulWidget {
   final String query;
   final VoidCallback? onJumpToSearch;
+  final FocusNode? firstItemFocusNode;
 
-  const _SearchResultsGrid({required this.query, this.onJumpToSearch});
+  const _SearchResultsGrid({
+    required this.query,
+    this.onJumpToSearch,
+    this.firstItemFocusNode,
+  });
 
   @override
   ConsumerState<_SearchResultsGrid> createState() => _SearchResultsGridState();
@@ -495,7 +704,6 @@ class _SearchResultsGrid extends ConsumerStatefulWidget {
 
 class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
   final ScrollController _scrollController = ScrollController();
-  StreamSubscription<GamepadEvent>? _gamepadSubscription;
 
   @override
   void initState() {
@@ -505,23 +713,6 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
       ref
           .read(exploreSearchControllerProvider.notifier)
           .fetchResults(widget.query);
-    });
-
-    _gamepadSubscription = Gamepads.events.listen((event) {
-      if (!mounted) return;
-      if (!TickerMode.of(context)) return;
-      try {
-        final route = ModalRoute.of(context);
-        if (route != null && !route.isCurrent) return;
-      } catch (_) {}
-
-      final key = event.key.toLowerCase();
-      // 🎯 FIXED: Correctly constrained LT mapping
-      final isLT = key == 'l2' || key == 'button 6' || (key.contains('trigger') && key.contains('left'));
-                   
-      if (isLT && ((event.type == KeyType.button && event.value == 1.0) || (event.type == KeyType.analog && event.value > 0.5))) {
-         if (widget.onJumpToSearch != null) widget.onJumpToSearch!();
-      }
     });
   }
 
@@ -547,7 +738,6 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
 
   @override
   void dispose() {
-    _gamepadSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -557,6 +747,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
     final searchState = ref.watch(exploreSearchControllerProvider);
     final isLoading = searchState.isLoading;
     final results = searchState.results;
+
     if (isLoading && results.isEmpty) {
       final screenWidth = MediaQuery.sizeOf(context).width;
       final isDesktop =
@@ -626,57 +817,77 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
     final maxExtent = isDesktop ? 240.0 : 150.0;
     const childAspectRatio = 0.55;
 
-    return GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: maxExtent,
-        childAspectRatio: childAspectRatio,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: results.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= results.length) {
-          return ShimmerPlaceholder(borderRadius: 12);
-        }
-
-        final item = results[index];
-        final imageUrl = item.posterImageUrl;
-        final title = item.title;
-        final id = item.id;
-        final uniqueTag = 'search_result_${id}_$index';
-
-        return FocusableWrapper(
-          autofocus: index == 0,
-          gamepadHints: [
-            GamepadHint(buttonLabel: 'A', actionLabel: 'View', buttonColor: Colors.greenAccent.shade400),
-            GamepadHint(buttonLabel: 'LT', actionLabel: 'Search field', buttonColor: Colors.grey.shade400),
-          ],
-          onTap: () {
-            TmdbDetailsRoute(
-              movieId: id,
-              mediaType: item.tmdbMediaType,
-              heroTag: uniqueTag,
-              placeholderPoster: imageUrl,
-              source: item.source,
-            ).push<void>(context);
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            if (widget.onJumpToSearch != null) widget.onJumpToSearch!();
+            return null;
           },
-          child: MultimediaCard(
-            imageUrl: imageUrl,
-            title: title ?? '', 
-            heroTag: uniqueTag,
-            onTap: () {
-              TmdbDetailsRoute(
-                movieId: id,
-                mediaType: item.tmdbMediaType,
+        ),
+      },
+      child: Focus(
+        autofocus: true,
+        child: GridView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: maxExtent,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: results.length + (isLoading ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= results.length) {
+              return ShimmerPlaceholder(borderRadius: 12);
+            }
+
+            final item = results[index];
+            final imageUrl = item.posterImageUrl;
+            final title = item.title;
+            final id = item.id;
+            final uniqueTag = 'search_result_${id != 0 ? id : item.url}_$index';
+
+            void tapHandler() {
+              _navigateToItem(
+                context,
+                item,
                 heroTag: uniqueTag,
                 placeholderPoster: imageUrl,
-              ).push<void>(context);
-            },
-          ),
-        );
-      },
+                isStremioMode:
+                    ref.read(exploreModeProvider) == ExploreModeType.stremio,
+              );
+            }
+
+            return FocusableWrapper(
+              focusNode: index == 0 ? widget.firstItemFocusNode : null,
+              autofocus: false, // Safely rely on D-pad navigation down from search
+              gamepadHints: [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: 'View',
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'LT',
+                  actionLabel: 'Search field',
+                  buttonColor: Colors.grey.shade400,
+                ),
+              ],
+              onTap: tapHandler,
+              child: ExcludeFocus(
+                child: MultimediaCard(
+                  imageUrl: imageUrl,
+                  title: title,
+                  heroTag: uniqueTag,
+                  onTap: tapHandler,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

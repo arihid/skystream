@@ -2,20 +2,21 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
-import 'package:skystream/core/input/gamepad_actions.dart';
-import 'package:skystream/core/input/gamepad_intents.dart'; 
-import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/services/download_service.dart';
+import 'package:skystream/core/services/notification_service.dart';
+import 'package:skystream/core/storage/history_repository.dart';
+import 'package:skystream/core/storage/episode_watch_repository.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
-import 'package:skystream/features/library/presentation/library_provider.dart';
-import 'package:skystream/features/library/presentation/library_state.dart';
+import 'package:skystream/core/utils/responsive_breakpoints.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
-import '../../../library/presentation/history_provider.dart';  
+import '../../../library/presentation/history_provider.dart';
 import '../details_controller.dart';
 import '../download_launcher.dart';
 import '../downloaded_file_provider.dart';
@@ -23,8 +24,12 @@ import 'download_progress_dialog.dart';
 import 'download_management_dialog.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-import '../../../../core/widgets/focusable_wrapper.dart'; 
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
+// TV/Gamepad Feature Imports
+import 'package:skystream/core/input/gamepad_actions.dart';
+import 'package:skystream/features/library/presentation/library_provider.dart';
+import 'package:skystream/features/library/presentation/library_state.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import '../../../../core/providers/device_info_provider.dart';
 
 class EpisodeCard extends HookConsumerWidget {
   final Episode episode;
@@ -41,6 +46,12 @@ class EpisodeCard extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Master Switch Evaluation
+    final profile = ref.watch(deviceProfileProvider).asData?.value;
+    final isTv = profile?.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     final historyRepo = ref.watch(historyRepositoryProvider);
     final historyItem = ref.watch(
       watchHistoryProvider.select(
@@ -63,16 +74,27 @@ class EpisodeCard extends HookConsumerWidget {
       episode: episode.episode,
     );
 
-    final double progress = epDur > 0 ? epPos / epDur : 0;
-    String? statusBadge;
+    ref.watch(episodeWatchRevisionProvider);
+    final episodeWatchRepo = ref.watch(episodeWatchRepositoryProvider);
 
-    if (progress > 0.02) {
-      statusBadge = progress > 0.98
-          ? l10n.watched.toUpperCase()
-          : l10n.watching.toUpperCase();
+    final double progress = epDur > 0 ? (epPos / epDur).clamp(0.0, 1.0) : 0.0;
+    final explicitWatchState = episodeWatchRepo.getExplicitState(
+      parentItem.url,
+      episode,
+    );
+    final isWatched = episodeWatchRepo.isWatched(parentItem.url, episode);
+    final displayedProgress = isWatched ? 1.0 : progress;
+
+    String? statusBadge;
+    if (isWatched) {
+      statusBadge = l10n.watched.toUpperCase();
+    } else if (progress > 0.02) {
+      statusBadge = l10n.watching.toUpperCase();
     }
 
-    if (historyItem != null && statusBadge == null) {
+    if (historyItem != null &&
+        statusBadge == null &&
+        explicitWatchState != false) {
       final hSeason = historyItem.season ?? 1;
       final hEpisode = historyItem.episode ?? 1;
       final eSeason = episode.season;
@@ -87,6 +109,9 @@ class EpisodeCard extends HookConsumerWidget {
     final isDownloading = activeDownloads.contains(episode.url);
     final detailsState = ref.watch(detailsControllerProvider(parentItem.url));
     final details = detailsState.item;
+    final selectionKey = episodeSelectionKey(episode);
+    final isSelectionMode = detailsState.selectedEpisodeKeys.isNotEmpty;
+    final isSelected = detailsState.selectedEpisodeKeys.contains(selectionKey);
 
     final progressMap = ref.watch(downloadProgressProvider);
     final downloadProgressData = progressMap[episode.url];
@@ -94,6 +119,7 @@ class EpisodeCard extends HookConsumerWidget {
 
     final downloadedFile = ref.watch(downloadedFilesProvider)[episode.url];
 
+    // Live Bookmark Status
     final isBookmarked = ref.watch(
       libraryProvider.select(
         (state) =>
@@ -102,6 +128,7 @@ class EpisodeCard extends HookConsumerWidget {
       ),
     );
 
+    // Check for downloaded file on load
     useEffect(() {
       if (!isDownloading) {
         Future.microtask(() {
@@ -115,11 +142,18 @@ class EpisodeCard extends HookConsumerWidget {
       return null;
     }, [episode.url, isDownloading]);
 
-    void triggerPlay() {
-      ref
-          .read(detailsControllerProvider(parentItem.url).notifier)
-          .handlePlayPress(context, parentItem, specificEpisode: episode);
-    }
+    final isFocused = useState(false);
+    final downloadFocusNode = useFocusNode(debugLabel: 'ep_download');
+    final bodyFocusNode = useFocusNode(debugLabel: 'ep_body');
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final normalCardColor = theme.colorScheme.surfaceContainerLow;
+    final watchedCardColor = Color.alphaBlend(
+      Colors.black.withValues(
+        alpha: theme.brightness == Brightness.dark ? 0.30 : 0.14,
+      ),
+      normalCardColor,
+    );
 
     void triggerDownload() {
       if (downloadedFile != null) {
@@ -142,165 +176,432 @@ class EpisodeCard extends HookConsumerWidget {
       }
     }
 
-    // 🎯 FIXED: LS Hint added, and 'Y' dynamically hides for livestreams!
+    void updateSelection() {
+      HapticFeedback.selectionClick();
+
+      ref
+          .read(detailsControllerProvider(parentItem.url).notifier)
+          .toggleEpisodeSelection(episode);
+    }
+
+    void handleEpisodeTap() {
+      final selectionActive = ref
+          .read(detailsControllerProvider(parentItem.url))
+          .selectedEpisodeKeys
+          .isNotEmpty;
+
+      if (selectionActive) {
+        updateSelection();
+        return;
+      }
+
+      ref
+          .read(detailsControllerProvider(parentItem.url).notifier)
+          .handlePlayPress(context, parentItem, specificEpisode: episode);
+    }
+
+    final selectKeyDown = useRef(false);
+    final longPressTriggered = useRef(false);
+
+    // Dynamic Contextual Gamepad Hints
     final playHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: 'Play', buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
       GamepadHint(
-        buttonLabel: 'X', 
-        actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
+        buttonLabel: 'A',
+        actionLabel: (isSelectionMode
+            ? (isSelected ? l10n.hintDeselect : l10n.hintSelect)
+            : l10n.hintPlay),
+        buttonColor: Colors.greenAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'B',
+        actionLabel: l10n.hintBack,
+        buttonColor: Colors.redAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'X',
+        actionLabel: (isBookmarked
+            ? l10n.hintRemoveBookmark
+            : l10n.hintAddBookmark),
         buttonColor: Colors.blueAccent.shade400,
       ),
       if (parentItem.contentType != MultimediaContentType.livestream)
         GamepadHint(
-          buttonLabel: 'Y', 
-          actionLabel: downloadedFile != null ? 'Manage Download' : 'Download', 
-          buttonColor: Colors.amberAccent.shade400,
+          buttonLabel: 'Y',
+          actionLabel: (downloadedFile != null
+              ? l10n.hintManageDownload
+              : (isDownloading ? l10n.hintDownloading : l10n.hintDownload)),
+          buttonColor: Colors.yellowAccent.shade700,
         ),
-      GamepadHint(buttonLabel: 'LS', actionLabel: 'Scroll', buttonColor: Colors.white),
-      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+      GamepadHint(
+        buttonLabel: 'LS',
+        actionLabel: l10n.hintScroll,
+        buttonColor: Colors.white,
+      ),
+      GamepadHint(
+        buttonLabel: '≡',
+        actionLabel: l10n.hintMenu,
+        buttonColor: Colors.white,
+      ),
     ];
 
-    return Actions(
-      actions: <Type, Action<Intent>>{
-        AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
-          onInvoke: (_) {
-            if (parentItem.contentType != MultimediaContentType.livestream) {
-              triggerDownload();
+    return Focus(
+      // Passive observer — let the inner InkWell be the real focus target so
+      // OK plays and Right can traverse into the download icon (a descendant).
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (f) {
+        isFocused.value = f;
+        if (!f) {
+          selectKeyDown.value = false;
+          longPressTriggered.value = false;
+        }
+        if (f) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Show Hints and Auto-Scroll
+            if (ref.context.mounted && isBigPicture) {
+              ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
             }
-            return null;
-          }
-        ),
+            final ctx = FocusManager.instance.primaryFocus?.context;
+            final ro = ctx?.findRenderObject();
+            if (ctx != null && ctx.mounted && ro != null) {
+              Scrollable.maybeOf(ctx)?.position.ensureVisible(
+                ro,
+                alignment: 0.5,
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.fastOutSlowIn,
+              );
+            }
+          });
+        } else {
+          // Clean up hints when focus leaves this card
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ref.context.mounted && isBigPicture) {
+              final currentHints = ref.read(focusedGamepadHintsProvider);
+              if (currentHints?.any(
+                    (h) =>
+                        h.actionLabel == l10n.hintScroll ||
+                        h.actionLabel == l10n.hintPlay ||
+                        h.actionLabel == l10n.hintSelect,
+                  ) ==
+                  true) {
+                ref.read(focusedGamepadHintsProvider.notifier).state = null;
+              }
+            }
+          });
+        }
       },
-      child: GestureDetector(
-        onLongPress: triggerDownload, 
-        child: FocusableWrapper(
-          onTap: triggerPlay,
-          gamepadHints: playHints,
-          child: Builder(
-            builder: (focusContext) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (focusContext.mounted && Focus.of(focusContext).hasFocus) {
-                  ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
-                }
-              });
+      child: Actions(
+        // Route Gamepad buttons to their specific functions!
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              handleEpisodeTap();
+              return null;
+            },
+          ),
+          AppSelectButtonIntent: CallbackAction<AppSelectButtonIntent>(
+            onInvoke: (_) {
+              handleEpisodeTap();
+              return null;
+            },
+          ),
+          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
+            onInvoke: (_) {
+              if (parentItem.contentType != MultimediaContentType.livestream) {
+                triggerDownload();
+              }
+              return null;
+            },
+          ),
+          AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
+            onInvoke: (_) {
+              // Fixed: Properly toggle the bookmark state for the Parent Series!
+              if (isBookmarked) {
+                ref.read(libraryProvider.notifier).removeItem(parentItem.url);
+                ref
+                    .read(notificationServiceProvider)
+                    .showSuccess(l10n.removedFromLibrary);
+              } else {
+                ref.read(libraryProvider.notifier).addItem(parentItem);
+                ref
+                    .read(notificationServiceProvider)
+                    .showSuccess(l10n.addedToLibrary);
+              }
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          focusNode: bodyFocusNode,
+          onKeyEvent: (node, event) {
+            // Menu key → trigger download immediately.
+            final isMenu =
+                event.logicalKey == LogicalKeyboardKey.contextMenu ||
+                event.logicalKey == LogicalKeyboardKey.f10;
+            if (event is KeyDownEvent && isMenu) {
+              triggerDownload();
+              return KeyEventResult.handled;
+            }
 
-              return Container(
-                width: width,
-                padding: const EdgeInsets.all(LayoutConstants.spacingSm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildThumbnail(context, progress, statusBadge),
-                        const SizedBox(width: LayoutConstants.spacingMd),
-                        Expanded(
-                          child: Text(
-                            "${episode.episode}. ${episode.name.toUpperCase()}",
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+            // Select / Enter / Space → long-press detection via KeyRepeatEvent.
+            if (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.space) {
+              if (event is KeyDownEvent) {
+                selectKeyDown.value = true;
+                longPressTriggered.value = false;
+                return KeyEventResult.handled;
+              } else if (event is KeyRepeatEvent) {
+                if (selectKeyDown.value && !longPressTriggered.value) {
+                  longPressTriggered.value = true;
+                  updateSelection();
+                }
+                return KeyEventResult.handled;
+              } else if (event is KeyUpEvent) {
+                if (selectKeyDown.value && !longPressTriggered.value) {
+                  // Short press plays normally, or toggles when selecting.
+                  handleEpisodeTap();
+                }
+                selectKeyDown.value = false;
+                longPressTriggered.value = false;
+                return KeyEventResult.handled;
+              }
+            }
+
+            return KeyEventResult.ignored;
+          },
+          child: InkWell(
+            onTap: handleEpisodeTap,
+            onLongPress: updateSelection,
+            borderRadius: BorderRadius.circular(12),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: width,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? primary.withValues(alpha: 0.24)
+                    : isFocused.value
+                    ? primary.withValues(alpha: 0.18)
+                    : isWatched
+                    ? watchedCardColor
+                    : normalCardColor,
+                borderRadius: BorderRadius.circular(12.0),
+                border: Border.all(
+                  color: isSelected || isFocused.value
+                      ? primary
+                      : Theme.of(context).dividerColor.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.1
+                              : 0.5,
                         ),
-                        const SizedBox(width: LayoutConstants.spacingXs),
-                        _buildDownloadIndicator(
+                  width: isSelected || isFocused.value ? 2 : 1,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              padding: const EdgeInsets.all(LayoutConstants.spacingSm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildThumbnail(
+                        context,
+                        displayedProgress,
+                        statusBadge,
+                        isWatched: isWatched,
+                        isSelectionMode: isSelectionMode,
+                        isSelected: isSelected,
+                      ),
+                      const SizedBox(width: LayoutConstants.spacingMd),
+                      Expanded(
+                        child: Text(
+                          "${episode.episode}. ${episode.name.toUpperCase()}",
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isWatched
+                                    ? theme.colorScheme.onSurface.withValues(
+                                        alpha: 0.65,
+                                      )
+                                    : theme.colorScheme.onSurface,
+                              ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: LayoutConstants.spacingXs),
+                      // Download icon
+                      if (isSelectionMode)
+                        Icon(
+                          isSelected
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: isSelected
+                              ? primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          size: 30,
+                        )
+                      else
+                        _buildActionButtons(
                           context,
+                          ref,
                           downloadedFile,
                           isDownloading,
                           downloadProgress,
                           downloadProgressData,
+                          details,
+                          downloadFocusNode,
+                          bodyFocusNode,
+                          isBigPicture,
                         ),
-                      ],
-                    ),
-                    if (episode.description != null &&
-                        episode.description!.isNotEmpty) ...[
-                      const SizedBox(height: LayoutConstants.spacingSm),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: Text(
-                          episode.description!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant
-                                    .withValues(alpha: 0.8),
-                                height: 1.4,
-                              ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
                     ],
+                  ),
+                  if (episode.description != null &&
+                      episode.description!.isNotEmpty) ...[
+                    const SizedBox(height: LayoutConstants.spacingSm),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: Text(
+                        episode.description!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          height: 1.4,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
-                ),
-              );
-            }
+                ],
+              ),
+            ),
           ),
         ),
-      ),  
+      ),
     );
   }
 
-  Widget _buildDownloadIndicator(
+  Widget _buildActionButtons(
     BuildContext context,
+    WidgetRef ref,
     File? downloadedFile,
     bool isDownloading,
     double downloadProgress,
     DownloadProgressData? downloadProgressData,
+    MultimediaItem? details,
+    FocusNode focusNode,
+    FocusNode bodyFocusNode,
+    bool isBigPicture,
   ) {
-    if (parentItem.contentType == MultimediaContentType.livestream) {
-      return const SizedBox.shrink();
+    final raw = _buildRawActionButton(
+      context,
+      ref,
+      downloadedFile,
+      isDownloading,
+      downloadProgress,
+      downloadProgressData,
+      details,
+    );
+    if (raw == null) return const SizedBox.shrink();
+
+    // On BigPicture/TV the download icon stays visible for mouse clicks but
+    // is NOT a separate D-pad focus target. Downloads are triggered via
+    // Gamepad 'Y' Button or long-press OK (handled in the outer Actions map).
+    // This keeps D-pad Right → next episode card in the grid.
+    if (context.isDesktop || isBigPicture) {
+      return ExcludeFocus(child: raw);
     }
 
+    return _FocusableActionWrapper(
+      focusNode: focusNode,
+      bodyFocusNode: bodyFocusNode,
+      child: raw,
+    );
+  }
+
+  Widget? _buildRawActionButton(
+    BuildContext context,
+    WidgetRef ref,
+    File? downloadedFile,
+    bool isDownloading,
+    double downloadProgress,
+    DownloadProgressData? downloadProgressData,
+    MultimediaItem? details,
+  ) {
     if (downloadedFile != null) {
-      return const Padding(
-        padding: EdgeInsets.all(4.0),
-        child: Icon(Icons.download_done_sharp, color: Colors.green, size: 28),
+      return IconButton(
+        icon: const Icon(
+          Icons.download_done_sharp,
+          color: Colors.green,
+          size: 32,
+        ),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: () {
+          DownloadManagementDialog.show(
+            context,
+            details ?? parentItem,
+            downloadedFile,
+            episode: episode,
+          );
+        },
       );
     } else if (isDownloading) {
-      return Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: downloadProgressData?.status == TaskStatus.paused
-            ? Icon(
-                Icons.pause_rounded,
-                size: 24,
-                color: Theme.of(context).colorScheme.primary,
-              )
-            : SizedBox(
-                width: 28,
-                height: 28,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    CircularProgressIndicator(
-                      value: downloadProgress > 0 ? downloadProgress : null,
-                      strokeWidth: 2,
-                    ),
-                    Text(
-                      "${(downloadProgress * 100).toInt()}",
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+      return SizedBox(
+        width: 32,
+        height: 32,
+        child: InkWell(
+          onTap: () => DownloadProgressDialog.show(
+            context,
+            '${parentItem.title} - ${episode.name}',
+            episode.url,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: downloadProgressData?.status == TaskStatus.paused
+                ? Icon(
+                    Icons.pause_rounded,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  )
+                : Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: downloadProgress > 0 ? downloadProgress : null,
+                        strokeWidth: 2,
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                      Text(
+                        "${(downloadProgress * 100).toInt()}%",
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
       );
     } else {
-      return Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Icon(
+      return IconButton(
+        icon: Icon(
           Icons.file_download_outlined,
-          size: 28,
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          size: 32,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: () {
+          ref
+              .read(downloadLauncherProvider)
+              .launch(context, parentItem, episodeUrl: episode.url);
+        },
       );
     }
   }
@@ -308,8 +609,11 @@ class EpisodeCard extends HookConsumerWidget {
   Widget _buildThumbnail(
     BuildContext context,
     double progress,
-    String? statusBadge,
-  ) {
+    String? statusBadge, {
+    required bool isWatched,
+    required bool isSelectionMode,
+    required bool isSelected,
+  }) {
     return Stack(
       children: [
         ClipRRect(
@@ -337,6 +641,17 @@ class EpisodeCard extends HookConsumerWidget {
             ),
           ),
         ),
+        if (isWatched)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.28),
+                ),
+              ),
+            ),
+          ),
         if (progress > 0)
           Positioned(
             left: 0,
@@ -358,10 +673,9 @@ class EpisodeCard extends HookConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.9),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -383,8 +697,12 @@ class EpisodeCard extends HookConsumerWidget {
                 color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.play_arrow_rounded,
+              child: Icon(
+                isSelectionMode
+                    ? isSelected
+                          ? Icons.check_rounded
+                          : Icons.add_rounded
+                    : Icons.play_arrow_rounded,
                 color: Colors.white,
                 size: 24,
               ),
@@ -392,6 +710,68 @@ class EpisodeCard extends HookConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Wraps the small download icon so D-pad / Tab focus is unmistakable when it
+/// has focus (the IconButton's default focus ring is too subtle on TV).
+class _FocusableActionWrapper extends StatefulWidget {
+  final Widget child;
+  final FocusNode focusNode;
+  final FocusNode bodyFocusNode;
+  const _FocusableActionWrapper({
+    required this.child,
+    required this.focusNode,
+    required this.bodyFocusNode,
+  });
+
+  @override
+  State<_FocusableActionWrapper> createState() =>
+      _FocusableActionWrapperState();
+}
+
+class _FocusableActionWrapperState extends State<_FocusableActionWrapper> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Focus(
+      focusNode: widget.focusNode,
+      onFocusChange: (f) => setState(() => _focused = f),
+      onKeyEvent: (node, event) {
+        // Left from the download icon returns focus to the card body.
+        if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+            event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            widget.bodyFocusNode.canRequestFocus) {
+          widget.bodyFocusNode.requestFocus();
+          return KeyEventResult.handled;
+        }
+        // Enter/Select on the download icon activates it (the child
+        // IconButton/InkWell already handles mouse tap, but D-pad
+        // select events may not propagate to the IconButton.onPressed).
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.space)) {
+          return KeyEventResult.ignored; // Let it bubble to the IconButton
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: _focused ? primary.withValues(alpha: 0.22) : null,
+          border: Border.all(
+            color: _focused ? primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: widget.child,
+      ),
     );
   }
 }

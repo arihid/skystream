@@ -9,11 +9,12 @@ import 'package:skystream/core/router/app_router.dart';
 import 'package:skystream/core/utils/image_fallbacks.dart';
 import 'package:skystream/shared/widgets/desktop_scroll_wrapper.dart';
 import 'package:skystream/shared/widgets/multimedia_card.dart';
-
-import '../../../../core/widgets/focusable_wrapper.dart';
-import '../../../../shared/widgets/gamepad_hints_overlay.dart'; 
 import 'stamp_in_label.dart';
 import 'bouncy_entry_animation.dart';
+
+import '../../../../core/widgets/focusable_wrapper.dart';
+import '../../../../shared/widgets/gamepad_hints_overlay.dart';
+import 'package:skystream/l10n/generated/app_localizations.dart';
 
 class SearchResultSection extends ConsumerStatefulWidget {
   final String providerName;
@@ -47,6 +48,7 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
   Widget build(BuildContext context) {
     if (widget.results.isEmpty) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final isLarge = context.isTabletOrLarger;
     final double listHeight = isLarge ? 350.0 : 230.0;
 
@@ -120,33 +122,44 @@ class _SearchResultSectionState extends ConsumerState<SearchResultSection> {
 
                     return Padding(
                       padding: EdgeInsets.only(right: spacing),
-                      child: FocusableWrapper(
-                        gamepadHints: [
-                          GamepadHint(buttonLabel: 'A', actionLabel: 'View', buttonColor: Colors.greenAccent.shade400),
-                          GamepadHint(buttonLabel: 'LT', actionLabel: 'Keyboard', buttonColor: Colors.grey.shade400),
-                          // 🎯 FIXED: Changed from Y to RT
-                          GamepadHint(buttonLabel: 'RT', actionLabel: 'Filter', buttonColor: Colors.amberAccent.shade400),
-                        ],
-                        onTap: () => DetailsRoute(
-                          $extra: DetailsRouteExtra(item: item),
-                        ).push<void>(context),
-                        child: BouncyEntryAnimation(
+                      child: BouncyEntryAnimation(
                         delay: Duration(milliseconds: rIndex * 50),
-                        child: MultimediaCard(
+                        child: FocusableWrapper(
+                          focusNode: rIndex == 0
+                              ? widget.firstCardFocusNode
+                              : null,
+                          gamepadHints: [
+                            GamepadHint(
+                              buttonLabel: 'A',
+                              actionLabel: l10n.hintView,
+                              buttonColor: Colors.greenAccent.shade400,
+                            ),
+                            GamepadHint(
+                              buttonLabel: 'LT',
+                              actionLabel: l10n.hintKeyboard,
+                              buttonColor: Colors.grey.shade400,
+                            ),
+                            GamepadHint(
+                              buttonLabel: 'RT',
+                              actionLabel: l10n.hintFilter,
+                              buttonColor: Colors.amberAccent.shade400,
+                            ),
+                          ],
+                          onTap: () => DetailsRoute(
+                            $extra: DetailsRouteExtra(item: item),
+                          ).push<void>(context),
+                          child: MultimediaCard(
                             key: ValueKey(item.url),
                             imageUrl: AppImageFallbacks.poster(
                               item.posterUrl,
                               label: item.title,
-                            ) ?? '',
+                            ),
                             title: item.title,
                             heroTag: uniqueTag,
-                            focusNode: rIndex == 0
-                              ? widget.firstCardFocusNode
-                              : null,
-                          onTap: () => DetailsRoute(
+                            onTap: () => DetailsRoute(
                               $extra: DetailsRouteExtra(item: item),
                             ).push<void>(context),
-                        ),
+                          ),
                         ),
                       ),
                     );

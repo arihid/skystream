@@ -4,31 +4,29 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
-import 'package:skystream/core/input/gamepad_actions.dart';
-import 'package:skystream/features/library/presentation/library_provider.dart';
-import 'package:skystream/features/library/presentation/library_state.dart';
-import '../downloaded_file_provider.dart';
-import '../../../settings/presentation/player_settings_provider.dart';
-import '../../../../core/utils/stream_quality_sorter.dart';
 
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import 'package:skystream/core/storage/history_repository.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 import 'package:skystream/shared/widgets/custom_widgets.dart';
-import '../details_controller.dart';
 import 'package:skystream/core/extensions/extension_manager.dart';
 import 'package:skystream/core/services/download_service.dart';
-import '../download_launcher.dart';
-import 'download_progress_dialog.dart';
-import 'download_management_dialog.dart';
-import 'episode_card.dart';
-import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
 
-import 'package:skystream/core/input/gamepad_intents.dart';
-import '../../../../shared/widgets/gamepad_hints_overlay.dart';
-import '../../../../core/widgets/focusable_wrapper.dart'; 
+import '../details_controller.dart';
+import '../download_launcher.dart';
+import '../downloaded_file_provider.dart';
+import 'download_progress_dialog.dart';
+import 'download_management_dialog.dart';
+import '../../../settings/presentation/player_settings_provider.dart';
+import '../../../../core/utils/stream_quality_sorter.dart';
+
+import 'episode_card.dart';
+
+// Master Switch Imports
+import 'package:skystream/core/providers/device_info_provider.dart';
 
 class DetailsSeasonListWrapper extends ConsumerWidget {
   const DetailsSeasonListWrapper({super.key, required this.itemUrl});
@@ -46,12 +44,9 @@ class DetailsSeasonListWrapper extends ConsumerWidget {
     );
     final seasons = seasonMap.keys.toList()..sort();
 
-    // 🎯 INCREASED HEIGHT & ADDED PADDING:
-    // This allows the blue 3px focus outline from FocusableWrapper to render without being clipped!
     return SizedBox(
-      height: 56, 
+      height: 40,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 4), 
         scrollDirection: Axis.horizontal,
         itemCount: seasons.length,
         separatorBuilder: (_, _) =>
@@ -59,30 +54,19 @@ class DetailsSeasonListWrapper extends ConsumerWidget {
         itemBuilder: (context, index) {
           final s = seasons[index];
           final isSelected = s == selectedSeason;
-
-          return FocusableWrapper(
-            useScaleEffect: true, // 🎯 Re-enabled so you can actually see the pop!
-            onTap: () => ref.read(detailsControllerProvider(itemUrl).notifier).setSeason(s),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected 
-                    ? Theme.of(context).colorScheme.primaryContainer 
-                    : Theme.of(context).colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  AppLocalizations.of(context)!.seasonWithNumber(s),
-                  style: TextStyle(
-                    color: isSelected 
-                        ? Theme.of(context).colorScheme.onPrimaryContainer 
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  ),
-                ),
-              ),
+          return FilterChip(
+            label: Text(AppLocalizations.of(context)!.seasonWithNumber(s)),
+            selected: isSelected,
+            onSelected: (_) => ref
+                .read(detailsControllerProvider(itemUrl).notifier)
+                .setSeason(s),
+            backgroundColor: isSelected
+                ? Theme.of(context).colorScheme.primaryContainer
+                : null,
+            labelStyle: TextStyle(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.onPrimaryContainer
+                  : null,
             ),
           );
         },
@@ -123,28 +107,48 @@ class DetailsActionButtons extends HookConsumerWidget {
     final isSingleSeason = seasonMap.keys.length <= 1;
 
     final playFocusNode = useFocusNode();
+
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
+
     final isMobile = context.isMobile;
-    
+
+    useEffect(() {
+      if (details != null && isBigPicture) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted && playFocusNode.canRequestFocus) {
+            playFocusNode.requestFocus();
+          }
+        });
+      }
+      return null;
+    }, [details != null]);
+
     final isWifiFuture = useMemoized(() => isOnWifi());
     final isWifiSnapshot = useFuture(isWifiFuture);
     final onWifi = isWifiSnapshot.data ?? true;
 
     final btnPadding = EdgeInsets.symmetric(
-      vertical: isMobile ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
+      vertical: isMobile
+          ? LayoutConstants.spacingSm
+          : LayoutConstants.spacingMd,
       horizontal: LayoutConstants.spacingMd,
     );
 
     final pos = targetEpisode != null
         ? historyRepo.getEpisodePosition(
-            targetEpisode.url, mainUrl: item.url,
-            season: targetEpisode.season, episode: targetEpisode.episode,
+            targetEpisode.url,
+            mainUrl: item.url,
+            season: targetEpisode.season,
+            episode: targetEpisode.episode,
           )
         : historyRepo.getPosition(item.url);
     final dur = targetEpisode != null
         ? historyRepo.getEpisodeDuration(
-            targetEpisode.url, mainUrl: item.url,
-            season: targetEpisode.season, episode: targetEpisode.episode,
+            targetEpisode.url,
+            mainUrl: item.url,
+            season: targetEpisode.season,
+            episode: targetEpisode.episode,
           )
         : historyRepo.getDuration(item.url);
 
@@ -156,223 +160,30 @@ class DetailsActionButtons extends HookConsumerWidget {
       if (isSingleSeason) {
         playLabel = l10n.playEpisodeOnly(playLabel, targetEpisode.episode);
       } else {
-        playLabel = l10n.playEpisode(playLabel, targetEpisode.season, targetEpisode.episode);
+        playLabel = l10n.playEpisode(
+          playLabel,
+          targetEpisode.season,
+          targetEpisode.episode,
+        );
       }
     }
-
-    // Dynamic quality preference selector button
-    final settingsAsync = ref.watch(playerSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? const PlayerSettings();
-    final currentPreference = onWifi ? settings.wifiQuality : settings.mobileQuality;
-    final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
-
-    final qualityBtn = PopupMenuButton<QualityPreference>(
-      initialValue: currentPreference,
-      tooltip: 'Preferred Quality',
-      surfaceTintColor: Colors.transparent,
-      position: PopupMenuPosition.under, // Drops DOWN below the button!
-      onSelected: (q) {
-        final notifier = ref.read(playerSettingsProvider.notifier);
-        if (onWifi) {
-          notifier.setWifiQuality(q);
-        } else {
-          notifier.setMobileQuality(q);
-        }
-      },
-      itemBuilder: (context) => QualityPreference.values.map((q) {
-        return PopupMenuItem<QualityPreference>(
-          value: q,
-          child: Row(
-            children: [
-              if (q == currentPreference)
-                const Icon(Icons.check_rounded, color: Colors.blue, size: 18)
-              else
-                const SizedBox(width: 18),
-              const SizedBox(width: 8),
-              Text(qualityPreferenceLabel(q, l10n)),
-            ],
-          ),
-        );
-      }).toList(),
-      child: IgnorePointer(
-        child: CustomButton(
-          isPrimary: false,
-          isOutlined: true,
-          onPressed: () {},
-          child: Padding(
-            padding: btnPadding,
-            child: Row(
-              children: [
-                const Icon(Icons.hd_rounded, size: 20),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Preferred Quality: $currentPrefLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // Dynamic quality preference selector button
-    final settingsAsync = ref.watch(playerSettingsProvider);
-    final settings = settingsAsync.asData?.value ?? const PlayerSettings();
-    final currentPreference = onWifi ? settings.wifiQuality : settings.mobileQuality;
-    final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
-
-    final qualityBtn = PopupMenuButton<QualityPreference>(
-      initialValue: currentPreference,
-      tooltip: 'Preferred Quality',
-      surfaceTintColor: Colors.transparent,
-      position: PopupMenuPosition.under, // Drops DOWN below the button!
-      onSelected: (q) {
-        final notifier = ref.read(playerSettingsProvider.notifier);
-        if (onWifi) {
-          notifier.setWifiQuality(q);
-        } else {
-          notifier.setMobileQuality(q);
-        }
-      },
-      itemBuilder: (context) => QualityPreference.values.map((q) {
-        return PopupMenuItem<QualityPreference>(
-          value: q,
-          child: Row(
-            children: [
-              if (q == currentPreference)
-                const Icon(Icons.check_rounded, color: Colors.blue, size: 18)
-              else
-                const SizedBox(width: 18),
-              const SizedBox(width: 8),
-              Text(qualityPreferenceLabel(q, l10n)),
-            ],
-          ),
-        );
-      }).toList(),
-      child: IgnorePointer(
-        child: CustomButton(
-          isPrimary: false,
-          isOutlined: true,
-          onPressed: () {},
-          child: Padding(
-            padding: btnPadding,
-            child: Row(
-              children: [
-                const Icon(Icons.hd_rounded, size: 20),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Preferred Quality: $currentPrefLabel',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: LayoutConstants.spacingXs),
-                const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final isLivestream = item.contentType == MultimediaContentType.livestream;
-    final showDownload = details?.episodes != null && details?.episodes?.length == 1 && !isLivestream;
-
-    final episodeUrl = details?.episodes?.firstOrNull?.url ?? item.url;
-    final activeDownloads = ref.watch(activeDownloadsProvider);
-    final isDownloading = activeDownloads.contains(episodeUrl);
-    final progressMap = ref.watch(downloadProgressProvider);
-    final downloadProgressData = progressMap[episodeUrl] ?? progressMap[item.url];
-    final downloadProgress = downloadProgressData?.progress ?? 0.0;
-
-    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
-
-    final isBookmarked = ref.watch(
-      libraryProvider.select(
-        (state) =>
-            state is LibrarySuccess &&
-            state.items.any((i) => i.url == itemUrl),
-      ),
-    );
-
-    useEffect(() {
-      if (details != null && !isDownloading) {
-        Future.microtask(() {
-          ref.read(downloadedFilesProvider.notifier).checkFile(
-                details!,
-                episode: details?.episodes?.firstWhereOrNull((e) => e.url == episodeUrl),
-              );
-        });
-      }
-      return null;
-    }, [details, episodeUrl, isDownloading]);
-
-    final executeDownloadAction = () {
-      if (downloadedFile != null) {
-        DownloadManagementDialog.show(
-          context, details ?? item, downloadedFile,
-          episode: details?.episodes?.firstWhereOrNull((e) => e.url == episodeUrl),
-        );
-      } else if (isDownloading) {
-        DownloadProgressDialog.show(context, details?.title ?? item.title, episodeUrl);
-      } else {
-        ref.read(downloadLauncherProvider).launch(
-          context, details ?? item, episodeUrl: episodeUrl,
-        );
-      }
-    };
-
-    final playHints = useMemoized(() => [
-      GamepadHint(buttonLabel: 'A', actionLabel: playLabel, buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'B', actionLabel: 'Back', buttonColor: Colors.redAccent.shade400),
-      GamepadHint(
-        buttonLabel: 'X', 
-        actionLabel: isBookmarked ? 'Remove Bookmark' : 'Add Bookmark', 
-        buttonColor: Colors.blueAccent.shade400
-      ),
-      if (showDownload)
-        GamepadHint(
-          buttonLabel: 'Y', 
-          actionLabel: downloadedFile != null ? 'Manage Download' : 'Download', 
-          buttonColor: Colors.amberAccent.shade400,
-        ),
-      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
-    ], [playLabel, showDownload, downloadedFile, isBookmarked]);
-
-    useEffect(() {
-      void updateGlobalHints() {
-        Future.microtask(() {
-          if (!ref.context.mounted) return;
-          if (playFocusNode.hasFocus) {
-            ref.read(focusedGamepadHintsProvider.notifier).state = playHints;
-          } else if (ref.read(focusedGamepadHintsProvider) == playHints) {
-            ref.read(focusedGamepadHintsProvider.notifier).state = null;
-          }
-        });
-      }
-      
-      updateGlobalHints();
-      playFocusNode.addListener(updateGlobalHints);
-      return () => playFocusNode.removeListener(updateGlobalHints);
-    }, [playFocusNode, playHints]);
 
     final playBtn = CustomButton(
       isPrimary: true,
       focusNode: playFocusNode,
-      autofocus: true,
-      onPressed: (details != null && details!.episodes != null && details!.episodes!.isNotEmpty)
+      autofocus: isBigPicture,
+      onPressed:
+          (details != null &&
+              details!.episodes != null &&
+              details!.episodes!.isNotEmpty)
           ? () async {
-              await ref.read(detailsControllerProvider(item.url).notifier).handlePlayPress(context, details!);
-              if (context.mounted && isTv) playFocusNode.requestFocus();
+              await ref
+                  .read(detailsControllerProvider(item.url).notifier)
+                  .handlePlayPress(context, details!);
+
+              if (context.mounted && isBigPicture) {
+                playFocusNode.requestFocus();
+              }
             }
           : null,
       child: Padding(
@@ -382,8 +193,12 @@ class DetailsActionButtons extends HookConsumerWidget {
           children: isLaunching
               ? [
                   const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: LayoutConstants.spacingXs),
                   Text(AppLocalizations.of(context)!.resolving),
@@ -392,24 +207,217 @@ class DetailsActionButtons extends HookConsumerWidget {
                   const Icon(Icons.play_arrow_rounded),
                   const SizedBox(width: LayoutConstants.spacingXs),
                   Text(playLabel),
-                  if (showDownload) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Icon(
-                        downloadedFile != null 
-                            ? Icons.download_done_rounded 
-                            : (isDownloading ? Icons.cloud_sync_rounded : Icons.download_rounded),
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ]
                 ],
+        ),
+      ),
+    );
+
+    final isLivestream = item.contentType == MultimediaContentType.livestream;
+    final episodeList = details?.episodes ?? item.episodes;
+    final showDownload =
+        !isLivestream &&
+        (isMovie || (episodeList != null && episodeList.length == 1));
+
+    final episodeUrl =
+        details?.episodes?.firstOrNull?.url ??
+        item.episodes?.firstOrNull?.url ??
+        item.url;
+    final activeDownloads = ref.watch(activeDownloadsProvider);
+    final isDownloading = activeDownloads.contains(episodeUrl);
+    final progressMap = ref.watch(downloadProgressProvider);
+    final downloadProgressData =
+        progressMap[episodeUrl] ?? progressMap[item.url];
+    final downloadProgress = downloadProgressData?.progress ?? 0.0;
+
+    final downloadedFile = ref.watch(downloadedFilesProvider)[episodeUrl];
+
+    useEffect(() {
+      if (details != null && !isDownloading) {
+        Future.microtask(() {
+          ref
+              .read(downloadedFilesProvider.notifier)
+              .checkFile(
+                details!,
+                episode: details?.episodes?.firstWhereOrNull(
+                  (e) => e.url == episodeUrl,
+                ),
+              );
+        });
+      }
+      return null;
+    }, [details, episodeUrl, isDownloading]);
+
+    final downloadBtn = !showDownload
+        ? const SizedBox.shrink()
+        : downloadedFile != null
+        ? CustomButton(
+            isPrimary: false,
+            isOutlined: true,
+            onPressed: () {
+              DownloadManagementDialog.show(
+                context,
+                details ?? item,
+                downloadedFile,
+                episode: details?.episodes?.firstWhereOrNull(
+                  (e) => e.url == episodeUrl,
+                ),
+              );
+            },
+            child: Padding(
+              padding: btnPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.download_done_sharp, color: Colors.green),
+                  const SizedBox(width: LayoutConstants.spacingXs),
+                  Text(AppLocalizations.of(context)!.downloaded),
+                ],
+              ),
+            ),
+          )
+        : CustomButton(
+            isPrimary: false,
+            isOutlined: true,
+            onPressed: isDownloading
+                ? () => DownloadProgressDialog.show(
+                    context,
+                    details?.title ?? item.title,
+                    episodeUrl,
+                  )
+                : () {
+                    ref
+                        .read(downloadLauncherProvider)
+                        .launch(
+                          context,
+                          details ?? item,
+                          episodeUrl: episodeUrl,
+                        );
+                  },
+            child: Padding(
+              padding: btnPadding,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: isDownloading
+                    ? [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child:
+                              downloadProgressData?.status == TaskStatus.paused
+                              ? Icon(
+                                  Icons.pause_rounded,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                              : CircularProgressIndicator(
+                                  value: downloadProgress > 0
+                                      ? downloadProgress
+                                      : null,
+                                  strokeWidth: 2,
+                                ),
+                        ),
+                        const SizedBox(width: LayoutConstants.spacingXs),
+                        Text(
+                          downloadProgressData?.status == TaskStatus.paused
+                              ? 'Paused'
+                              : downloadProgress > 0
+                              ? '${(downloadProgress * 100).toInt()}%'
+                              : 'Starting...',
+                        ),
+                      ]
+                    : [
+                        const Icon(Icons.download_rounded),
+                        const SizedBox(width: LayoutConstants.spacingXs),
+                        Text(AppLocalizations.of(context)!.download),
+                      ],
+              ),
+            ),
+          );
+
+    final settingsAsync = ref.watch(playerSettingsProvider);
+    final settings = settingsAsync.asData?.value ?? const PlayerSettings();
+    final currentPreference = onWifi
+        ? settings.wifiQuality
+        : settings.mobileQuality;
+    final currentPrefLabel = qualityPreferenceLabel(currentPreference, l10n);
+
+    final qualityBtnKey = useMemoized(() => GlobalKey());
+    final qualityBtn = CustomButton(
+      key: qualityBtnKey,
+      isPrimary: false,
+      isOutlined: true,
+      onPressed: () {
+        final renderBox =
+            qualityBtnKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox == null) return;
+
+        final offset = renderBox.localToGlobal(Offset.zero);
+        showMenu<QualityPreference>(
+          context: context,
+          initialValue: currentPreference,
+          position: RelativeRect.fromLTRB(
+            offset.dx,
+            offset.dy + renderBox.size.height + 8,
+            offset.dx + renderBox.size.width,
+            0,
+          ),
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          items: QualityPreference.values.map((q) {
+            return PopupMenuItem<QualityPreference>(
+              value: q,
+              child: Row(
+                children: [
+                  if (q == currentPreference)
+                    Icon(
+                      Icons.check_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    )
+                  else
+                    const SizedBox(width: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    qualityPreferenceLabel(q, l10n),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ).then((q) {
+          if (q != null) {
+            final notifier = ref.read(playerSettingsProvider.notifier);
+            if (onWifi) {
+              notifier.setWifiQuality(q);
+            } else {
+              notifier.setMobileQuality(q);
+            }
+          }
+        });
+      },
+      child: Padding(
+        padding: btnPadding,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hd_rounded, size: 20),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Quality: $currentPrefLabel',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(width: LayoutConstants.spacingXs),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          ],
         ),
       ),
     );
@@ -425,21 +433,32 @@ class DetailsActionButtons extends HookConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(100),
               child: LinearProgressIndicator(
-                value: progress, minHeight: 6,
-                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                value: progress,
+                minHeight: 6,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(height: 6),
             Row(
               children: [
-                Icon(Icons.history_toggle_off_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  Icons.history_toggle_off_rounded,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   "${AppLocalizations.of(context)!.percentWatched((progress * 100).toInt())}${!isMovie && targetEpisode != null ? (isSingleSeason ? ' • E${targetEpisode.episode}' : ' • S${targetEpisode.season} E${targetEpisode.episode}') : ''}",
                   style: TextStyle(
-                    fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600, letterSpacing: 0.2,
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ],
@@ -449,29 +468,6 @@ class DetailsActionButtons extends HookConsumerWidget {
       );
     }
 
-    Widget finalPlayBtn = playBtn;
-    if (showDownload) {
-      finalPlayBtn = Actions(
-        actions: <Type, Action<Intent>>{
-          AppTertiaryIntent: CallbackAction<AppTertiaryIntent>(
-            onInvoke: (_) {
-              executeDownloadAction();
-              return null;
-            }
-          ),
-        },
-        child: GestureDetector(
-          onLongPress: executeDownloadAction,
-          child: playBtn,
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        progressWidget,
-        finalPlayBtn,
     final actionRow = showDownload
         ? IntrinsicHeight(
             child: Row(
@@ -494,8 +490,6 @@ class DetailsActionButtons extends HookConsumerWidget {
         actionRow,
       ],
     );
-
-
   }
 }
 
@@ -522,17 +516,24 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
+    // Apply Language Filter
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
+    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
+    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -566,16 +567,26 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
         SliverLayoutBuilder(
           builder: (context, constraints) {
             final double crossAxisExtent = constraints.crossAxisExtent;
-            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(1, 5);
-            final int rowCount = (displayedEpisodes.length / crossAxisCount).ceil();
+            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(
+              1,
+              5,
+            );
+            final int rowCount = (displayedEpisodes.length / crossAxisCount)
+                .ceil();
 
             return SliverList.separated(
               itemCount: rowCount,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
               itemBuilder: (context, rowIndex) {
                 final int startIndex = rowIndex * crossAxisCount;
-                final int endIndex = (startIndex + crossAxisCount).clamp(0, displayedEpisodes.length);
-                final rowEpisodes = displayedEpisodes.sublist(startIndex, endIndex);
+                final int endIndex = (startIndex + crossAxisCount).clamp(
+                  0,
+                  displayedEpisodes.length,
+                );
+                final rowEpisodes = displayedEpisodes.sublist(
+                  startIndex,
+                  endIndex,
+                );
 
                 return IntrinsicHeight(
                   child: Row(
@@ -590,9 +601,10 @@ class SliverDetailsDesktopEpisodeGrid extends ConsumerWidget {
                             ),
                             child: i < rowEpisodes.length
                                 ? EpisodeCard(
-                                    episode: rowEpisodes[i],
-                                    parentItem: parentItem,
-                                  ) as Widget
+                                        episode: rowEpisodes[i],
+                                        parentItem: parentItem,
+                                      )
+                                      as Widget
                                 : const SizedBox.shrink(),
                           ),
                         ),
@@ -631,17 +643,24 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
+    // Apply Language Filter
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
+    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
+    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -659,7 +678,9 @@ class SliverDetailsEpisodeList extends ConsumerWidget {
               children: [
                 Text(
                   AppLocalizations.of(context)!.episodes,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 DetailsEpisodeFilterBar(
                   itemUrl: itemUrl,
@@ -696,11 +717,19 @@ class DetailsEpisodeFilterBar extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<DetailsEpisodeFilterBar> createState() => _DetailsEpisodeFilterBarState();
+  ConsumerState<DetailsEpisodeFilterBar> createState() =>
+      _DetailsEpisodeFilterBarState();
 }
 
-class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBar> {
-  final GlobalKey<PopupMenuButtonState<int>> _popupKey = GlobalKey();
+class _DetailsEpisodeFilterBarState
+    extends ConsumerState<DetailsEpisodeFilterBar> {
+  final FocusNode _dropdownFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _dropdownFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -711,15 +740,15 @@ class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBa
 
     final allEpisodes =
         detailsState.seasonMap[detailsState.selectedSeason] ?? [];
-    final filteredEpisodes = selectedDub == DubStatus.none
-        ? allEpisodes
-        : allEpisodes.where((e) => e.dubStatus == selectedDub).toList();
-
-    final int batchCount = (filteredEpisodes.length / widget.batchSize).ceil();
-
     final hasDub = allEpisodes.any((e) => e.dubStatus == DubStatus.dubbed);
     final hasSub = allEpisodes.any((e) => e.dubStatus == DubStatus.subbed);
     final isMixed = hasDub && hasSub;
+
+    final filteredEpisodes = (isMixed && selectedDub != DubStatus.none)
+        ? allEpisodes.where((e) => e.dubStatus == selectedDub).toList()
+        : allEpisodes;
+
+    final int batchCount = (filteredEpisodes.length / widget.batchSize).ceil();
 
     return SizedBox(
       height: 40,
@@ -728,75 +757,93 @@ class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBa
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (isMixed) ...[
-            _buildLanguageToggle(context, ref, selectedDub),
+            _buildLanguageToggle(context, selectedDub),
             const SizedBox(width: 8),
           ],
           if (filteredEpisodes.length > widget.batchSize) ...[
-            FocusableWrapper(
-              onTap: () => _popupKey.currentState?.showButtonMenu(),
-              child: PopupMenuButton<int>(
-                key: _popupKey,
-                tooltip: 'Select Range',
-                onSelected: (val) {
-                  ref.read(detailsControllerProvider(widget.itemUrl).notifier).setRangeIndex(val);
-                },
-                offset: const Offset(0, 48),
-                itemBuilder: (_) => List.generate(batchCount, (index) {
-                  final start = index * widget.batchSize + 1;
-                  final end = ((index + 1) * widget.batchSize).clamp(1, filteredEpisodes.length);
-                  return PopupMenuItem(
-                    value: index,
-                    child: Text(
-                      "$start-$end",
-                      style: TextStyle(
-                        color: selectedIndex == index ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: selectedIndex == index ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  );
-                }),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ListenableBuilder(
+              listenable: _dropdownFocusNode,
+              builder: (context, _) {
+                final isFocused = _dropdownFocusNode.hasFocus;
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isFocused ? Colors.white : Colors.transparent,
+                      width: 2,
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "${selectedIndex * widget.batchSize + 1}-${((selectedIndex + 1) * widget.batchSize).clamp(1, filteredEpisodes.length)}",
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                  child: Center(
+                    child: DropdownButton<int>(
+                      focusNode: _dropdownFocusNode,
+                      value: selectedIndex,
+                      dropdownColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHigh,
+                      underline: const SizedBox(),
+                      elevation: 4,
+                      borderRadius: BorderRadius.circular(12),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
+                      icon: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 20,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ],
+                      items: List.generate(batchCount, (index) {
+                        final start = index * widget.batchSize + 1;
+                        final end = ((index + 1) * widget.batchSize).clamp(
+                          1,
+                          filteredEpisodes.length,
+                        );
+                        return DropdownMenuItem(
+                          value: index,
+                          child: Text("$start-$end"),
+                        );
+                      }),
+                      onChanged: (val) {
+                        if (val != null) {
+                          ref
+                              .read(
+                                detailsControllerProvider(
+                                  widget.itemUrl,
+                                ).notifier,
+                              )
+                              .setRangeIndex(val);
+                        }
+                      },
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
             const SizedBox(width: 8),
           ],
-          FocusableWrapper(
-            onTap: () => ref.read(detailsControllerProvider(widget.itemUrl).notifier).toggleSort(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          Material(
+            color: Colors.transparent,
+            child: Ink(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.swap_vert_rounded,
-                size: 22,
-                color: isAscending
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => ref
+                    .read(detailsControllerProvider(widget.itemUrl).notifier)
+                    .toggleSort(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Icon(
+                    Icons.swap_vert_rounded,
+                    size: 22,
+                    color: isAscending
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
             ),
           ),
@@ -805,11 +852,7 @@ class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBa
     );
   }
 
-  Widget _buildLanguageToggle(
-    BuildContext context,
-    WidgetRef ref,
-    DubStatus selected,
-  ) {
+  Widget _buildLanguageToggle(BuildContext context, DubStatus selected) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
@@ -840,7 +883,7 @@ class _DetailsEpisodeFilterBarState extends ConsumerState<DetailsEpisodeFilterBa
   }
 }
 
-class _LanguageButton extends StatelessWidget {
+class _LanguageButton extends StatefulWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -852,27 +895,52 @@ class _LanguageButton extends StatelessWidget {
   });
 
   @override
+  State<_LanguageButton> createState() => _LanguageButtonState();
+}
+
+class _LanguageButtonState extends State<_LanguageButton> {
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
-    return FocusableWrapper(
-      onTap: onTap,
-      useScaleEffect: true, // 🎯 Re-enabled so you can see the focus outline!
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 40 / 255)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onFocusChange: (hasFocus) => setState(() => _isFocused = hasFocus),
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 40 / 255)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _isFocused
+                  ? Colors.white
+                  : (widget.isSelected
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 80 / 255)
+                        : Colors.transparent),
+              width: _isFocused ? 2 : 1,
+            ),
+          ),
+          child: Text(
+            widget.label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: widget.isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: widget.isSelected
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -896,7 +964,9 @@ class DetailsChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -911,14 +981,16 @@ class DetailsProviderChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     bool isDebug = false;
     String displayName = providerName;
+
     try {
       final manager = ref.read(extensionManagerProvider.notifier);
-      final p = manager.getAllProviders().firstWhere(
+      final p = manager.getAllProviders().firstWhereOrNull(
         (p) => p.packageName == providerName || p.name == providerName,
       );
-      displayName = p.name;
-      if (p.isDebug) {
-        isDebug = true;
+
+      if (p != null) {
+        displayName = p.name;
+        isDebug = p.isDebug;
       }
     } catch (e) {
       if (kDebugMode) debugPrint('DetailsProviderChip.build: $e');
@@ -983,6 +1055,9 @@ class DetailsProviderChip extends ConsumerWidget {
   }
 }
 
+/// Non-sliver desktop episode grid for use inside [DetailsDesktopHero]'s
+/// [SingleChildScrollView]. Mirrors [SliverDetailsDesktopEpisodeGrid] but
+/// uses [LayoutBuilder] + [Column] instead of sliver equivalents.
 class DetailsDesktopEpisodeColumn extends ConsumerWidget {
   final MultimediaItem parentItem;
   final String itemUrl;
@@ -1004,17 +1079,24 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
 
     if (episodes.isEmpty) return const SizedBox.shrink();
 
-    if (detailsState.selectedDubStatus != DubStatus.none) {
+    final hasDub = episodes.any((e) => e.dubStatus == DubStatus.dubbed);
+    final hasSub = episodes.any((e) => e.dubStatus == DubStatus.subbed);
+    final isMixed = hasDub && hasSub;
+
+    // Apply Language Filter
+    if (isMixed && detailsState.selectedDubStatus != DubStatus.none) {
       episodes = episodes
           .where((e) => e.dubStatus == detailsState.selectedDubStatus)
           .toList();
     }
 
+    // Apply Batching (FIRST)
     const int batchSize = 20;
     final int start = detailsState.selectedRangeIndex * batchSize;
     final int end = (start + batchSize).clamp(0, episodes.length);
     List<Episode> displayedEpisodes = episodes.sublist(start, end);
 
+    // Apply Sorting (SECOND - only on the batch)
     if (!detailsState.isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -1047,14 +1129,24 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final double crossAxisExtent = constraints.maxWidth;
-            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(1, 5);
-            final int rowCount = (displayedEpisodes.length / crossAxisCount).ceil();
+            final int crossAxisCount = (crossAxisExtent / 480).ceil().clamp(
+              1,
+              5,
+            );
+            final int rowCount = (displayedEpisodes.length / crossAxisCount)
+                .ceil();
 
             return Column(
               children: List.generate(rowCount, (rowIndex) {
                 final int startIndex = rowIndex * crossAxisCount;
-                final int endIndex = (startIndex + crossAxisCount).clamp(0, displayedEpisodes.length);
-                final rowEpisodes = displayedEpisodes.sublist(startIndex, endIndex);
+                final int endIndex = (startIndex + crossAxisCount).clamp(
+                  0,
+                  displayedEpisodes.length,
+                );
+                final rowEpisodes = displayedEpisodes.sublist(
+                  startIndex,
+                  endIndex,
+                );
 
                 return Padding(
                   padding: EdgeInsets.only(
@@ -1073,9 +1165,10 @@ class DetailsDesktopEpisodeColumn extends ConsumerWidget {
                               ),
                               child: i < rowEpisodes.length
                                   ? EpisodeCard(
-                                      episode: rowEpisodes[i],
-                                      parentItem: parentItem,
-                                    ) as Widget
+                                          episode: rowEpisodes[i],
+                                          parentItem: parentItem,
+                                        )
+                                        as Widget
                                   : const SizedBox.shrink(),
                             ),
                           ),

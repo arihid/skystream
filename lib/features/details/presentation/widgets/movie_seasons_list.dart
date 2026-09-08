@@ -11,16 +11,21 @@ import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/models/tmdb_details.dart';
 import '../tmdb_details_controller.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
-import '../../../../core/services/notification_service.dart';
-
-import '../../../../core/widgets/focusable_wrapper.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../core/domain/entity/multimedia_item.dart';
+import '../../../sources/presentation/plugin_sources_sheet.dart';
 
 class MovieSeasonsList extends ConsumerStatefulWidget {
   final int movieId;
   final List<TmdbSeason> seasons;
   final Color? textColor;
   final String? source;
+  final String title;
+  final String? posterUrl;
+  final String? bannerUrl;
+  final String? overview;
+  final String? releaseDateFull;
+  final String? imdbId;
 
   const MovieSeasonsList({
     super.key,
@@ -28,6 +33,12 @@ class MovieSeasonsList extends ConsumerStatefulWidget {
     required this.seasons,
     this.textColor,
     this.source,
+    this.title = '',
+    this.posterUrl,
+    this.bannerUrl,
+    this.overview,
+    this.releaseDateFull,
+    this.imdbId,
   });
 
   @override
@@ -35,21 +46,16 @@ class MovieSeasonsList extends ConsumerStatefulWidget {
 }
 
 class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
-  late final ScrollController _scrollController;
-  late final ScrollController _episodesScrollController;
+  final ScrollController _scrollController = ScrollController();
+  final ScrollController _episodesScrollController = ScrollController();
+  final FocusNode _seasonDropdownFocusNode = FocusNode();
+  final FocusNode _rangeDropdownFocusNode = FocusNode();
   int _selectedRangeIndex = 0;
-  
-  final GlobalKey<PopupMenuButtonState<int>> _popupKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _episodesScrollController = ScrollController();
-  }
 
   @override
   void dispose() {
+    _seasonDropdownFocusNode.dispose();
+    _rangeDropdownFocusNode.dispose();
     _scrollController.dispose();
     _episodesScrollController.dispose();
     super.dispose();
@@ -110,65 +116,78 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                 ),
               ),
               const SizedBox(width: 20),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                // 🎯 FIXED: Replaced standard Dropdown with an actual FocusableWrapper + PopupMenu 
-                // so the TV bounds and focus frames ring perfectly!
-                child: FocusableWrapper(
-                  onTap: () => _popupKey.currentState?.showButtonMenu(),
-                  useScaleEffect: true,
-                  child: PopupMenuButton<int>(
-                    key: _popupKey,
-                    tooltip: 'Select Season',
-                    onSelected: (val) {
-                      setState(() {
-                        _selectedRangeIndex = 0;
-                      });
-                      ref
-                          .read(tmdbDetailsControllerProvider(widget.movieId).notifier)
-                          .fetchEpisodes(val);
-                    },
-                    offset: const Offset(0, 48),
-                    itemBuilder: (_) => widget.seasons.map((s) {
-                      final num = s.seasonNumber;
-                      final count = s.episodeCount;
-                      return PopupMenuItem(
-                        value: num,
-                        child: Text(
-                          AppLocalizations.of(context)!.seasonWithEpisodes(num, count),
-                          style: TextStyle(
-                            color: ref.watch(tmdbDetailsControllerProvider(widget.movieId)).selectedSeason == num 
-                                ? Theme.of(context).colorScheme.primary 
-                                : Theme.of(context).colorScheme.onSurface,
-                            fontWeight: ref.watch(tmdbDetailsControllerProvider(widget.movieId)).selectedSeason == num 
-                                ? FontWeight.bold 
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.seasonWithEpisodes(
-                              ref.watch(tmdbDetailsControllerProvider(widget.movieId)).selectedSeason,
-                              widget.seasons.firstWhere((s) => s.seasonNumber == ref.watch(tmdbDetailsControllerProvider(widget.movieId)).selectedSeason, orElse: () => widget.seasons.first).episodeCount
-                            ),
-                            style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.keyboard_arrow_down_rounded, color: widget.textColor),
-                        ],
-                      ),
+              ListenableBuilder(
+                listenable: _seasonDropdownFocusNode,
+                builder: (context, _) {
+                  final isFocused = _seasonDropdownFocusNode.hasFocus;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isFocused
+                          ? Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            )
+                          : null,
                     ),
-                  ),
-                ),
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        return DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            focusNode: _seasonDropdownFocusNode,
+                            value: ref
+                                .watch(
+                                  tmdbDetailsControllerProvider(
+                                    widget.movieId,
+                                    source: widget.source,
+                                  ),
+                                )
+                                .selectedSeason,
+                            dropdownColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                            style: TextStyle(color: widget.textColor),
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: widget.textColor,
+                            ),
+                            items: widget.seasons.map<DropdownMenuItem<int>>((
+                              s,
+                            ) {
+                              final num = s.seasonNumber;
+                              final count = s.episodeCount;
+                              return DropdownMenuItem(
+                                value: num,
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.seasonWithEpisodes(num, count),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedRangeIndex = 0;
+                                });
+                                ref
+                                    .read(
+                                      tmdbDetailsControllerProvider(
+                                        widget.movieId,
+                                        source: widget.source,
+                                      ).notifier,
+                                    )
+                                    .fetchEpisodes(val, source: widget.source);
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -214,8 +233,7 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                             .selectedSeason ==
                         seasonNum;
 
-                    // 🎯 FIXED: Replaced standard GestureDetector with FocusableWrapper!
-                    return FocusableWrapper(
+                    return GestureDetector(
                       onTap: () {
                         setState(() {
                           _selectedRangeIndex = 0;
@@ -229,7 +247,6 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                             )
                             .fetchEpisodes(seasonNum, source: widget.source);
                       },
-                      useScaleEffect: true,
                       child: Container(
                         width: 120,
                         decoration: BoxDecoration(
@@ -360,11 +377,36 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
 
                     return CardsWrapper(
                       onTap: () {
-                        ref
-                            .read(notificationServiceProvider)
-                            .showInfo(
-                              AppLocalizations.of(context)!.selectSourceToPlay,
-                            );
+                        final controller = ref.read(
+                          tmdbDetailsControllerProvider(
+                            widget.movieId,
+                            source: widget.source,
+                          ),
+                        );
+                        final target = MultimediaItem(
+                          title: widget.title,
+                          url: '',
+                          posterUrl: widget.posterUrl ?? '',
+                          bannerUrl: widget.bannerUrl,
+                          description: widget.overview,
+                          contentType: MultimediaContentType.series,
+                          year: int.tryParse(
+                            (widget.releaseDateFull ?? '').split('-').first,
+                          ),
+                          tmdbId: widget.movieId,
+                          imdbId: widget.imdbId,
+                        );
+                        final episode = Episode(
+                          name: (ep['name'] as String?) ?? 'Episode',
+                          url: '',
+                          season: controller.selectedSeason,
+                          episode: (ep['episode_number'] as int?) ?? 0,
+                        );
+                        PluginSourcesSheet.open(
+                          context,
+                          target,
+                          episode: episode,
+                        );
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -385,6 +427,8 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                                 imageUrl: imageUrl ?? '',
                                 fit: BoxFit.cover,
                                 width: double.infinity,
+                                // TMDB still source is w500 — already matches
+                                // 300 dp card × ~2 DPR. Let CNI decode native.
                                 placeholder: (context, url) =>
                                     ShimmerPlaceholder.rectangular(
                                       borderRadius: 8,
@@ -535,51 +579,68 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                       ),
                     ),
                     if (batchCount > 1)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<int>(
-                            value: _selectedRangeIndex,
-                            dropdownColor: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainer,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.bold,
+                      ListenableBuilder(
+                        listenable: _rangeDropdownFocusNode,
+                        builder: (context, _) {
+                          final isFocused = _rangeDropdownFocusNode.hasFocus;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
                             ),
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
+                            decoration: BoxDecoration(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurfaceVariant,
+                              ).colorScheme.surfaceContainer,
+                              borderRadius: BorderRadius.circular(8),
+                              border: isFocused
+                                  ? Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      width: 2,
+                                    )
+                                  : null,
                             ),
-                            items: List.generate(batchCount, (index) {
-                              final rangeStart = index * batchSize + 1;
-                              final rangeEnd = ((index + 1) * batchSize).clamp(
-                                1,
-                                totalEpisodes,
-                              );
-                              return DropdownMenuItem(
-                                value: index,
-                                child: Text("$rangeStart-$rangeEnd"),
-                              );
-                            }),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  _selectedRangeIndex = val;
-                                });
-                              }
-                            },
-                          ),
-                        ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                focusNode: _rangeDropdownFocusNode,
+                                value: _selectedRangeIndex,
+                                dropdownColor: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainer,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                                items: List.generate(batchCount, (index) {
+                                  final rangeStart = index * batchSize + 1;
+                                  final rangeEnd = ((index + 1) * batchSize)
+                                      .clamp(1, totalEpisodes);
+                                  return DropdownMenuItem(
+                                    value: index,
+                                    child: Text("$rangeStart-$rangeEnd"),
+                                  );
+                                }),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedRangeIndex = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
                   ],
                 ),
@@ -607,11 +668,36 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
 
                     return CardsWrapper(
                       onTap: () {
-                        ref
-                            .read(notificationServiceProvider)
-                            .showInfo(
-                              AppLocalizations.of(context)!.selectSourceToPlay,
-                            );
+                        final controller = ref.read(
+                          tmdbDetailsControllerProvider(
+                            widget.movieId,
+                            source: widget.source,
+                          ),
+                        );
+                        final target = MultimediaItem(
+                          title: widget.title,
+                          url: '',
+                          posterUrl: widget.posterUrl ?? '',
+                          bannerUrl: widget.bannerUrl,
+                          description: widget.overview,
+                          contentType: MultimediaContentType.series,
+                          year: int.tryParse(
+                            (widget.releaseDateFull ?? '').split('-').first,
+                          ),
+                          tmdbId: widget.movieId,
+                          imdbId: widget.imdbId,
+                        );
+                        final episode = Episode(
+                          name: (ep['name'] as String?) ?? 'Episode',
+                          url: '',
+                          season: controller.selectedSeason,
+                          episode: (ep['episode_number'] as int?) ?? 0,
+                        );
+                        PluginSourcesSheet.open(
+                          context,
+                          target,
+                          episode: episode,
+                        );
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -624,6 +710,8 @@ class _MovieSeasonsListState extends ConsumerState<MovieSeasonsList> {
                                 imageUrl: imageUrl ?? '',
                                 width: 120,
                                 height: 68,
+                                // Skip memCacheWidth — source w500 already
+                                // matches 120 dp × ~3 DPR ~ 360 px target.
                                 fit: BoxFit.cover,
                                 errorWidget: (_, _, _) =>
                                     ThumbnailErrorPlaceholder(
