@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -588,8 +587,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           subtitle: generalSettings.tmdbApiKey.isNotEmpty
               ? 'Custom key saved'
               : (TmdbConfig.buildTimeApiKey.isNotEmpty
-                  ? 'Using built-in key'
-                  : 'Not set — Stream and Explore need this'),
+                    ? 'Using built-in key'
+                    : 'Not set — Stream and Explore need this'),
           onTap: () => showTmdbApiKeyDialog(context, ref),
         ),
         SettingsTile(

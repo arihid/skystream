@@ -145,7 +145,7 @@ class HomeSearchDelegate extends SearchDelegate<void> {
     if (query.isEmpty) return const SizedBox.shrink();
 
     final isBigPicture = _isBigPicture(context);
-    Widget content = _HomeSearchResults(
+    final Widget content = _HomeSearchResults(
       query: query,
       onBack: () => showSuggestions(context),
     );
@@ -611,7 +611,7 @@ class _HomeSearchResultsState extends ConsumerState<_HomeSearchResults> {
     final isTv = ref.watch(deviceProfileProvider).asData?.value.isTv ?? false;
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || isTv;
 
-    Widget content = GridView.builder(
+    final Widget content = GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: maxExtent,

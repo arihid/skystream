@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gamepads/gamepads.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import '../../../../core/router/app_router.dart';
 
 import '../../../../core/utils/layout_constants.dart';
@@ -165,7 +165,7 @@ class ExploreSearchDelegate extends SearchDelegate<void> {
 
     final isBigPicture = MediaQuery.sizeOf(context).width > 600;
 
-    Widget content = _SearchResultsGrid(
+    final Widget content = _SearchResultsGrid(
       query: query,
       onJumpToSearch: () => showSuggestions(context),
       firstItemFocusNode: _firstResultFocusNode,
@@ -244,7 +244,6 @@ class _ExploreSearchKeyboardAndListState
     extends ConsumerState<_ExploreSearchKeyboardAndList> {
   final FocusNode _keyboardProxyNode = FocusNode(skipTraversal: true);
   final FocusNode _listProxyNode = FocusNode(skipTraversal: true);
-  StreamSubscription<GamepadEvent>? _gamepadSubscription;
   DateTime _lastLTTime = DateTime.now();
   bool _isKeyboardActiveRegion = true;
 
@@ -252,35 +251,14 @@ class _ExploreSearchKeyboardAndListState
   void initState() {
     super.initState();
     _isKeyboardActiveRegion = widget.initialQuery.isEmpty;
-
-    _gamepadSubscription = Gamepads.events.listen((event) {
-      if (!mounted) return;
-      if (!TickerMode.of(context)) return;
-
-      try {
-        final route = ModalRoute.of(context);
-        if (route != null && !route.isCurrent) return;
-      } catch (_) {}
-
-      final key = event.key.toLowerCase();
-      final isLT =
-          key == 'l2' ||
-          key == 'button 6' ||
-          (key.contains('trigger') && key.contains('left'));
-
-      if (isLT) {
-        if ((event.type == KeyType.button && event.value == 1.0) ||
-            (event.type == KeyType.analog && event.value > 0.5)) {
-          if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
-            _lastLTTime = DateTime.now();
-            _toggleKeyboardAndList();
-          }
-        }
-      }
-    });
   }
 
   void _toggleKeyboardAndList() {
+    // <--- FIXED: Safely skip if animations/tickers are disabled (e.g. backgrounded)
+    // Using explicit comparison to bypass static type issues.
+    // ignore: deprecated_member_use
+    if (TickerMode.of(context) == false) return;
+
     final nextRegionIsKeyboard = !_isKeyboardActiveRegion;
     setState(() {
       _isKeyboardActiveRegion = nextRegionIsKeyboard;
@@ -298,7 +276,6 @@ class _ExploreSearchKeyboardAndListState
 
   @override
   void dispose() {
-    _gamepadSubscription?.cancel();
     _keyboardProxyNode.dispose();
     _listProxyNode.dispose();
     super.dispose();
@@ -314,86 +291,98 @@ class _ExploreSearchKeyboardAndListState
             return null;
           },
         ),
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            if (DateTime.now().difference(_lastLTTime).inMilliseconds > 500) {
+              _lastLTTime = DateTime.now();
+              _toggleKeyboardAndList();
+            }
+            return null;
+          },
+        ),
       },
-      child: Column(
-        children: [
-          widget.fakeHeader,
-          Expanded(
-            child: ExcludeFocus(
-              excluding: _isKeyboardActiveRegion,
-              child: Focus(
-                focusNode: _listProxyNode,
-                skipTraversal: true,
-                child: widget.initialQuery.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Type to search...',
-                          style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.5),
-                            fontSize: 18,
+      child: Focus(
+        autofocus: true,
+        child: Column(
+          children: [
+            widget.fakeHeader,
+            Expanded(
+              child: ExcludeFocus(
+                excluding: _isKeyboardActiveRegion,
+                child: Focus(
+                  focusNode: _listProxyNode,
+                  skipTraversal: true,
+                  child: widget.initialQuery.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Type to search...',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.5),
+                              fontSize: 18,
+                            ),
                           ),
+                        )
+                      : _SearchSuggestionsList(
+                          query: widget.initialQuery,
+                          isKeyboardActiveRegion: _isKeyboardActiveRegion,
+                          onSelect: (val) {
+                            widget.onQueryChanged(val);
+                            widget.onSearch();
+                          },
                         ),
-                      )
-                    : _SearchSuggestionsList(
-                        query: widget.initialQuery,
-                        isKeyboardActiveRegion: _isKeyboardActiveRegion,
-                        onSelect: (val) {
-                          widget.onQueryChanged(val);
-                          widget.onSearch();
-                        },
-                      ),
+                ),
               ),
             ),
-          ),
-          ExcludeFocus(
-            excluding: !_isKeyboardActiveRegion,
-            child: Focus(
-              focusNode: _keyboardProxyNode,
-              skipTraversal: true,
-              onFocusChange: (hasFocus) {
-                if (hasFocus) {
-                  Future.microtask(() {
-                    if (mounted) {
-                      ref.read(focusedGamepadHintsProvider.notifier).state = [
-                        GamepadHint(
-                          buttonLabel: 'A',
-                          actionLabel: 'Type',
-                          buttonColor: Colors.greenAccent.shade400,
-                        ),
-                        GamepadHint(
-                          buttonLabel: 'LT',
-                          actionLabel: 'List',
-                          buttonColor: Colors.grey.shade400,
-                        ),
-                      ];
-                    }
-                  });
-                } else {
-                  Future.microtask(() {
-                    if (mounted) {
-                      final currentHints = ref.read(
-                        focusedGamepadHintsProvider,
-                      );
-                      if (currentHints?.any((h) => h.actionLabel == 'Type') ==
-                          true) {
-                        ref.read(focusedGamepadHintsProvider.notifier).state =
-                            null;
+            ExcludeFocus(
+              excluding: !_isKeyboardActiveRegion,
+              child: Focus(
+                focusNode: _keyboardProxyNode,
+                skipTraversal: true,
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) {
+                    Future.microtask(() {
+                      if (mounted) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state = [
+                          GamepadHint(
+                            buttonLabel: 'A',
+                            actionLabel: 'Type',
+                            buttonColor: Colors.greenAccent.shade400,
+                          ),
+                          GamepadHint(
+                            buttonLabel: 'LT',
+                            actionLabel: 'List',
+                            buttonColor: Colors.grey.shade400,
+                          ),
+                        ];
                       }
-                    }
-                  });
-                }
-              },
-              child: VirtualKeyboard(
-                query: widget.initialQuery,
-                onQueryChanged: widget.onQueryChanged,
-                onSearch: widget.onSearch,
+                    });
+                  } else {
+                    Future.microtask(() {
+                      if (mounted) {
+                        final currentHints = ref.read(
+                          focusedGamepadHintsProvider,
+                        );
+                        if (currentHints?.any((h) => h.actionLabel == 'Type') ==
+                            true) {
+                          ref.read(focusedGamepadHintsProvider.notifier).state =
+                              null;
+                        }
+                      }
+                    });
+                  }
+                },
+                child: VirtualKeyboard(
+                  query: widget.initialQuery,
+                  onQueryChanged: widget.onQueryChanged,
+                  onSearch: widget.onSearch,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -476,14 +465,14 @@ class _SearchSuggestionsListState
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         final item = suggestions[index];
-        final title = item.title ?? '';
+        final title = item.title;
         final mediaType = item.mediaType;
         final year = item.releaseDate.split('-').first;
         final posterUrl = item.thumbnailImageUrl.isNotEmpty
             ? item.thumbnailImageUrl
             : item.posterImageUrl;
 
-        final tapHandler = () {
+        void tapHandler() {
           if (widget.onSelect != null) {
             widget.onSelect!(title);
           } else {
@@ -495,10 +484,12 @@ class _SearchSuggestionsListState
                   ref.read(exploreModeProvider) == ExploreModeType.stremio,
             );
           }
-        };
+        }
 
-        Widget cardContent = CardsWrapper(
-          focusNode: isBigPicture ? null : (index == 0 ? widget.firstItemFocusNode : null),
+        final Widget cardContent = CardsWrapper(
+          focusNode: isBigPicture
+              ? null
+              : (index == 0 ? widget.firstItemFocusNode : null),
           scaleFactor: 1.02,
           borderRadius: BorderRadius.circular(12),
           onTap: tapHandler,
@@ -580,10 +571,9 @@ class _SearchSuggestionsListState
                             Text(
                               year,
                               style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontSize: 13,
                               ),
                             ),
@@ -714,7 +704,6 @@ class _SearchResultsGrid extends ConsumerStatefulWidget {
 
 class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
   final ScrollController _scrollController = ScrollController();
-  StreamSubscription<GamepadEvent>? _gamepadSubscription;
 
   @override
   void initState() {
@@ -724,27 +713,6 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
       ref
           .read(exploreSearchControllerProvider.notifier)
           .fetchResults(widget.query);
-    });
-
-    _gamepadSubscription = Gamepads.events.listen((event) {
-      if (!mounted) return;
-      if (!TickerMode.of(context)) return;
-      try {
-        final route = ModalRoute.of(context);
-        if (route != null && !route.isCurrent) return;
-      } catch (_) {}
-
-      final key = event.key.toLowerCase();
-      final isLT =
-          key == 'l2' ||
-          key == 'button 6' ||
-          (key.contains('trigger') && key.contains('left'));
-
-      if (isLT &&
-          ((event.type == KeyType.button && event.value == 1.0) ||
-              (event.type == KeyType.analog && event.value > 0.5))) {
-        if (widget.onJumpToSearch != null) widget.onJumpToSearch!();
-      }
     });
   }
 
@@ -770,7 +738,6 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
 
   @override
   void dispose() {
-    _gamepadSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -780,7 +747,7 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
     final searchState = ref.watch(exploreSearchControllerProvider);
     final isLoading = searchState.isLoading;
     final results = searchState.results;
-    
+
     if (isLoading && results.isEmpty) {
       final screenWidth = MediaQuery.sizeOf(context).width;
       final isDesktop =
@@ -850,64 +817,77 @@ class _SearchResultsGridState extends ConsumerState<_SearchResultsGrid> {
     final maxExtent = isDesktop ? 240.0 : 150.0;
     const childAspectRatio = 0.55;
 
-    return GridView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: maxExtent,
-        childAspectRatio: childAspectRatio,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: results.length + (isLoading ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= results.length) {
-          return ShimmerPlaceholder(borderRadius: 12);
-        }
-
-        final item = results[index];
-        final imageUrl = item.posterImageUrl;
-        final title = item.title;
-        final id = item.id;
-        final uniqueTag = 'search_result_${id != 0 ? id : item.url}_$index';
-
-        final tapHandler = () {
-          _navigateToItem(
-            context,
-            item,
-            heroTag: uniqueTag,
-            placeholderPoster: imageUrl,
-            isStremioMode:
-                ref.read(exploreModeProvider) == ExploreModeType.stremio,
-          );
-        };
-
-        return FocusableWrapper(
-          focusNode: index == 0 ? widget.firstItemFocusNode : null,
-          autofocus: false, // Safely rely on D-pad navigation down from search
-          gamepadHints: [
-            GamepadHint(
-              buttonLabel: 'A',
-              actionLabel: 'View',
-              buttonColor: Colors.greenAccent.shade400,
-            ),
-            GamepadHint(
-              buttonLabel: 'LT',
-              actionLabel: 'Search field',
-              buttonColor: Colors.grey.shade400,
-            ),
-          ],
-          onTap: tapHandler,
-          child: ExcludeFocus(
-            child: MultimediaCard(
-              imageUrl: imageUrl,
-              title: title ?? '',
-              heroTag: uniqueTag,
-              onTap: tapHandler,
-            ),
-          ),
-        );
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        AppLeftTriggerIntent: CallbackAction<AppLeftTriggerIntent>(
+          onInvoke: (_) {
+            if (widget.onJumpToSearch != null) widget.onJumpToSearch!();
+            return null;
+          },
+        ),
       },
+      child: Focus(
+        autofocus: true,
+        child: GridView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: maxExtent,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: results.length + (isLoading ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= results.length) {
+              return ShimmerPlaceholder(borderRadius: 12);
+            }
+
+            final item = results[index];
+            final imageUrl = item.posterImageUrl;
+            final title = item.title;
+            final id = item.id;
+            final uniqueTag = 'search_result_${id != 0 ? id : item.url}_$index';
+
+            void tapHandler() {
+              _navigateToItem(
+                context,
+                item,
+                heroTag: uniqueTag,
+                placeholderPoster: imageUrl,
+                isStremioMode:
+                    ref.read(exploreModeProvider) == ExploreModeType.stremio,
+              );
+            }
+
+            return FocusableWrapper(
+              focusNode: index == 0 ? widget.firstItemFocusNode : null,
+              autofocus: false, // Safely rely on D-pad navigation down from search
+              gamepadHints: [
+                GamepadHint(
+                  buttonLabel: 'A',
+                  actionLabel: 'View',
+                  buttonColor: Colors.greenAccent.shade400,
+                ),
+                GamepadHint(
+                  buttonLabel: 'LT',
+                  actionLabel: 'Search field',
+                  buttonColor: Colors.grey.shade400,
+                ),
+              ],
+              onTap: tapHandler,
+              child: ExcludeFocus(
+                child: MultimediaCard(
+                  imageUrl: imageUrl,
+                  title: title,
+                  heroTag: uniqueTag,
+                  onTap: tapHandler,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

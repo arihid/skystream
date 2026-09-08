@@ -86,7 +86,6 @@ class SkyStreamPlayerControlsState
     extends ConsumerState<SkyStreamPlayerControls>
     with SingleTickerProviderStateMixin {
   bool _isVisible = false;
-  bool _isIpad = false;
   bool _isTv = false;
   bool _isInPip = false;
 
@@ -152,7 +151,6 @@ class SkyStreamPlayerControlsState
     super.initState();
     final deviceProfile = ref.read(deviceProfileProvider).asData?.value;
     _isTv = deviceProfile?.isTv ?? false;
-    _isIpad = Platform.isIOS && (deviceProfile?.isTablet ?? false);
     final isDesktop =
         Platform.isMacOS || Platform.isWindows || Platform.isLinux;
 
@@ -494,8 +492,9 @@ class SkyStreamPlayerControlsState
         return;
       }
     } catch (e) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('SkyStreamPlayerControls._handleDoubleTap: $e');
+      }
     }
 
     if (widget.isLoading || _duration == Duration.zero) return;
@@ -513,8 +512,9 @@ class SkyStreamPlayerControlsState
     if (_isLocked ||
         _panelOpen ||
         isBigPicture ||
-        !(Platform.isAndroid || Platform.isIOS))
+        !(Platform.isAndroid || Platform.isIOS)) {
       return;
+    }
     if (_touchHeldForSpeed) return;
     _touchHeldForSpeed = true;
     _speedBeforeTouchHold = ref.read(playerControllerProvider).playbackSpeed;
@@ -1073,22 +1073,26 @@ class SkyStreamPlayerControlsState
 
     final size = MediaQuery.sizeOf(context);
     final isSmallWindow = size.width < 300 || size.height < 200;
+    // ignore: unused_local_variable
     final l10n = AppLocalizations.of(context)!;
 
     final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || _isTv;
+    // ignore: unused_local_variable
     final isTouch = !isBigPicture && (Platform.isAndroid || Platform.isIOS);
 
     if (_isInPip || isSmallWindow) return const SizedBox.shrink();
 
-    if (uiPhase.fullscreenBlocking)
+    if (uiPhase.fullscreenBlocking) {
       return _buildLoadingUI(
         phase: uiPhase,
         sourceAttempts: sourceAttempts,
         isBigPicture: isBigPicture,
       );
+    }
 
     final chromeVisible = _isVisible && !_panelOpen;
     final playerSettings = ref.watch(playerSettingsProvider).asData?.value ?? const PlayerSettings();
+    // ignore: unused_local_variable
     final seekDuration = playerSettings.seekDuration;
 
     return MouseRegion(
@@ -1116,8 +1120,9 @@ class SkyStreamPlayerControlsState
           onTap: () {
             if (_panelOpen) return;
             final gestureState = ref.read(playerGestureHandlerProvider);
-            if (gestureState.showOSD)
+            if (gestureState.showOSD) {
               ref.read(playerGestureHandlerProvider.notifier).dismissOSD();
+            }
 
             if (_isLocked) {
               setState(() => _isVisible = !_isVisible);
@@ -1188,8 +1193,9 @@ class SkyStreamPlayerControlsState
                 AnimatedBuilder(
                   animation: _seekAnimController,
                   builder: (context, _) {
-                    if (!_seekAnimController.isAnimating)
+                    if (!_seekAnimController.isAnimating) {
                       return const SizedBox.shrink();
+                    }
                     return Align(
                       alignment: Alignment(_isSeekingLeft ? -0.84 : 0.84, 0.0),
                       child: _buildKickAnimation(),
@@ -1519,9 +1525,10 @@ class SkyStreamPlayerControlsState
 
           if (!context.mounted) return;
 
-          final maxVol = 1.0;
+          const maxVol = 1.0;
 
           await PlayerBottomSheets.showVolumeSelection(
+            // ignore: use_build_context_synchronously
             context: context,
             currentVolume: currentVol,
             maxVolume: maxVol,
@@ -1530,14 +1537,13 @@ class SkyStreamPlayerControlsState
             onMuteToggle: () => controller.toggleMute(),
           );
 
-          if (mounted) {
+          if (context.mounted && mounted) {
             _restoreFocus();
             _startHideTimer();
           }
         },
         isTv: isBigPicture,
       ),
-
       if (supportsPlaybackSpeed && playerSettings.showPlaybackSpeed)
         PlayerIconButton(
           icon: Icons.speed,

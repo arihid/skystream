@@ -95,7 +95,7 @@ class AppActionBindings {
               currentRenderObject.localToGlobal(Offset.zero) &
               currentRenderObject.size;
 
-          bool moved = primaryFocus.focusInDirection(intent.direction);
+          final bool moved = primaryFocus.focusInDirection(intent.direction);
 
           if (moved) {
             final newContext = FocusManager.instance.primaryFocus?.context;

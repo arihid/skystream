@@ -89,9 +89,13 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
       final addon = await ref
           .read(addonRepositoryProvider.notifier)
           .install(url);
-      ref.read(notificationServiceProvider).showSuccess('Installed ${addon.displayName}');
+      ref
+          .read(notificationServiceProvider)
+          .showSuccess('Installed ${addon.displayName}');
     } catch (error) {
-      ref.read(notificationServiceProvider).showError('Could not install ${label ?? url}: $error');
+      ref
+          .read(notificationServiceProvider)
+          .showError('Could not install ${label ?? url}: $error');
     } finally {
       if (mounted) setState(() => _busy.remove(url));
     }
@@ -114,15 +118,16 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
             const SizedBox(height: 14),
             Actions(
               actions: {
-                GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
-                  onInvoke: (intent) {
-                    if (intent.direction == TraversalDirection.down) {
-                      FocusManager.instance.primaryFocus?.nextFocus();
-                      return null;
-                    }
-                    return null;
-                  },
-                )
+                GamepadDirectionalIntent:
+                    CallbackAction<GamepadDirectionalIntent>(
+                      onInvoke: (intent) {
+                        if (intent.direction == TraversalDirection.down) {
+                          FocusManager.instance.primaryFocus?.nextFocus();
+                          return null;
+                        }
+                        return null;
+                      },
+                    ),
               },
               child: TextField(
                 controller: controller,
@@ -192,7 +197,9 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
       await ref
           .read(addonRepositoryProvider.notifier)
           .remove(addon.manifestUrl);
-      ref.read(notificationServiceProvider).showInfo('Removed ${addon.displayName}');
+      ref
+          .read(notificationServiceProvider)
+          .showInfo('Removed ${addon.displayName}');
     }
   }
 
@@ -248,7 +255,9 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isFocused ? Colors.white : Colors.transparent,
+                              color: isFocused
+                                  ? Colors.white
+                                  : Colors.transparent,
                               width: 2,
                             ),
                           ),
@@ -263,8 +272,14 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                     const SizedBox(width: 12),
                     DpadFocusable(
                       onSelect: () {
-                        unawaited(ref.read(addonRepositoryProvider.notifier).refreshAll());
-                        ref.read(notificationServiceProvider).showInfo('Refreshing manifests...');
+                        unawaited(
+                          ref
+                              .read(addonRepositoryProvider.notifier)
+                              .refreshAll(),
+                        );
+                        ref
+                            .read(notificationServiceProvider)
+                            .showInfo('Refreshing manifests...');
                       },
                       child: const SizedBox.shrink(),
                       builder: (context, focusState, _) {
@@ -274,14 +289,22 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isFocused ? Colors.white : Colors.transparent,
+                              color: isFocused
+                                  ? Colors.white
+                                  : Colors.transparent,
                               width: 2,
                             ),
                           ),
                           child: FilledButton.tonalIcon(
                             onPressed: () {
-                              unawaited(ref.read(addonRepositoryProvider.notifier).refreshAll());
-                              ref.read(notificationServiceProvider).showInfo('Refreshing manifests...');
+                              unawaited(
+                                ref
+                                    .read(addonRepositoryProvider.notifier)
+                                    .refreshAll(),
+                              );
+                              ref
+                                  .read(notificationServiceProvider)
+                                  .showInfo('Refreshing manifests...');
                             },
                             icon: const Icon(Icons.refresh_rounded),
                             label: const Text('Refresh manifests'),
@@ -304,7 +327,7 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
           ),
         ),
         const SizedBox(height: 10),
-        
+
         // <--- FIXED: Replaced Wrap with a horizontal ListView for perfect D-pad traversal
         SizedBox(
           height: 50,
@@ -320,7 +343,9 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                   child: DpadFocusable(
                     onSelect: _busy.contains(preset.url)
                         ? null
-                        : () => unawaited(_install(preset.url, label: preset.name)),
+                        : () => unawaited(
+                            _install(preset.url, label: preset.name),
+                          ),
                     child: const SizedBox.shrink(),
                     builder: (context, focusState, _) {
                       final isFocused = focusState.focused;
@@ -329,7 +354,9 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isFocused ? Colors.white : Colors.transparent,
+                            color: isFocused
+                                ? Colors.white
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -338,7 +365,9 @@ class _AddonManageViewState extends ConsumerState<AddonManageView> {
                               ? const SizedBox(
                                   width: 14,
                                   height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : Icon(preset.icon, size: 18),
                           label: Text(preset.name),
@@ -475,7 +504,7 @@ class _AddonTileState extends State<_AddonTile> {
   }
 
   Future<void> _showOptionsDialog() async {
-    await showDialog(
+    await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(widget.addon.displayName),
@@ -484,7 +513,10 @@ class _AddonTileState extends State<_AddonTile> {
           children: [
             ListTile(
               autofocus: true,
-              leading: Icon(widget.addon.enabled ? Icons.toggle_on : Icons.toggle_off, color: widget.addon.enabled ? Colors.green : null),
+              leading: Icon(
+                widget.addon.enabled ? Icons.toggle_on : Icons.toggle_off,
+                color: widget.addon.enabled ? Colors.green : null,
+              ),
               title: Text(widget.addon.enabled ? 'Disable' : 'Enable'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -519,8 +551,14 @@ class _AddonTileState extends State<_AddonTile> {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              title: const Text('Uninstall', style: TextStyle(color: Colors.red)),
+              leading: const Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red,
+              ),
+              title: const Text(
+                'Uninstall',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () {
                 Navigator.pop(ctx);
                 widget.onRemove();
@@ -751,15 +789,16 @@ class _DebridApiKeyDialogState extends State<_DebridApiKeyDialog> {
           const SizedBox(height: 14),
           Actions(
             actions: {
-              GamepadDirectionalIntent: CallbackAction<GamepadDirectionalIntent>(
-                onInvoke: (intent) {
-                  if (intent.direction == TraversalDirection.down) {
-                    FocusManager.instance.primaryFocus?.nextFocus();
-                    return null;
-                  }
-                  return null;
-                },
-              )
+              GamepadDirectionalIntent:
+                  CallbackAction<GamepadDirectionalIntent>(
+                    onInvoke: (intent) {
+                      if (intent.direction == TraversalDirection.down) {
+                        FocusManager.instance.primaryFocus?.nextFocus();
+                        return null;
+                      }
+                      return null;
+                    },
+                  ),
             },
             child: TextField(
               controller: _controller,
@@ -847,11 +886,15 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
               itemBuilder: (context, index) {
                 final provider = DebridProvider.values[index];
                 return ListTile(
-                  autofocus: _provider == provider, // Auto-focuses the current one!
+                  autofocus:
+                      _provider == provider, // Auto-focuses the current one!
                   title: Text(provider.label),
                   onTap: () => Navigator.pop(context, provider),
                   trailing: _provider == provider
-                      ? const Icon(Icons.check_circle_rounded, color: Colors.green)
+                      ? const Icon(
+                          Icons.check_circle_rounded,
+                          color: Colors.green,
+                        )
                       : null,
                 );
               },
@@ -861,7 +904,7 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
             _DpadDialogButton(
               label: 'Cancel',
               onPressed: () => Navigator.pop(context),
-            )
+            ),
           ],
         );
       },
@@ -897,11 +940,13 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
       final username = await ref
           .read(debridSettingsProvider.notifier)
           .save(_provider, _keyController.text);
-      ref.read(notificationServiceProvider).showSuccess(
-        _provider == DebridProvider.none
-            ? 'Debrid disabled'
-            : 'Connected to ${_provider.label}${username == null ? '' : ' as $username'}',
-      );
+      ref
+          .read(notificationServiceProvider)
+          .showSuccess(
+            _provider == DebridProvider.none
+                ? 'Debrid disabled'
+                : 'Connected to ${_provider.label}${username == null ? '' : ' as $username'}',
+          );
     } catch (error) {
       ref.read(notificationServiceProvider).showError('Debrid error: $error');
     } finally {
@@ -958,7 +1003,7 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
               ),
             ),
             const SizedBox(height: 12),
-            
+
             DpadFocusable(
               onSelect: _showProviderDialog,
               child: const SizedBox.shrink(),
@@ -1091,7 +1136,9 @@ class _DebridCardState extends ConsumerState<_DebridCard> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isFocused ? Colors.white : Colors.transparent,
+                            color: isFocused
+                                ? Colors.white
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),

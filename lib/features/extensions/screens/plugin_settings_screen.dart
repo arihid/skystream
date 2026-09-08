@@ -397,7 +397,7 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
       }
 
       if (!mounted) return;
-      
+
       // Upstream formatting with our necessary navigation pop
       ref
           .read(notificationServiceProvider)
@@ -848,8 +848,10 @@ class _PluginSettingsScreenState extends ConsumerState<PluginSettingsScreen> {
         ),
         body: Focus(
           focusNode: _screenFocusNode,
-          autofocus: true, // <-- REQUIRED: Pulls focus into the screen so Gamepad intents resolve correctly
-          canRequestFocus: true, // Ensure this node can actually receive the autofocus
+          autofocus:
+              true, // <-- REQUIRED: Pulls focus into the screen so Gamepad intents resolve correctly
+          canRequestFocus:
+              true, // Ensure this node can actually receive the autofocus
           onFocusChange: (hasFocus) {
             if (hasFocus && isBigPicture) {
               Future.microtask(() {

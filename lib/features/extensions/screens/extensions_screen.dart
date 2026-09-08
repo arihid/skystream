@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/layout_constants.dart';
 import '../../../core/providers/device_info_provider.dart';
@@ -59,7 +58,7 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
   void _switchTab(int index) {
     if (_tabController.index == index) return;
     _tabController.animateTo(index);
-    
+
     // Give TabBarView time to animate before requesting focus
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
@@ -188,8 +187,12 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _KeepAliveTab(child: _buildInstalledTab(context, ref, state)),
-                        _KeepAliveTab(child: _buildRepositoriesTab(context, ref, state)),
+                        _KeepAliveTab(
+                          child: _buildInstalledTab(context, ref, state),
+                        ),
+                        _KeepAliveTab(
+                          child: _buildRepositoriesTab(context, ref, state),
+                        ),
                         _KeepAliveTab(
                           child: Focus(
                             focusNode: _nuvioFocusNode,
@@ -284,7 +287,9 @@ class _ExtensionsScreenState extends ConsumerState<ExtensionsScreen>
                 physics: const BouncingScrollPhysics(),
                 children: [
                   _KeepAliveTab(child: _buildInstalledTab(context, ref, state)),
-                  _KeepAliveTab(child: _buildRepositoriesTab(context, ref, state)),
+                  _KeepAliveTab(
+                    child: _buildRepositoriesTab(context, ref, state),
+                  ),
                   _KeepAliveTab(
                     child: Focus(
                       focusNode: _nuvioFocusNode,
@@ -1126,7 +1131,8 @@ class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                if (widget.repo.description?.isNotEmpty ?? false) ...[
+                                if (widget.repo.description?.isNotEmpty ??
+                                    false) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     widget.repo.description!,
@@ -1205,34 +1211,54 @@ class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
                                         ? 'All installed'
                                         : l10n.downloadAllProviders,
                                   ),
-                                  onPressed: allInstalled || widget.plugins.isEmpty
+                                  onPressed:
+                                      allInstalled || widget.plugins.isEmpty
                                       ? null
                                       : () {
-                                          final pluginsToInstall = widget.plugins.where((p) {
-                                            final installed = widget.state.installedPlugins
-                                                .cast<ExtensionPlugin?>()
-                                                .firstWhere(
-                                                  (inst) => inst?.packageName == p.packageName,
-                                                  orElse: () => null,
-                                                );
-                                            return installed == null || p.version > installed.version;
-                                          }).toList();
+                                          final pluginsToInstall = widget
+                                              .plugins
+                                              .where((p) {
+                                                final installed = widget
+                                                    .state
+                                                    .installedPlugins
+                                                    .cast<ExtensionPlugin?>()
+                                                    .firstWhere(
+                                                      (inst) =>
+                                                          inst?.packageName ==
+                                                          p.packageName,
+                                                      orElse: () => null,
+                                                    );
+                                                return installed == null ||
+                                                    p.version >
+                                                        installed.version;
+                                              })
+                                              .toList();
                                           if (pluginsToInstall.isNotEmpty) {
                                             ref
-                                                .read(extensionsControllerProvider.notifier)
-                                                .installPlugins(pluginsToInstall);
+                                                .read(
+                                                  extensionsControllerProvider
+                                                      .notifier,
+                                                )
+                                                .installPlugins(
+                                                  pluginsToInstall,
+                                                );
                                           }
                                         },
                                 ),
-                                const SizedBox(width: LayoutConstants.spacingSm),
+                                const SizedBox(
+                                  width: LayoutConstants.spacingSm,
+                                ),
                                 TextButton.icon(
                                   icon: const Icon(Icons.delete_outline),
                                   style: TextButton.styleFrom(
                                     foregroundColor: Colors.red,
                                   ),
                                   label: Text(l10n.delete),
-                                  onPressed: () =>
-                                      _confirmDeleteRepo(context, ref, widget.repo),
+                                  onPressed: () => _confirmDeleteRepo(
+                                    context,
+                                    ref,
+                                    widget.repo,
+                                  ),
                                 ),
                               ],
                             ],
@@ -1250,7 +1276,9 @@ class _RepoExpansionCardState extends ConsumerState<_RepoExpansionCard> {
                                 height: 1,
                                 indent: 56,
                                 endIndent: 16,
-                                color: theme.dividerColor.withValues(alpha: 0.5),
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                           ],
                         );
@@ -1343,7 +1371,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
           GamepadHint(
             buttonLabel: 'A',
             actionLabel:
-                (isInstalled ? l10n.hintSettings : l10n.hintInstall) as String,
+                (isInstalled ? l10n.hintSettings : l10n.hintInstall),
             buttonColor: Colors.greenAccent.shade400,
           ),
         if (isInstalled && updateAvailable != null)
@@ -1533,7 +1561,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
 
         if (_tileFocusNode.hasFocus) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted)
+            if (mounted) {
               _updateHints(
                 true,
                 isInstalled,
@@ -1541,6 +1569,7 @@ class _PluginTileState extends ConsumerState<_PluginTile> {
                 updateAvailable,
                 l10n,
               );
+            }
           });
         }
 

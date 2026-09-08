@@ -713,9 +713,9 @@ class _SeekBarState extends State<_SeekBar> {
           if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
             return KeyEventResult.ignored;
           }
-      
+
           final logicalKey = event.logicalKey;
-      
+
           // Left arrow: decrease value
           if (logicalKey == LogicalKeyboardKey.arrowLeft) {
             final newValue = (widget.value - widget.step).clamp(
@@ -727,7 +727,7 @@ class _SeekBarState extends State<_SeekBar> {
             }
             return KeyEventResult.handled;
           }
-      
+
           // Right arrow: increase value
           if (logicalKey == LogicalKeyboardKey.arrowRight) {
             final newValue = (widget.value + widget.step).clamp(
@@ -739,7 +739,7 @@ class _SeekBarState extends State<_SeekBar> {
             }
             return KeyEventResult.handled;
           }
-      
+
           // Up arrow: move focus up
           if (logicalKey == LogicalKeyboardKey.arrowUp) {
             if (widget.onArrowUp != null) {
@@ -752,20 +752,22 @@ class _SeekBarState extends State<_SeekBar> {
             }
             return KeyEventResult.handled;
           }
-      
+
           // Down arrow: move focus down
           if (logicalKey == LogicalKeyboardKey.arrowDown) {
             if (widget.onArrowDown != null) {
               widget.onArrowDown!();
               return KeyEventResult.handled;
             }
-            final success = _focusNode.focusInDirection(TraversalDirection.down);
+            final success = _focusNode.focusInDirection(
+              TraversalDirection.down,
+            );
             if (!success) {
               _focusNode.nextFocus();
             }
             return KeyEventResult.handled;
           }
-      
+
           return KeyEventResult.ignored;
         },
         child: Container(
@@ -773,9 +775,9 @@ class _SeekBarState extends State<_SeekBar> {
             borderRadius: BorderRadius.circular(24),
             border: _isFocused
                 ? Border.all(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 2,
-                )
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  )
                 : Border.all(color: Colors.transparent, width: 2),
           ),
           padding: EdgeInsets.symmetric(
@@ -792,7 +794,7 @@ class _SeekBarState extends State<_SeekBar> {
                 0.0,
                 trackWidth,
               );
-      
+
               // Calculate track intervals based on skip segments
               final List<_TrackInterval> intervals = [];
               if (widget.max <= widget.min || widget.skipSegments.isEmpty) {
@@ -808,8 +810,8 @@ class _SeekBarState extends State<_SeekBar> {
                 for (final seg in widget.skipSegments) {
                   final double startMs = seg.startTime * 1000.0;
                   final double endMs = seg.endTime * 1000.0;
-                  final double startRatio = (startMs / (widget.max - widget.min))
-                      .clamp(0.0, 1.0);
+                  final double startRatio =
+                      (startMs / (widget.max - widget.min)).clamp(0.0, 1.0);
                   final double endRatio = (endMs / (widget.max - widget.min))
                       .clamp(0.0, 1.0);
                   if (startRatio < endRatio) {
@@ -822,9 +824,9 @@ class _SeekBarState extends State<_SeekBar> {
                     );
                   }
                 }
-      
+
                 rawIntervals.sort((a, b) => a.start.compareTo(b.start));
-      
+
                 double currentX = 0.0;
                 for (final seg in rawIntervals) {
                   if (seg.start > currentX) {
@@ -859,7 +861,7 @@ class _SeekBarState extends State<_SeekBar> {
                   );
                 }
               }
-      
+
               // Adjust intervals to introduce a 2px visual gap (seam)
               final List<_TrackInterval> visualIntervals = [];
               for (final interval in intervals) {
@@ -881,7 +883,7 @@ class _SeekBarState extends State<_SeekBar> {
                   );
                 }
               }
-      
+
               // Precompute heights for each interval depending on hover position
               final List<double> intervalHeights = [];
               for (final interval in visualIntervals) {
@@ -891,15 +893,15 @@ class _SeekBarState extends State<_SeekBar> {
                     _hoverX <= interval.end;
                 intervalHeights.add(isIntervalHovered ? 12.0 : 8.0);
               }
-      
+
               // Thumb morphs if hovering anywhere on track or actively dragging
               final bool isMorphed = _isDragging || _isTrackHovered;
-      
+
               final double thumbWidth;
               final double thumbHeight;
               final double thumbRadius;
               final double thumbOpacity;
-      
+
               if (isMorphed) {
                 thumbWidth = 3.0;
                 thumbHeight = 18.0;
@@ -916,7 +918,7 @@ class _SeekBarState extends State<_SeekBar> {
                 thumbRadius = 5.0;
                 thumbOpacity = 0.9;
               }
-      
+
               return MouseRegion(
                 onEnter: (_) {
                   if (widget.canSeek) {
@@ -1000,7 +1002,8 @@ class _SeekBarState extends State<_SeekBar> {
                           Positioned(
                             left: visualIntervals[i].start,
                             width:
-                                visualIntervals[i].end - visualIntervals[i].start,
+                                visualIntervals[i].end -
+                                visualIntervals[i].start,
                             child: Align(
                               alignment: Alignment.center,
                               child: AnimatedContainer(
@@ -1011,9 +1014,8 @@ class _SeekBarState extends State<_SeekBar> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(4.0),
                                   color: visualIntervals[i].isSkipSegment
-                                      ? HotstarPlayerStyle.skipSegment.withValues(
-                                          alpha: 0.35,
-                                        )
+                                      ? HotstarPlayerStyle.skipSegment
+                                            .withValues(alpha: 0.35)
                                       : const Color(
                                           0x4DCFDEF6,
                                         ), // rgba(207, 222, 246, 0.30)
@@ -1021,7 +1023,7 @@ class _SeekBarState extends State<_SeekBar> {
                               ),
                             ),
                           ),
-      
+
                         // 2. Buffer progress segments
                         if (widget.bufferRatio > 0.0)
                           for (int i = 0; i < visualIntervals.length; i++)
@@ -1030,7 +1032,7 @@ class _SeekBarState extends State<_SeekBar> {
                               trackWidth,
                               intervalHeights[i],
                             ),
-      
+
                         // 3. Played progress segments
                         for (int i = 0; i < visualIntervals.length; i++)
                           _buildIntervalProgress(
@@ -1038,7 +1040,7 @@ class _SeekBarState extends State<_SeekBar> {
                             progressWidth,
                             intervalHeights[i],
                           ),
-      
+
                         // 3.5 Hover Vertical Line (only when hovered and not dragging)
                         if (_isTrackHovered && !_isDragging)
                           (() {
@@ -1051,7 +1053,7 @@ class _SeekBarState extends State<_SeekBar> {
                             final double height = hoveredIntervalIndex != -1
                                 ? intervalHeights[hoveredIntervalIndex]
                                 : 8.0;
-      
+
                             return Positioned(
                               left: _hoverX,
                               child: FractionalTranslation(
@@ -1067,7 +1069,7 @@ class _SeekBarState extends State<_SeekBar> {
                               ),
                             );
                           }()),
-      
+
                         // 3.6 Hover/Drag Timestamp Tooltip (visible on hover and during active drag)
                         if (_isTrackHovered || _isDragging)
                           (() {
@@ -1075,7 +1077,7 @@ class _SeekBarState extends State<_SeekBar> {
                                 (_isDragging && _hoverX == 0.0)
                                 ? progressWidth
                                 : _hoverX;
-      
+
                             return Positioned(
                               left: tooltipPositionX.clamp(
                                 20.0,
@@ -1097,7 +1099,9 @@ class _SeekBarState extends State<_SeekBar> {
                                       16.0,
                                     ), // Pill shape
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.15),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       width: 0.5,
                                     ),
                                     boxShadow: [
@@ -1131,7 +1135,7 @@ class _SeekBarState extends State<_SeekBar> {
                               ),
                             );
                           }()),
-      
+
                         // 4. Scrubber Thumb (centered horizontally at progressWidth)
                         if (widget.canSeek)
                           Positioned(

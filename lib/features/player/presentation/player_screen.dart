@@ -22,7 +22,6 @@ import '../../../../features/settings/presentation/player_settings_provider.dart
 import '../../../../features/settings/presentation/general_settings_provider.dart';
 
 // Gamepad Intents
-import '../../../../core/input/gamepad_intents.dart';
 import '../../../../features/settings/presentation/big_picture_provider.dart';
 
 import 'widgets/skystream_player_controls.dart';
@@ -90,6 +89,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
   SubtitleViewConfiguration? _cachedSubtitleConfig;
   String? _cachedSubtitleKey;
 
+  // ignore: unused_element
   SubtitleViewConfiguration _getOrCreateSubtitleConfiguration(
     PlayerSettings settings,
   ) {
@@ -220,7 +220,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       final ctrl = ref.read(playerControllerProvider);
       _wasPlayingBeforeBackground = ctrl.useExoPlayer
           ? _videoViewController.playbackState.value ==
-              vv.VideoControllerPlaybackState.playing
+                vv.VideoControllerPlaybackState.playing
           : _player.state.playing;
       _playerController.saveProgress();
       _playerController.pause();
@@ -238,7 +238,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       final ctrl = ref.read(playerControllerProvider);
       final isCurrentlyPlaying = ctrl.useExoPlayer
           ? _videoViewController.playbackState.value ==
-              vv.VideoControllerPlaybackState.playing
+                vv.VideoControllerPlaybackState.playing
           : _player.state.playing;
       if (isCurrentlyPlaying) {
         WakelockPlus.enable();
@@ -274,7 +274,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       }
       if (!Platform.isAndroid && !Platform.isIOS) {
         try {
-          final isAppFullscreen = ref.read(generalSettingsProvider).isFullscreenEnabled;
+          final isAppFullscreen = ref
+              .read(generalSettingsProvider)
+              .isFullscreenEnabled;
           if (!_wasFullscreen && !isAppFullscreen) {
             windowManager.setFullScreen(false);
           }
@@ -301,7 +303,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
       final previousSpeed = _speedBeforeSpaceHold ?? 1.0;
       unawaited(_playerController.setPlaybackSpeed(previousSpeed));
     }
-    
+
     if (!Platform.isAndroid && !Platform.isIOS) {
       try {
         if (Platform.isWindows || Platform.isLinux) {
@@ -606,8 +608,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
     return ValueListenableBuilder<bool>(
       valueListenable: _controlsVisible,
       builder: (context, controlsVisible, _) {
-        final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled || _isTv;
-        
+        final isBigPicture =
+            ref.watch(bigPictureModeProvider).isEnabled || _isTv;
+
         Widget scaffoldBody = Focus(
           focusNode: _rootFocusNode,
           autofocus: true,
@@ -641,9 +644,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                             subtitleViewConfiguration:
                                 const SubtitleViewConfiguration(
                                   visible: false,
-                                  style: TextStyle(
-                                    color: Colors.transparent,
-                                  ),
+                                  style: TextStyle(color: Colors.transparent),
                                 ),
                             controls: (state) => const SizedBox.shrink(),
                           );
@@ -655,19 +656,17 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                 Consumer(
                   builder: (context, ref, _) {
                     final useExoPlayer = ref.watch(
-                      playerControllerProvider.select(
-                        (s) => s.useExoPlayer,
-                      ),
+                      playerControllerProvider.select((s) => s.useExoPlayer),
                     );
                     if (useExoPlayer) {
                       return const SizedBox.shrink();
                     }
-      
+
                     final subtitleSettings = ref
                         .watch(playerSettingsProvider)
                         .asData
                         ?.value;
-      
+
                     return Positioned(
                       bottom:
                           (controlsVisible
@@ -683,15 +682,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                         controller: _videoController,
                         configuration: SubtitleViewConfiguration(
                           style: TextStyle(
-                            fontSize:
-                                subtitleSettings?.subtitleSize ?? 22.0,
+                            fontSize: subtitleSettings?.subtitleSize ?? 22.0,
                             color: Color(
                               subtitleSettings?.subtitleColor ?? 0xFFFFFFFF,
                             ),
                             backgroundColor:
                                 Color(
-                                  subtitleSettings
-                                          ?.subtitleBackgroundColor ??
+                                  subtitleSettings?.subtitleBackgroundColor ??
                                       0x00000000,
                                 ).withValues(
                                   alpha:
@@ -728,8 +725,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
                       logoUrl: widget.item.logoUrl,
                       onResize: _updateResizeMode,
                       onBackPointer: _handleBack,
-                      onRequestRootFocus: () =>
-                          _rootFocusNode.requestFocus(),
+                      onRequestRootFocus: () => _rootFocusNode.requestFocus(),
                       onVisibilityChanged: (v) {
                         if (mounted) {
                           _controlsVisible.value = v;
@@ -762,7 +758,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
               AppSecondaryIntent: CallbackAction<AppSecondaryIntent>(
                 onInvoke: (_) {
                   // X Button -> Dismiss / Close / Start Over
-                  _controlsKeyFinal.currentState?.triggerSecondaryOverlayAction();
+                  _controlsKeyFinal.currentState
+                      ?.triggerSecondaryOverlayAction();
                   return null;
                 },
               ),
@@ -785,9 +782,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen>
             if (_consumeBack()) return;
             await _handleBack();
           },
-          child: Scaffold(
-            body: scaffoldBody,
-          ),
+          child: Scaffold(body: scaffoldBody),
         );
       },
     );

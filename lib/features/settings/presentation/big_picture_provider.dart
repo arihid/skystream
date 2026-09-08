@@ -40,7 +40,7 @@ class BigPictureMode extends _$BigPictureMode {
     if (!kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       await windowManager.setFullScreen(enable);
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
 
     state = BigPictureState(isEnabled: enable);

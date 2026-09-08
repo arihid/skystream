@@ -473,7 +473,7 @@ class _TmdbMovieDetailsScreenState
         ? (mq.height * 0.80).clamp(220.0, 400.0)
         : 550.0;
 
-    Widget scrollView = CustomScrollView(
+    final Widget scrollView = CustomScrollView(
       controller: _scrollController,
       // Fixed Flutter Deprecation Warning
       scrollCacheExtent: const ScrollCacheExtent.pixels(99999),

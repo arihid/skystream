@@ -178,7 +178,7 @@ class _VirtualKeyboardState extends ConsumerState<VirtualKeyboard> {
                       icon: Icons.keyboard_capslock_rounded,
                       hint: 'LB',
                     ),
-                  ...activeGrid[2].map((char) => _buildKey(char)).toList(),
+                  ...activeGrid[2].map((char) => _buildKey(char)),
                   _buildActionKey(
                     'DEL',
                     width: 90,

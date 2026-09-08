@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/services.dart';
@@ -12,7 +11,6 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/layout_constants.dart';
 import '../../../../core/utils/responsive_breakpoints.dart';
 import '../../../../core/domain/entity/multimedia_item.dart';
-import '../../../../shared/widgets/cards_wrapper.dart';
 import '../../../../shared/widgets/thumbnail_error_placeholder.dart';
 
 // TV/Gamepad Feature Imports

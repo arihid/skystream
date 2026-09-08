@@ -350,7 +350,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               ),
             ],
           ),
-          body: _withGradientEdgeHint(_buildActiveExploreBody(context, isBigPicture)),
+          body: _withGradientEdgeHint(
+            _buildActiveExploreBody(context, isBigPicture),
+          ),
         );
       },
     );
@@ -397,7 +399,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
                 ),
         ),
         Expanded(
-          child: _withGradientEdgeHint(_buildActiveExploreBody(context, isBigPicture)),
+          child: _withGradientEdgeHint(
+            _buildActiveExploreBody(context, isBigPicture),
+          ),
         ),
       ],
     );
@@ -513,11 +517,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    modeIcon,
-                    size: 18,
-                    color: theme.colorScheme.onPrimary,
-                  ),
+                  Icon(modeIcon, size: 18, color: theme.colorScheme.onPrimary),
                   const SizedBox(width: 8),
                   Text(
                     modeLabel,

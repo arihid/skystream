@@ -25,17 +25,21 @@ class M3ToastOverlay extends ConsumerWidget {
 
             return SafeArea(
               child: Align(
-                alignment: isBigPicture ? Alignment.bottomRight : Alignment.bottomCenter,
+                alignment: isBigPicture
+                    ? Alignment.bottomRight
+                    : Alignment.bottomCenter,
                 child: Padding(
                   padding: EdgeInsets.only(
                     // 90px clears the standard TV gamepad hint row!
-                    bottom: isBigPicture ? 90.0 : 40.0, 
+                    bottom: isBigPicture ? 90.0 : 40.0,
                     right: isBigPicture ? 24.0 : 0.0,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: isBigPicture ? CrossAxisAlignment.end : CrossAxisAlignment.center,
+                    crossAxisAlignment: isBigPicture
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.center,
                     children: activeToasts.map((toast) {
                       return TweenAnimationBuilder<double>(
                         key: ValueKey(toast.id),
@@ -44,13 +48,16 @@ class M3ToastOverlay extends ConsumerWidget {
                         tween: Tween(begin: 0.0, end: 1.0),
                         builder: (context, value, child) {
                           return Transform.translate(
-                            offset: isBigPicture 
-                                ? Offset(40 * (1 - value), 0) // Slide in from right
-                                : Offset(0, 20 * (1 - value)), // Slide up from bottom
-                            child: Opacity(
-                              opacity: value,
-                              child: child,
-                            ),
+                            offset: isBigPicture
+                                ? Offset(
+                                    40 * (1 - value),
+                                    0,
+                                  ) // Slide in from right
+                                : Offset(
+                                    0,
+                                    20 * (1 - value),
+                                  ), // Slide up from bottom
+                            child: Opacity(opacity: value, child: child),
                           );
                         },
                         child: Padding(
@@ -82,7 +89,7 @@ class _M3StyleToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = switch(toast.type) {
+    final color = switch (toast.type) {
       ToastType.success => Colors.greenAccent.shade400,
       ToastType.error => Colors.redAccent.shade400,
       ToastType.extension => Colors.purpleAccent.shade400,
@@ -95,7 +102,9 @@ class _M3StyleToast extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 400),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.95,
+          ),
           borderRadius: BorderRadius.circular(100),
           border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
           boxShadow: [
@@ -124,7 +133,9 @@ class _M3StyleToast extends StatelessWidget {
                   if (toast.title != null)
                     Text(
                       toast.title!,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   Text(
                     toast.message,
@@ -196,7 +207,10 @@ class _SteamStyleToast extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -222,7 +236,8 @@ class _SteamStyleToast extends StatelessWidget {
                                     letterSpacing: 0.3,
                                   ),
                                 ),
-                              if (toast.title != null) const SizedBox(height: 4),
+                              if (toast.title != null)
+                                const SizedBox(height: 4),
                               Text(
                                 toast.message,
                                 style: TextStyle(

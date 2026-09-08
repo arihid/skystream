@@ -205,7 +205,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                   final uniqueTag =
                       'view_all_${widget.category.name}_${item.id}_$index';
 
-                  final handleTap = () {
+                  void handleTap() {
                     if (widget.onTap != null) {
                       widget.onTap!(item);
                     } else {
@@ -217,7 +217,7 @@ class _ViewAllScreenState extends ConsumerState<ViewAllScreen> {
                         source: item.source,
                       ).push<void>(context);
                     }
-                  };
+                  }
 
                   if (isBigPicture) {
                     return FocusableWrapper(

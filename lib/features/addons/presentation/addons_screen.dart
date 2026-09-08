@@ -97,7 +97,7 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
             index: _tabController.index,
             children: [
               const AddonManageView(),
-              _DiscoverTab(firstTabNode: _firstTabNode)
+              _DiscoverTab(firstTabNode: _firstTabNode),
             ],
           ),
         ),
@@ -111,13 +111,17 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
           AppLeftBumperIntent: CallbackAction<AppLeftBumperIntent>(
             onInvoke: (_) {
               final next = (_tabController.index - 1) % _tabController.length;
-              _tabController.animateTo(next < 0 ? next + _tabController.length : next);
+              _tabController.animateTo(
+                next < 0 ? next + _tabController.length : next,
+              );
               return null;
             },
           ),
           AppRightBumperIntent: CallbackAction<AppRightBumperIntent>(
             onInvoke: (_) {
-              _tabController.animateTo((_tabController.index + 1) % _tabController.length);
+              _tabController.animateTo(
+                (_tabController.index + 1) % _tabController.length,
+              );
               return null;
             },
           ),
@@ -148,10 +152,7 @@ class _AddonsScreenState extends ConsumerState<AddonsScreen>
       ),
       body: IndexedStack(
         index: _tabController.index,
-        children: const [
-          AddonManageView(),
-          _DiscoverTab()
-        ],
+        children: const [AddonManageView(), _DiscoverTab()],
       ),
     );
   }
@@ -232,7 +233,7 @@ class _TabChipState extends State<_TabChip> {
               widget.onTap();
               return null;
             },
-          )
+          ),
         },
         child: GestureDetector(
           onTap: widget.onTap,
@@ -843,10 +844,11 @@ class _DiscoverTab extends ConsumerWidget {
                 'You can still paste a manifest URL in the "My add-ons" tab.',
           );
         }
-        
+
         return Focus(
           onKeyEvent: (node, event) {
-            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.gameButtonB) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.gameButtonB) {
               firstTabNode?.requestFocus();
               return KeyEventResult.handled;
             }
@@ -858,7 +860,7 @@ class _DiscoverTab extends ConsumerWidget {
             itemBuilder: (context, index) {
               final entry = entries[index];
               final isInstalled = installedIds.contains(entry.manifest.id);
-              
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
@@ -905,7 +907,9 @@ class _DiscoverTab extends ConsumerWidget {
                               );
                             } catch (error) {
                               messenger.showSnackBar(
-                                SnackBar(content: Text('Install failed: $error')),
+                                SnackBar(
+                                  content: Text('Install failed: $error'),
+                                ),
                               );
                             }
                           },

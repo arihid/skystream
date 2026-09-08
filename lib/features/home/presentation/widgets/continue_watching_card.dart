@@ -184,7 +184,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         ? "S${widget.historyItem.season} E${widget.historyItem.episode}${widget.historyItem.episodeTitle != null && widget.historyItem.episodeTitle!.isNotEmpty && !widget.historyItem.episodeTitle!.startsWith("Episode") ? " - ${widget.historyItem.episodeTitle}" : ""}"
         : null;
 
-    final actionFn = () async {
+    Future<Null> actionFn() async {
       if (isLivestream) {
         bool dialogDismissed = false;
         bool canceled = false;
@@ -239,7 +239,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           $extra: DetailsRouteExtra(item: item, autoPlay: true),
         ).push<void>(context),
       );
-    };
+    }
 
     final playHints = [
       GamepadHint(

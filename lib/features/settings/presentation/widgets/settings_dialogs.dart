@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -25,7 +24,6 @@ import '../cache_provider.dart';
 import 'package:dpad/dpad.dart';
 
 // Intents
-import '../../../../core/input/gamepad_intents.dart';
 
 /// A universal TV-friendly slider control.
 /// Excludes the slider from focus to prevent traps, providing
@@ -60,8 +58,11 @@ class _StepperControl extends StatelessWidget {
           child: const SizedBox.shrink(),
           builder: (context, state, _) => AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            decoration: state.focused 
-                ? BoxDecoration(border: Border.all(color: Colors.white, width: 2), shape: BoxShape.circle) 
+            decoration: state.focused
+                ? BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 2),
+                    shape: BoxShape.circle,
+                  )
                 : const BoxDecoration(shape: BoxShape.circle),
             child: IconButton(
               onPressed: value > min ? onDecrement : null,
@@ -86,8 +87,11 @@ class _StepperControl extends StatelessWidget {
           child: const SizedBox.shrink(),
           builder: (context, state, _) => AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            decoration: state.focused 
-                ? BoxDecoration(border: Border.all(color: Colors.white, width: 2), shape: BoxShape.circle) 
+            decoration: state.focused
+                ? BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 2),
+                    shape: BoxShape.circle,
+                  )
                 : const BoxDecoration(shape: BoxShape.circle),
             child: IconButton(
               onPressed: value < max ? onIncrement : null,
@@ -307,9 +311,14 @@ Future<void> showDownloadSettingsDialog(
                       max: 10,
                       divisions: 9,
                       label: concurrency.toString(),
-                      onDecrement: () => setDialogState(() => concurrency = (concurrency - 1).clamp(1, 10)),
-                      onIncrement: () => setDialogState(() => concurrency = (concurrency + 1).clamp(1, 10)),
-                      onChanged: (v) => setDialogState(() => concurrency = v.round()),
+                      onDecrement: () => setDialogState(
+                        () => concurrency = (concurrency - 1).clamp(1, 10),
+                      ),
+                      onIncrement: () => setDialogState(
+                        () => concurrency = (concurrency + 1).clamp(1, 10),
+                      ),
+                      onChanged: (v) =>
+                          setDialogState(() => concurrency = v.round()),
                     ),
                     Text('Segments per file: $chunks'),
                     _StepperControl(
@@ -318,9 +327,14 @@ Future<void> showDownloadSettingsDialog(
                       max: 8,
                       divisions: 7,
                       label: chunks == 1 ? 'Off' : chunks.toString(),
-                      onDecrement: () => setDialogState(() => chunks = (chunks - 1).clamp(1, 8)),
-                      onIncrement: () => setDialogState(() => chunks = (chunks + 1).clamp(1, 8)),
-                      onChanged: (v) => setDialogState(() => chunks = v.round()),
+                      onDecrement: () => setDialogState(
+                        () => chunks = (chunks - 1).clamp(1, 8),
+                      ),
+                      onIncrement: () => setDialogState(
+                        () => chunks = (chunks + 1).clamp(1, 8),
+                      ),
+                      onChanged: (v) =>
+                          setDialogState(() => chunks = v.round()),
                     ),
                   ],
                 ),
@@ -900,7 +914,7 @@ void showClearCacheDialog(BuildContext context, WidgetRef ref) {
             Navigator.pop<void>(dialogContext);
             await ref.read(settingsRepositoryProvider).clearImageVideoCache();
             ref.invalidate(cacheSizeProvider);
-            
+
             ref
                 .read(notificationServiceProvider)
                 .showSuccess(
@@ -1168,8 +1182,10 @@ void showMaxVolumeDialog(
                 max: 200,
                 divisions: 10,
                 label: '${value.round()}%',
-                onDecrement: () => setState(() => value = (value - 10).clamp(100.0, 200.0)),
-                onIncrement: () => setState(() => value = (value + 10).clamp(100.0, 200.0)),
+                onDecrement: () =>
+                    setState(() => value = (value - 10).clamp(100.0, 200.0)),
+                onIncrement: () =>
+                    setState(() => value = (value + 10).clamp(100.0, 200.0)),
                 onChanged: (v) => setState(() => value = v),
               ),
               const SizedBox(height: 4),
@@ -2138,8 +2154,8 @@ void showSubDlAuthDialog(
                             style: TextStyle(
                               color:
                                   fetchError != null || verifyKeyResult == false
-                                      ? Colors.red
-                                      : Colors.green,
+                                  ? Colors.red
+                                  : Colors.green,
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
@@ -2433,8 +2449,10 @@ void showSubtitleDialog(
                   max: 80,
                   divisions: 70,
                   label: '${size.toInt()}',
-                  onDecrement: () => setState(() => size = (size - 1).clamp(10.0, 80.0)),
-                  onIncrement: () => setState(() => size = (size + 1).clamp(10.0, 80.0)),
+                  onDecrement: () =>
+                      setState(() => size = (size - 1).clamp(10.0, 80.0)),
+                  onIncrement: () =>
+                      setState(() => size = (size + 1).clamp(10.0, 80.0)),
                   onChanged: (v) => setState(() => size = v),
                 ),
                 const SizedBox(height: 8),

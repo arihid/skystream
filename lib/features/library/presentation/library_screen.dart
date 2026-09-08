@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/input/gamepad_actions.dart';
@@ -40,7 +39,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   @override
   void initState() {
     super.initState();
-    
+
     final initial = widget.initialTab.clamp(0, 1);
     _tabController = TabController(
       length: 2,

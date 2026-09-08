@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/features/explore/data/explore_mode_provider.dart';
@@ -161,14 +160,14 @@ class _ModeOptionTileState extends State<_ModeOptionTile> {
             color: _isFocused
                 ? cs.primary.withValues(alpha: 0.15)
                 : (widget.isSelected
-                    ? cs.primary.withValues(alpha: 0.08)
-                    : Colors.transparent),
+                      ? cs.primary.withValues(alpha: 0.08)
+                      : Colors.transparent),
             border: Border.all(
               color: _isFocused
                   ? cs.primary
                   : (widget.isSelected
-                      ? cs.primary.withValues(alpha: 0.4)
-                      : Colors.transparent),
+                        ? cs.primary.withValues(alpha: 0.4)
+                        : Colors.transparent),
               width: _isFocused ? 2 : 1,
             ),
           ),
@@ -178,7 +177,10 @@ class _ModeOptionTileState extends State<_ModeOptionTile> {
               borderRadius: BorderRadius.circular(16),
               onTap: widget.onTap,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Container(
@@ -191,7 +193,8 @@ class _ModeOptionTileState extends State<_ModeOptionTile> {
                             : cs.surfaceContainerHighest.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: widget.customIcon ??
+                      child:
+                          widget.customIcon ??
                           Icon(
                             widget.icon,
                             size: 22,

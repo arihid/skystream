@@ -428,7 +428,7 @@ class PlayerBottomSheets {
                 .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
                 .toDouble();
 
-            bool anySelected = presets.any(
+            final bool anySelected = presets.any(
               (vol) => (selectedVolume - vol).abs() < 0.01,
             );
 
@@ -649,7 +649,7 @@ class PlayerBottomSheets {
                 .clamp(isCompact ? 260.0 : 340.0, isCompact ? 340.0 : 420.0)
                 .toDouble();
 
-            bool anySelected = speeds.any(
+            final bool anySelected = speeds.any(
               (s) => (selectedSpeed - s).abs() < 0.01,
             );
 
@@ -1453,9 +1453,9 @@ class PlayerBottomSheets {
                                     .downloadAndPrepare(sub);
 
                                 if (path != null) {
-                                  ref
+                                  unawaited(ref
                                       .read(playerControllerProvider.notifier)
-                                      .loadExternalSubtitleFile(filePath: path);
+                                      .loadExternalSubtitleFile(filePath: path));
                                   if (context.mounted) Navigator.pop(ctx);
                                 } else {
                                   if (context.mounted) {
@@ -2017,7 +2017,7 @@ class _HotstarOptionColumn extends StatelessWidget {
                 ),
               ),
             ),
-            if (action != null) action!,
+            ?action,
           ],
         ),
         SizedBox(height: isCompact ? 10 : 26),

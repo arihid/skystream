@@ -279,7 +279,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     // Big Picture-Friendly Dialog for Scope Switcher (Accessible via D-Pad)
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.searchScope),
@@ -764,7 +764,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         forceSuggestions || (typedLongEnough && hasSuggestionContent);
     final shouldShowKeyboard = isTv && (_isKeyboardVisible || query.isEmpty);
 
-    Widget content = showSuggestions
+    final Widget content = showSuggestions
         ? ExcludeFocus(
             excluding: _isKeyboardActiveRegion && shouldShowKeyboard,
             child: _buildSuggestionsView(

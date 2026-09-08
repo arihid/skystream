@@ -71,7 +71,7 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
     _heldKey = null;
   }
 
-  void _initGamepadListener() async {
+  Future<void> _initGamepadListener() async {
     _gamepadSubscription = Gamepads.events.listen((GamepadEvent event) {
       if (!_isAppFocused) return;
 
@@ -118,15 +118,16 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
             key == 'axis 5' ||
             (key.contains('trigger') && key.contains('right'));
 
-        if (isLTAnalog && value > 0.5)
+        if (isLTAnalog && value > 0.5) {
           _handleHeldMove('lt');
-        else if (isLTAnalog && value < 0.1)
-          _handleRelease('lt', 'lt');
+        } else if (isLTAnalog && value < 0.1) {
+          _handleRelease('lt', 'lt'); }
 
-        if (isRTAnalog && value > 0.5)
+        if (isRTAnalog && value > 0.5) {
           _handleHeldMove('rt');
-        else if (isRTAnalog && value < 0.1)
+        } else if (isRTAnalog && value < 0.1) {
           _handleRelease('rt', 'rt');
+        }
 
         if (_analogX.abs() > analogDeadzone ||
             _analogY.abs() > analogDeadzone) {
@@ -173,9 +174,9 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
           _isFirstMoveX = false;
           _bucketX = analogInitialDelay;
         } else {
-          double normalized =
+          final double normalized =
               (_analogX.abs() - analogDeadzone) / (1.0 - analogDeadzone);
-          double speedFactor = Curves.easeIn
+          final double speedFactor = Curves.easeIn
               .transform(normalized.clamp(0.0, 1.0))
               .clamp(0.15, 1.0);
           _bucketX += speedFactor * 16.0;
@@ -196,9 +197,9 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
           _isFirstMoveY = false;
           _bucketY = analogInitialDelay;
         } else {
-          double normalized =
+          final double normalized =
               (_analogY.abs() - analogDeadzone) / (1.0 - analogDeadzone);
-          double speedFactor = Curves.easeIn
+          final double speedFactor = Curves.easeIn
               .transform(normalized.clamp(0.0, 1.0))
               .clamp(0.15, 1.0);
           _bucketY += speedFactor * 16.0;
@@ -289,14 +290,15 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
       }
     }
 
-    if (key == 'a' || key.contains('button 0'))
+    if (key == 'a' || key.contains('button 0')) {
       Actions.maybeInvoke(targetContext, const ActivateIntent());
-    else if (key == 'b' || key.contains('button 1'))
+    } else if (key == 'b' || key.contains('button 1')) {
       Actions.maybeInvoke(targetContext, const AppBackIntent());
-    else if (key == 'x' || key.contains('button 2'))
+    } else if (key == 'x' || key.contains('button 2')) {
       Actions.maybeInvoke(targetContext, const AppSecondaryIntent());
-    else if (key == 'y' || key.contains('button 3'))
+    } else if (key == 'y' || key.contains('button 3')) {
       Actions.maybeInvoke(targetContext, const AppTertiaryIntent());
+    }
     else if (key == 'select' ||
         key == 'view' ||
         key == 'back' ||
@@ -337,26 +339,27 @@ class _GamepadShortcutManagerState extends State<GamepadShortcutManager>
         key.contains('triggerright') ||
         key == 'button 7') {
       Actions.maybeInvoke(targetContext, const AppRightTriggerIntent());
-    } else if (key.contains('dpadup'))
+    } else if (key.contains('dpadup')) {
       Actions.maybeInvoke(
         targetContext,
         const GamepadDirectionalIntent(TraversalDirection.up),
       );
-    else if (key.contains('dpaddown'))
+    } else if (key.contains('dpaddown')) {
       Actions.maybeInvoke(
         targetContext,
         const GamepadDirectionalIntent(TraversalDirection.down),
       );
-    else if (key.contains('dpadleft'))
+    } else if (key.contains('dpadleft')) {
       Actions.maybeInvoke(
         targetContext,
         const GamepadDirectionalIntent(TraversalDirection.left),
       );
-    else if (key.contains('dpadright'))
+    } else if (key.contains('dpadright')) {
       Actions.maybeInvoke(
         targetContext,
         const GamepadDirectionalIntent(TraversalDirection.right),
       );
+    }
   }
 
   @override

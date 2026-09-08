@@ -72,7 +72,7 @@ class GamepadHintsOverlay extends ConsumerWidget {
         actionLabel: l10n?.cancel ?? 'Back',
         buttonColor: Colors.redAccent.shade400,
       ),
-      GamepadHint(
+      const GamepadHint(
         buttonLabel: '≡',
         actionLabel: 'Menu',
         buttonColor: Colors.white,
@@ -114,14 +114,14 @@ class GamepadHintsOverlay extends ConsumerWidget {
             );
           }).toList(),
         ),
-      )
-    );  
+      ),
+    );
   }
 
   Widget _buildHintItem(BuildContext context, GamepadHint hint) {
     final intent = _getIntentForButton(hint.buttonLabel);
 
-    Widget content = Row(
+    final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(

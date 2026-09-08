@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
 
@@ -144,7 +145,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
       widget.onViewAll!();
       return;
     }
-    
+
     ViewAllRoute(
       $extra: ViewAllRouteExtra(
         title: widget.title,
@@ -287,7 +288,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
           ),
         ),
 
-        // List 
+        // List
         SizedBox(
           height: listHeight, // Adjusted for 2:3 ratio within list
           child: Builder(
@@ -305,9 +306,8 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                   },
                 ),
                 child: ListView.builder(
-                  controller: _scrollController,
-                  clipBehavior: Clip.none,
-                  cacheExtent: 99999, // Prevents node disposal during scroll
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(99999), controller: _scrollController,
+                  clipBehavior: Clip.none, // Prevents node disposal during scroll
                   physics: const ClampingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
                     horizontal: isDesktop
@@ -318,7 +318,6 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                   itemCount: totalCount,
                   itemExtent: cardWidth + spacing,
                   itemBuilder: (context, index) {
-                    
                     // The physical "View All" card at the end of the list for Gamepads
                     if (index == displayList.length) {
                       return Padding(
@@ -335,7 +334,7 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                     final uniqueTag =
                         '${prefix}_${widget.title}_${item.id}_${itemTitle.hashCode}_$index';
 
-                    final handleTap = () {
+                    void handleTap() {
                       if (widget.onTap != null) {
                         widget.onTap!(item);
                       } else {
@@ -344,10 +343,11 @@ class _MediaHorizontalListState extends ConsumerState<MediaHorizontalList> {
                           mediaType: item.tmdbMediaType,
                           heroTag: uniqueTag,
                           placeholderPoster: imageUrl,
-                          source: item.source, // Ensure source gets passed downstream
+                          source: item
+                              .source, // Ensure source gets passed downstream
                         ).push<void>(context);
                       }
-                    };
+                    }
 
                     return Padding(
                       padding: EdgeInsets.only(right: spacing),

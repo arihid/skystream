@@ -32,7 +32,6 @@ import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import '../../../core/input/gamepad_actions.dart';
 import '../../../core/input/gamepad_shortcut_manager.dart';
 import '../../../core/input/gamepad_intents.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../../core/providers/device_info_provider.dart';
 import '../../settings/presentation/big_picture_provider.dart';
 

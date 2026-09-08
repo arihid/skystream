@@ -262,8 +262,9 @@ class _DeveloperOptionsScreenState
                     title = uri.pathSegments.last;
                   }
                 } catch (e) {
-                  if (kDebugMode)
+                  if (kDebugMode) {
                     debugPrint('DeveloperOptionsScreen: URI parse error: $e');
+                  }
                 }
 
                 Navigator.pop(context);

@@ -18,7 +18,6 @@ import '../../../core/providers/device_info_provider.dart';
 import '../../settings/presentation/big_picture_provider.dart';
 import '../../../shared/widgets/gamepad_hints_overlay.dart';
 import '../../../core/input/gamepad_actions.dart';
-import '../../../core/input/gamepad_intents.dart';
 
 // ---------------------------------------------------------------------------
 // Unified Action Tile (Listens ONLY to Gamepad Intents!)
@@ -44,9 +43,8 @@ class _ActionTile extends StatefulWidget {
     this.onSecondaryTap,
     this.onTertiaryTap,
     this.onLeftTriggerTap,
-    this.onRightTriggerTap,
     this.onFocusChange,
-  });
+  }) : onRightTriggerTap = null;
 
   @override
   State<_ActionTile> createState() => _ActionTileState();
@@ -108,7 +106,9 @@ class _ActionTileState extends State<_ActionTile> {
                 ? theme.colorScheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
             border: Border.all(
-              color: _isFocused ? theme.colorScheme.primary : Colors.transparent,
+              color: _isFocused
+                  ? theme.colorScheme.primary
+                  : Colors.transparent,
               width: 2,
             ),
           ),
@@ -137,7 +137,9 @@ class _ActionTileState extends State<_ActionTile> {
                             widget.title,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: _isFocused ? theme.colorScheme.primary : null,
+                              color: _isFocused
+                                  ? theme.colorScheme.primary
+                                  : null,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -308,7 +310,8 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
             children: [
               _ActionTile(
                 title: 'Nuvio Scrapers',
-                subtitle: 'JS scrapers feed the Explore sources sheet alongside SkyStream plugins.',
+                subtitle:
+                    'JS scrapers feed the Explore sources sheet alongside SkyStream plugins.',
                 leading: Container(
                   width: 40,
                   height: 40,
@@ -333,14 +336,22 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                     : CustomSwitch(
                         value: state.enabled,
                         onChanged: (val) => unawaited(
-                          ref.read(nuvioRepositoryProvider.notifier).setEnabled(val),
+                          ref
+                              .read(nuvioRepositoryProvider.notifier)
+                              .setEnabled(val),
                         ),
                       ),
                 onTap: () => unawaited(
-                  ref.read(nuvioRepositoryProvider.notifier).setEnabled(!state.enabled),
+                  ref
+                      .read(nuvioRepositoryProvider.notifier)
+                      .setEnabled(!state.enabled),
                 ),
-                onSecondaryTap: _busy ? null : () => unawaited(_addRepository()),
-                onTertiaryTap: _checking ? null : () => unawaited(_checkForUpdates()),
+                onSecondaryTap: _busy
+                    ? null
+                    : () => unawaited(_addRepository()),
+                onTertiaryTap: _checking
+                    ? null
+                    : () => unawaited(_checkForUpdates()),
                 onFocusChange: (f) {
                   if (f && isBigPicture) {
                     _mainHints = [
@@ -360,19 +371,25 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                         buttonColor: Colors.amberAccent.shade400,
                       ),
                     ];
-                    ref.read(focusedGamepadHintsProvider.notifier).state = _mainHints;
+                    ref.read(focusedGamepadHintsProvider.notifier).state =
+                        _mainHints;
                   } else if (!f && isBigPicture) {
                     Future.microtask(() {
-                      if (mounted && ref.read(focusedGamepadHintsProvider) == _mainHints) {
-                        ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                      if (mounted &&
+                          ref.read(focusedGamepadHintsProvider) == _mainHints) {
+                        ref.read(focusedGamepadHintsProvider.notifier).state =
+                            null;
                       }
                     });
                   }
                 },
               ),
-              
+
               if (!isBigPicture) ...[
-                Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
+                Divider(
+                  height: 1,
+                  color: theme.dividerColor.withValues(alpha: 0.5),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(LayoutConstants.spacingMd),
                   child: Wrap(
@@ -381,7 +398,9 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                     children: [
                       CustomButton(
                         isPrimary: true,
-                        onPressed: _busy ? null : () => unawaited(_addRepository()),
+                        onPressed: _busy
+                            ? null
+                            : () => unawaited(_addRepository()),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -390,7 +409,10 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                                 width: 16,
                                 height: 16,
                                 child: AppLoadingIndicator(
-                                  constraints: BoxConstraints(maxWidth: 16, maxHeight: 16),
+                                  constraints: BoxConstraints(
+                                    maxWidth: 16,
+                                    maxHeight: 16,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -405,7 +427,9 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                       if (state.repos.isNotEmpty)
                         CustomButton(
                           isOutlined: true,
-                          onPressed: _checking ? null : () => unawaited(_checkForUpdates()),
+                          onPressed: _checking
+                              ? null
+                              : () => unawaited(_checkForUpdates()),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -414,7 +438,10 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                                   width: 16,
                                   height: 16,
                                   child: AppLoadingIndicator(
-                                    constraints: BoxConstraints(maxWidth: 16, maxHeight: 16),
+                                    constraints: BoxConstraints(
+                                      maxWidth: 16,
+                                      maxHeight: 16,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -430,12 +457,16 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                   ),
                 ),
               ],
-              
+
               if (state.repos.isNotEmpty) ...[
-                Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
+                Divider(
+                  height: 1,
+                  color: theme.dividerColor.withValues(alpha: 0.5),
+                ),
                 _ActionTile(
                   title: 'Auto-update scrapers on launch',
-                  subtitle: 'Checks each repository (max once every ${NuvioRepository.autoUpdateInterval.inHours}h).',
+                  subtitle:
+                      'Checks each repository (max once every ${NuvioRepository.autoUpdateInterval.inHours}h).',
                   trailing: isBigPicture
                       ? ExcludeFocus(
                           child: CustomSwitch(
@@ -446,11 +477,15 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                       : CustomSwitch(
                           value: state.autoUpdate,
                           onChanged: (val) => unawaited(
-                            ref.read(nuvioRepositoryProvider.notifier).setAutoUpdate(val),
+                            ref
+                                .read(nuvioRepositoryProvider.notifier)
+                                .setAutoUpdate(val),
                           ),
                         ),
                   onTap: () => unawaited(
-                    ref.read(nuvioRepositoryProvider.notifier).setAutoUpdate(!state.autoUpdate),
+                    ref
+                        .read(nuvioRepositoryProvider.notifier)
+                        .setAutoUpdate(!state.autoUpdate),
                   ),
                   onFocusChange: (f) {
                     if (f && isBigPicture) {
@@ -461,11 +496,15 @@ class _NuvioPluginsViewState extends ConsumerState<NuvioPluginsView> {
                           buttonColor: Colors.greenAccent.shade400,
                         ),
                       ];
-                      ref.read(focusedGamepadHintsProvider.notifier).state = _autoUpdateHints;
+                      ref.read(focusedGamepadHintsProvider.notifier).state =
+                          _autoUpdateHints;
                     } else if (!f && isBigPicture) {
                       Future.microtask(() {
-                        if (mounted && ref.read(focusedGamepadHintsProvider) == _autoUpdateHints) {
-                          ref.read(focusedGamepadHintsProvider.notifier).state = null;
+                        if (mounted &&
+                            ref.read(focusedGamepadHintsProvider) ==
+                                _autoUpdateHints) {
+                          ref.read(focusedGamepadHintsProvider.notifier).state =
+                              null;
                         }
                       });
                     }
@@ -647,7 +686,9 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
     final anyDisabled = scrapers.any((s) => !widget.repo.isScraperEnabled(s));
     final toggleAction = anyDisabled ? true : false;
     final toggleLabel = anyDisabled ? 'Enable all' : 'Disable all';
-    final toggleIcon = anyDisabled ? Icons.check_circle_outline : Icons.cancel_outlined;
+    final toggleIcon = anyDisabled
+        ? Icons.check_circle_outline
+        : Icons.cancel_outlined;
 
     return Container(
       decoration: BoxDecoration(
@@ -665,18 +706,24 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
         children: [
           _ActionTile(
             title: repo.displayName,
-            subtitle: '${scrapers.length} scrapers · checked ${_relativeTime(repo.lastCheckedAt)}'
+            subtitle:
+                '${scrapers.length} scrapers · checked ${_relativeTime(repo.lastCheckedAt)}'
                 '${repo.lastUpdatedAt != null ? ' · updated ${_relativeTime(repo.lastUpdatedAt)}' : ''}',
             trailing: AnimatedRotation(
               turns: _isExpanded ? 0.5 : 0.0,
               duration: const Duration(milliseconds: 200),
-              child: Icon(Icons.keyboard_arrow_down_rounded, color: cs.onSurfaceVariant),
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: cs.onSurfaceVariant,
+              ),
             ),
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             onSecondaryTap: () => unawaited(_refresh()),
             onTertiaryTap: () => _confirmDeleteRepo(context),
             onLeftTriggerTap: () => unawaited(
-              ref.read(nuvioRepositoryProvider.notifier).setAllScrapersEnabled(repo.manifestUrl, toggleAction),
+              ref
+                  .read(nuvioRepositoryProvider.notifier)
+                  .setAllScrapersEnabled(repo.manifestUrl, toggleAction),
             ),
             onFocusChange: (f) {
               if (f && isBigPicture) {
@@ -698,21 +745,23 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
                   ),
                   GamepadHint(
                     buttonLabel: 'LT',
-                    actionLabel: toggleLabel, 
+                    actionLabel: toggleLabel,
                     buttonColor: Colors.grey.shade400,
                   ),
                 ];
-                ref.read(focusedGamepadHintsProvider.notifier).state = _repoHints;
+                ref.read(focusedGamepadHintsProvider.notifier).state =
+                    _repoHints;
               } else if (!f && isBigPicture) {
                 Future.microtask(() {
-                  if (mounted && ref.read(focusedGamepadHintsProvider) == _repoHints) {
+                  if (mounted &&
+                      ref.read(focusedGamepadHintsProvider) == _repoHints) {
                     ref.read(focusedGamepadHintsProvider.notifier).state = null;
                   }
                 });
               }
             },
           ),
-          
+
           AnimatedSize(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOut,
@@ -735,7 +784,10 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
                                 onPressed: () => unawaited(
                                   ref
                                       .read(nuvioRepositoryProvider.notifier)
-                                      .setAllScrapersEnabled(repo.manifestUrl, toggleAction),
+                                      .setAllScrapersEnabled(
+                                        repo.manifestUrl,
+                                        toggleAction,
+                                      ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -763,8 +815,11 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
                             ],
                           ),
                         ),
-                      
-                      Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
+
+                      Divider(
+                        height: 1,
+                        color: theme.dividerColor.withValues(alpha: 0.5),
+                      ),
 
                       if (update != null && update.hasChanges)
                         Padding(
@@ -801,7 +856,9 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
                           ),
                           child: Text(
                             repo.errorMessage!,
-                            style: theme.textTheme.labelSmall?.copyWith(color: cs.error),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: cs.error,
+                            ),
                           ),
                         ),
 
@@ -812,7 +869,9 @@ class _RepoCardState extends ConsumerState<_RepoCard> {
                           scraper: scrapers[i],
                           justUpdated: changed.contains(scrapers[i].id),
                           previousVersion: update?.updated
-                              .where((entry) => entry.scraper.id == scrapers[i].id)
+                              .where(
+                                (entry) => entry.scraper.id == scrapers[i].id,
+                              )
                               .map((entry) => entry.from)
                               .firstOrNull,
                         ),
@@ -853,6 +912,7 @@ class _ScraperTile extends ConsumerStatefulWidget {
 
 class _ScraperTileState extends ConsumerState<_ScraperTile> {
   bool _testing = false;
+  // ignore: unused_field
   String? _testResult;
   List<GamepadHint>? _myHints;
 
@@ -945,6 +1005,7 @@ class _ScraperTileState extends ConsumerState<_ScraperTile> {
   Widget build(BuildContext context) {
     final scraper = widget.scraper;
     final theme = Theme.of(context);
+    // ignore: unused_local_variable
     final cs = theme.colorScheme;
     final enabled = widget.repo.isScraperEnabled(scraper);
     final unsupported = !scraper.isSupportedOn(NuvioRepository.platformName);
@@ -959,6 +1020,7 @@ class _ScraperTileState extends ConsumerState<_ScraperTile> {
     final languages = scraper.contentLanguage.take(3).join(', ');
     final formats = scraper.formats.take(3).join(' / ');
 
+    // ignore: unused_local_variable
     final metaList = [
       if (typeChips.isNotEmpty) typeChips.toUpperCase(),
       if (languages.isNotEmpty) languages.toUpperCase(),
@@ -1017,7 +1079,9 @@ class _ScraperTileState extends ConsumerState<_ScraperTile> {
               ],
             ),
       onTap: handleToggle,
-      onSecondaryTap: scraper.hasSettings ? () => unawaited(_openSettings()) : null,
+      onSecondaryTap: scraper.hasSettings
+          ? () => unawaited(_openSettings())
+          : null,
       onTertiaryTap: () => unawaited(_test()),
       onFocusChange: (f) {
         if (f && isBigPicture) {
@@ -1186,6 +1250,7 @@ class _ScraperLogo extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _Badge extends StatelessWidget {
   final String text;
   final Color color;

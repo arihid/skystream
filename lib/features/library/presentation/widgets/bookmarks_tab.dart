@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skystream/core/domain/entity/multimedia_item.dart';
 import '../../../../l10n/generated/app_localizations.dart';
@@ -109,7 +108,7 @@ class _BookmarkCard extends HookConsumerWidget {
     final localNode = useFocusNode();
     final nodeToUse = firstItemFocusNode ?? localNode;
 
-    final handleTap = () async {
+    Future<void> handleTap() async {
       // 1. Wait for the user to return from the Details Screen
       await DetailsRoute(
         $extra: DetailsRouteExtra(item: item),
@@ -119,7 +118,7 @@ class _BookmarkCard extends HookConsumerWidget {
       if (context.mounted) {
         nodeToUse.requestFocus();
       }
-    };
+    }
 
     return FocusableWrapper(
       focusNode: nodeToUse,

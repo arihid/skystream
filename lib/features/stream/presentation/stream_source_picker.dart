@@ -143,7 +143,7 @@ class _StreamSourcePickerState extends ConsumerState<StreamSourcePicker> {
           ),
         ),
       );
-      if (started) Navigator.of(context).maybePop();
+      if (started) unawaited(Navigator.of(context).maybePop());
     } catch (error) {
       if (!mounted) return;
       messenger.showSnackBar(

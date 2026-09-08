@@ -54,7 +54,7 @@ class _UnifiedFilterDialogState extends ConsumerState<UnifiedFilterDialog>
   @override
   void dispose() {
     _tabController.dispose();
-    for (var node in _tabFocusNodes) {
+    for (final node in _tabFocusNodes) {
       node.dispose();
     }
     super.dispose();

@@ -114,7 +114,8 @@ class _DownloadsTabState extends ConsumerState<DownloadsTab>
               _DownloadsToolbar(
                 selectionMode: _selectionMode,
                 selectedCount: _selectedIds.length,
-                onPauseAll: () => ref.read(downloadsProvider.notifier).pauseAll(),
+                onPauseAll: () =>
+                    ref.read(downloadsProvider.notifier).pauseAll(),
                 onResumeAll: () =>
                     ref.read(downloadsProvider.notifier).resumeAll(),
                 onSelectAll: () => _selectAll(downloads),
@@ -130,7 +131,8 @@ class _DownloadsTabState extends ConsumerState<DownloadsTab>
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 itemCount: keys.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 16),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   final key = keys[index];
                   final groupItems = grouped[key]!;
@@ -418,7 +420,9 @@ class _GroupedDownloadTileState extends ConsumerState<_GroupedDownloadTile> {
                               progressData: progressData,
                               isInsideGroup: true,
                               selectionMode: widget.selectionMode,
-                              isSelected: widget.selectedIds.contains(download.id),
+                              isSelected: widget.selectedIds.contains(
+                                download.id,
+                              ),
                               onSelect: () => widget.onSelect(download.id),
                             ),
                           ),
@@ -538,13 +542,13 @@ class _DownloadItemTile extends HookConsumerWidget {
       primaryActionLabel = l10n.hintPause;
     }
 
-    final actionFn = () {
+    void actionFn() {
       if (selectionMode) {
         onSelect?.call();
       } else {
         primaryAction?.call();
       }
-    };
+    }
 
     final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -777,7 +781,9 @@ class _DownloadItemTile extends HookConsumerWidget {
         onLongPress: onSelect,
         child: Container(
           padding: EdgeInsets.all(
-            isInsideGroup ? LayoutConstants.spacingSm : LayoutConstants.spacingMd,
+            isInsideGroup
+                ? LayoutConstants.spacingSm
+                : LayoutConstants.spacingMd,
           ),
           decoration: isInsideGroup
               ? null
