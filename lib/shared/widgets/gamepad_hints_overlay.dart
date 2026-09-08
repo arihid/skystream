@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:skystream/core/input/gamepad_intents.dart';
 
-// Global provider to hide hints completely (e.g., Virtual Keyboard open)
 final showGamepadHintsProvider = StateProvider<bool>((ref) => true);
-
-// NEW: Global provider for context-aware focused widget overrides
-final focusedGamepadHintsProvider = StateProvider<List<GamepadHint>?>((ref) => null);
+final focusedGamepadHintsProvider = StateProvider<List<GamepadHint>?>(
+  (ref) => null,
+);
 
 class GamepadHint {
   final String buttonLabel;
@@ -22,35 +23,70 @@ class GamepadHint {
 }
 
 class GamepadHintsOverlay extends ConsumerWidget {
-  final List<GamepadHint>? customHints; // Fallback screen-level hints
+  final List<GamepadHint>? customHints;
 
   const GamepadHintsOverlay({super.key, this.customHints});
+
+  Intent? _getIntentForButton(String label) {
+    switch (label.toUpperCase()) {
+      case 'A':
+        return const ActivateIntent();
+      case 'B':
+        return const AppBackIntent();
+      case 'X':
+        return const AppSecondaryIntent();
+      case 'Y':
+        return const AppTertiaryIntent();
+      case '≡':
+        return const AppMenuIntent();
+      case 'LB':
+        return const AppLeftBumperIntent();
+      case 'RB':
+        return const AppRightBumperIntent();
+      case 'LT':
+        return const AppLeftTriggerIntent();
+      case 'RT':
+        return const AppRightTriggerIntent();
+      default:
+        return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showHints = ref.watch(showGamepadHintsProvider);
     if (!showHints) return const SizedBox.shrink();
 
-    // The Magic: We listen to whatever the currently focused widget wants to display!
     final focusedHints = ref.watch(focusedGamepadHintsProvider);
-    
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    // The safe fallback hints if nothing special is focused
     final defaultHints = [
-      GamepadHint(buttonLabel: 'A', actionLabel: 'Select', buttonColor: Colors.greenAccent.shade400),
-      GamepadHint(buttonLabel: 'B', actionLabel: l10n?.cancel ?? 'Back', buttonColor: Colors.redAccent.shade400),
-      GamepadHint(buttonLabel: '≡', actionLabel: 'Menu', buttonColor: Colors.white),
+      GamepadHint(
+        buttonLabel: 'A',
+        actionLabel: 'Select',
+        buttonColor: Colors.greenAccent.shade400,
+      ),
+      GamepadHint(
+        buttonLabel: 'B',
+        actionLabel: l10n?.cancel ?? 'Back',
+        buttonColor: Colors.redAccent.shade400,
+      ),
+      const GamepadHint(
+        buttonLabel: '≡',
+        actionLabel: 'Menu',
+        buttonColor: Colors.white,
+      ),
     ];
 
-    // Priority: 1. Focused Widget -> 2. Screen-Level Overlay -> 3. Global Defaults
     final hintsToDisplay = focusedHints ?? customHints ?? defaultHints;
 
-    return IgnorePointer(
+    return ExcludeFocus(
+      excluding: true,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        // Increased bottom padding to avoid Toast Overlap
+        padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 24),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLowest,
           border: Border(
@@ -72,7 +108,7 @@ class GamepadHintsOverlay extends ConsumerWidget {
           children: hintsToDisplay.map((hint) {
             return Padding(
               padding: EdgeInsets.only(
-                right: hint == hintsToDisplay.last ? 0 : 24,
+                right: hint == hintsToDisplay.last ? 0 : 16,
               ),
               child: _buildHintItem(context, hint),
             );
@@ -83,7 +119,9 @@ class GamepadHintsOverlay extends ConsumerWidget {
   }
 
   Widget _buildHintItem(BuildContext context, GamepadHint hint) {
-    return Row(
+    final intent = _getIntentForButton(hint.buttonLabel);
+
+    final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -111,13 +149,38 @@ class GamepadHintsOverlay extends ConsumerWidget {
         Text(
           hint.actionLabel,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.7),
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
         ),
       ],
+    );
+
+    if (intent != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            final targetContext =
+                FocusManager.instance.primaryFocus?.context ?? context;
+            Actions.maybeInvoke(targetContext, intent);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            child: content,
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: content,
     );
   }
 }

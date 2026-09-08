@@ -1,57 +1,205 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skystream/core/input/gamepad_actions.dart';
 import 'package:skystream/core/providers/device_info_provider.dart';
 import 'package:skystream/core/utils/layout_constants.dart';
 import 'package:skystream/core/utils/responsive_breakpoints.dart';
 import 'package:skystream/shared/widgets/custom_bottom_nav.dart';
+import 'package:skystream/shared/widgets/app_sidebar.dart';
+
 import 'package:skystream/l10n/generated/app_localizations.dart';
+import 'package:skystream/shared/widgets/global_system_menu.dart';
 import '../../features/settings/presentation/general_settings_provider.dart';
 import 'loading_indicator.dart';
 
 import 'package:skystream/shared/widgets/gamepad_hints_overlay.dart';
+import 'package:skystream/features/settings/presentation/big_picture_provider.dart';
+import 'package:skystream/core/input/gamepad_intents.dart';
 
-class AppScaffold extends ConsumerWidget {
+class AppScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
   const AppScaffold({super.key, required this.navigationShell});
 
-  int _getRouteIndex(String route) {
-    switch (route) {
-      case '/home': return 0;
-      case '/search': return 1;
-      case '/explore': return 2;
-      case '/library': return 3;
-      case '/settings': return 4;
-      default: return 0;
+  @override
+  ConsumerState<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends ConsumerState<AppScaffold> {
+  late final List<FocusNode> _sidebarNodes = List.generate(
+    kSidebarDestinationCount,
+    (i) => FocusNode(debugLabel: 'sidebar_$i'),
+  );
+
+  bool _isGlobalMenuVisible = false;
+
+  @override
+  void dispose() {
+    for (final n in _sidebarNodes) {
+      n.dispose();
     }
+    super.dispose();
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
+    setState(() {
+      _isGlobalMenuVisible = false;
+    });
+  }
+
+  int _getRouteIndex(String route) {
+    switch (route) {
+      case '/home':
+        return 0;
+      case '/search':
+        return 1;
+      case '/explore':
+        return 2;
+      case '/library':
+        return 3;
+      case '/settings':
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
+  void _toggleMenu(bool isBigPicture) {
+    if (!isBigPicture) return;
+    GlobalSystemMenu.toggle(context);
+  }
+
+  KeyEventResult _onContentKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey != LogicalKeyboardKey.arrowLeft) {
+      return KeyEventResult.ignored;
+    }
+    final primary = FocusManager.instance.primaryFocus;
+    if (primary == null) return KeyEventResult.ignored;
+
+    final moved = primary.focusInDirection(TraversalDirection.left);
+    if (moved) {
+      return KeyEventResult.handled;
+    }
+
+    final isBigPicture = ref.read(bigPictureModeProvider).isEnabled;
+
+    if (isBigPicture) {
+      GlobalSystemMenu.toggle(context);
+      return KeyEventResult.handled;
+    } else {
+      final idx = widget.navigationShell.currentIndex;
+      if (idx < 0 || idx >= _sidebarNodes.length) return KeyEventResult.ignored;
+
+      final target = _sidebarNodes[idx];
+      if (!target.canRequestFocus) return KeyEventResult.ignored;
+
+      target.requestFocus();
+      return KeyEventResult.handled;
+    }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final deviceProfileAsync = ref.watch(deviceProfileProvider);
     final defaultHome = ref.watch(
       generalSettingsProvider.select((s) => s.defaultHomeScreen),
     );
     final defaultIndex = _getRouteIndex(defaultHome);
-    final isAtDefaultHome = navigationShell.currentIndex == defaultIndex;
+    final isAtDefaultHome = widget.navigationShell.currentIndex == defaultIndex;
+
+    final isBigPicture = ref.watch(bigPictureModeProvider).isEnabled;
 
     return deviceProfileAsync.when(
       data: (profile) {
+        // FORK 1: Big Picture Layout
+        if (isBigPicture) {
+          return Actions(
+            actions: <Type, Action<Intent>>{
+              AppMenuIntent: CallbackAction<AppMenuIntent>(
+                onInvoke: (_) {
+                  _toggleMenu(isBigPicture);
+                  return null;
+                },
+              ),
+              AppBackIntent: CallbackAction<AppBackIntent>(
+                onInvoke: (_) {
+                  if (_isGlobalMenuVisible) {
+                    setState(() => _isGlobalMenuVisible = false);
+                    return null;
+                  }
+                  return null;
+                },
+              ),
+            },
+            child: PopScope(
+              canPop: isAtDefaultHome && !_isGlobalMenuVisible,
+              onPopInvokedWithResult: (didPop, result) {
+                if (!didPop) {
+                  if (_isGlobalMenuVisible) {
+                    setState(() => _isGlobalMenuVisible = false);
+                  } else {
+                    widget.navigationShell.goBranch(defaultIndex);
+                  }
+                }
+              },
+              child: _BigPictureCursorManager(
+                child: Scaffold(
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  body: SafeArea(
+                    bottom: false,
+                    child: Stack(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: FocusTraversalGroup(
+                                policy: WidgetOrderTraversalPolicy(),
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  skipTraversal: true,
+                                  onKeyEvent: _onContentKeyEvent,
+                                  child: widget.navigationShell,
+                                ),
+                              ),
+                            ),
+                            const GamepadHintsOverlay(),
+                          ],
+                        ),
+
+                        if (_isGlobalMenuVisible)
+                          Positioned.fill(
+                            child: GlobalSystemMenu(
+                              currentLocation: GoRouterState.of(
+                                context,
+                              ).uri.path,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // FORK 2: Classic Upstream Desktop / Tablet Layout
         if (profile.isTv || context.isTabletOrLarger) {
-          // 📺 TV & Desktop Layout - 100% Immersive Edge-to-Edge!
           return PopScope(
             canPop: isAtDefaultHome,
             onPopInvokedWithResult: (didPop, result) {
               if (!didPop) {
-                navigationShell.goBranch(defaultIndex);
+                widget.navigationShell.goBranch(defaultIndex);
               }
             },
             child: Listener(
@@ -96,7 +244,6 @@ class AppScaffold extends ConsumerWidget {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        // Content in its own traversal group, positioned first (bottom layer)
                         Positioned.fill(
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -113,7 +260,6 @@ class AppScaffold extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        // Sidebar in its own traversal group, positioned second (top layer)
                         Positioned(
                           left: 0,
                           top: 0,
@@ -138,19 +284,42 @@ class AppScaffold extends ConsumerWidget {
           );
         }
 
-        // 📱 Mobile uses Bottom Navigation
+        // FORK 3: Mobile uses Bottom Navigation
+        final bottomInset = CustomBottomNavBar.bottomInsetFor(context);
+        final navBarTotalHeight = CustomBottomNavBar.height + bottomInset;
+        final mq = MediaQuery.of(context);
+
         return PopScope(
           canPop: isAtDefaultHome,
           onPopInvokedWithResult: (didPop, result) {
             if (!didPop) {
-              navigationShell.goBranch(defaultIndex);
+              widget.navigationShell.goBranch(defaultIndex);
             }
           },
           child: Scaffold(
-            body: navigationShell,
-            bottomNavigationBar: CustomBottomNavBar(
-              currentIndex: navigationShell.currentIndex,
-              onTap: (index) => _onItemTapped(index, context),
+            resizeToAvoidBottomInset: false,
+            extendBody: true,
+            body: MediaQuery(
+              data: mq.copyWith(
+                padding: mq.padding.copyWith(
+                  bottom: mq.padding.bottom + navBarTotalHeight,
+                ),
+                viewPadding: mq.viewPadding.copyWith(
+                  bottom: mq.viewPadding.bottom + navBarTotalHeight,
+                ),
+              ),
+              child: widget.navigationShell,
+            ),
+            bottomNavigationBar: Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                bottom: bottomInset,
+              ),
+              child: CustomBottomNavBar(
+                currentIndex: widget.navigationShell.currentIndex,
+                onTap: (index) => _onItemTapped(index, context),
+              ),
             ),
           ),
         );
@@ -162,6 +331,68 @@ class AppScaffold extends ConsumerWidget {
             AppLocalizations.of(context)!.errorPrefix(err.toString()),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BigPictureCursorManager extends StatefulWidget {
+  final Widget child;
+  const _BigPictureCursorManager({required this.child});
+
+  @override
+  State<_BigPictureCursorManager> createState() =>
+      _BigPictureCursorManagerState();
+}
+
+class _BigPictureCursorManagerState extends State<_BigPictureCursorManager> {
+  Timer? _hideTimer;
+  bool _isHidden = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer(); // Start countdown as soon as Big Picture opens
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    // If the mouse was hidden, instantly reveal it and restore interaction
+    if (_isHidden && mounted) {
+      setState(() => _isHidden = false);
+    }
+
+    // Reset the 3-second countdown
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _isHidden = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerHover: (_) => _startTimer(), // Catches mouse movement
+      onPointerDown: (_) =>
+          _startTimer(), // Catches mouse clicks / screen touches
+      onPointerMove: (_) => _startTimer(), // Catches touch dragging
+      child: Stack(
+        children: [
+          IgnorePointer(ignoring: _isHidden, child: widget.child),
+          Positioned.fill(
+            child: MouseRegion(
+              cursor: _isHidden ? SystemMouseCursors.none : MouseCursor.defer,
+              hitTestBehavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ],
       ),
     );
   }
