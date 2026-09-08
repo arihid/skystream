@@ -149,6 +149,7 @@ class StorageService {
     return _settingsBox.get('theme_mode') as String?;
   }
 
+
   // --- Sidebar State ---
   Future<void> setSidebarExpanded(bool expanded) async {
     await _settingsBox.put('sidebar_expanded', expanded);
@@ -165,6 +166,48 @@ class StorageService {
   String getDefaultHomeScreen() {
     return _settingsBox.get('default_home_screen', defaultValue: '/home')
         as String;
+  }
+
+  Future<void> setDownloadDirectory(String? path) async {
+    if (path == null || path.trim().isEmpty) {
+      await _settingsBox.delete('download_directory');
+    } else {
+      await _settingsBox.put('download_directory', path);
+    }
+  }
+
+  String? getDownloadDirectory() {
+    return _settingsBox.get('download_directory') as String?;
+  }
+
+  Future<void> setDownloadConcurrency(int value) async {
+    await _settingsBox.put('download_concurrency', value.clamp(1, 10));
+  }
+
+  int getDownloadConcurrency() {
+    return (_settingsBox.get('download_concurrency', defaultValue: 3) as int)
+        .clamp(1, 10);
+  }
+
+  Future<void> setDownloadChunks(int value) async {
+    await _settingsBox.put('download_chunks', value.clamp(1, 8));
+  }
+
+  int getDownloadChunks() {
+    return (_settingsBox.get('download_chunks', defaultValue: 1) as int).clamp(
+      1,
+      8,
+    );
+  }
+
+  Future<void> setTitlePosition(String position) async {
+    await _settingsBox.put('title_position', position);
+  }
+
+  String getTitlePosition() {
+    return (_settingsBox.get('title_position', defaultValue: 'below')
+            as String?) ??
+        'below';
   }
 
   Future<void> setDevLoadAssets(bool enabled) async {
@@ -261,8 +304,7 @@ class StorageService {
   }
 
   bool isAlwaysOnTop() {
-    return (_settingsBox.get('always_on_top', defaultValue: false)
-            as bool?) ??
+    return (_settingsBox.get('always_on_top', defaultValue: false) as bool?) ??
         false;
   }
 
@@ -373,9 +415,12 @@ class StorageService {
     // Save main entry (keyed by series/movie URL)
     await _historyBox.put(_getKey(item.url), entry);
 
-    // If it's a series and we have an episode URL, save an episode-specific entry
-    if (item.contentType == MultimediaContentType.series &&
-        lastEpisodeUrl != null) {
+    // Save episode-specific progress for both series and anime.
+    final isSeries =
+        item.contentType == MultimediaContentType.series ||
+        item.contentType == MultimediaContentType.anime;
+
+    if (isSeries && lastEpisodeUrl != null) {
       final episodeKey = "EP_${_getKey(lastEpisodeUrl)}";
       await _historyBox.put(episodeKey, entry);
     }
@@ -667,6 +712,46 @@ class StorageService {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('Error deleting data: $e');
+    }
+  }
+
+  Future<int> computeImageVideoCacheBytes() async {
+    if (kIsWeb) return 0;
+    var total = 0;
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await for (final entity in tempDir.list(
+          recursive: true,
+          followLinks: false,
+        )) {
+          if (entity is File) {
+            try {
+              total += await entity.length();
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error computing cache size: $e');
+    }
+    return total;
+  }
+
+  Future<void> clearImageVideoCache() async {
+    if (kIsWeb) return;
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error clearing image cache: $e');
+    }
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error clearing temp dir: $e');
     }
   }
 }
